@@ -1,0 +1,214 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  firstName String
+  lastName  String
+  roleId    Int
+  role      Role     @relation(fields: [roleId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  orders    Order[]
+  purchaseOrders PurchaseOrder[] @relation("CreatedBy")
+}
+
+model Role {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  users     User[]
+}
+
+model Supplier {
+  id        String   @id @default(uuid())
+  name      String
+  address   String
+  phone     String   @unique
+  email     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  purchaseOrders PurchaseOrder[]
+}
+
+model PurchaseOrder {
+  id          String        @id @default(uuid())
+  supplierId  String
+  supplier    Supplier      @relation(fields: [supplierId], references: [id])
+  importDate  DateTime      @default(now())
+  totalCost   Int
+  status      String        @default("Pending")
+  note        String?
+  createdById Int?
+  createdBy   User?         @relation("CreatedBy", fields: [createdById], references: [id])
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @default(now()) @updatedAt
+  purchaseOrderDetails PurchaseOrderDetail[]
+}
+
+model PurchaseOrderDetail {
+  id              String        @id @default(uuid())
+  importId        String
+  import          PurchaseOrder @relation(fields: [importId], references: [id])
+  productId       String
+  product         Product       @relation(fields: [productId], references: [id])
+  colorId         String
+  color           Color         @relation(fields: [colorId], references: [id])
+  productIdentityId String      @unique
+  productIdentity ProductIdentity @relation(fields: [productIdentityId], references: [id])
+  importPrice     Int
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @default(now()) @updatedAt
+}
+
+model ProductIdentity {
+  id        String   @id @default(uuid())
+  imei      String   @unique
+  colorId   String
+  color     Color    @relation(fields: [colorId], references: [id])
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  isSold    Boolean  @default(false) @map("is_sold")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  orderDetail OrderDetail?
+  purchaseOrderDetail PurchaseOrderDetail?
+}
+
+model Product {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  price     Int
+  storage   Int
+  ram       Int
+  modelId   String
+  model     Model    @relation(fields: [modelId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  productIdentities ProductIdentity[]
+  orderDetails OrderDetail[]
+  purchaseOrderDetails PurchaseOrderDetail[]
+  productFiles ProductFiles[]
+}
+
+model Model {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String
+  brandId   String
+  brand     Brand    @relation(fields: [brandId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  products  Product[]
+  @@unique([name, brandId])
+}
+
+model Brand {
+  id        String   @id @default(uuid())
+  slug      String   @unique
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  models    Model[]
+}
+
+model Color {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  hex_code  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  productIdentities ProductIdentity[]
+  orderDetails OrderDetail[]
+  purchaseOrderDetails PurchaseOrderDetail[]
+}
+
+model File {
+  id          String   @id @default(uuid())
+  url         String
+  public_id   String   @unique
+  file_type   String   @default("image")
+  size        Int?
+  uploaded_at DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+  productFiles ProductFiles[]
+  slides      Slide[]
+}
+
+model ProductFiles {
+  productId String
+  fileId    String
+  product   Product  @relation(fields: [productId], references: [id])
+  file      File     @relation(fields: [fileId], references: [id])
+  isMain    Boolean  @default(false) @map("is_main")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  @@id([productId, fileId])
+}
+
+model Order {
+  id          String      @id @default(uuid())
+  userId      Int
+  user        User        @relation(fields: [userId], references: [id])
+  address     String
+  status      String      @default("Pending")
+  totalAmount Int         @map("total_amount")
+  note        String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @default(now()) @updatedAt
+  orderDetails OrderDetail[]
+}
+
+model OrderDetail {
+  id              String        @id @default(uuid())
+  orderId         String
+  order           Order         @relation(fields: [orderId], references: [id])
+  productId       String
+  product         Product       @relation(fields: [productId], references: [id])
+  colorId         String
+  color           Color         @relation(fields: [colorId], references: [id])
+  productIdentityId String      @unique
+  productIdentity ProductIdentity @relation(fields: [productIdentityId], references: [id])
+  price           Int
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @default(now()) @updatedAt
+}
+
+model Slide {
+  id          String   @id @default(uuid())
+  title       String?
+  description String?
+  imageId     String
+  image       File     @relation(fields: [imageId], references: [id])
+  link        String?
+  isActive    Boolean  @default(true) @map("is_active")
+  displayOrder Int     @default(0) @map("display_order")
+  startDate   DateTime? @map("start_date")
+  endDate     DateTime? @map("end_date")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now()) @updatedAt
+}
+
+model BlacklistToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
