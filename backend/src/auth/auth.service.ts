@@ -7,7 +7,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
-import * as bcrypt from 'bcryptjs'; // Hoặc bcrypt nếu bạn vẫn dùng bcrypt
+import * as bcrypt from 'bcryptjs';
 import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
@@ -40,6 +40,8 @@ export class AuthService {
         password: hashedPassword,
         firstName: dto.firstName,
         lastName: dto.lastName,
+        address: dto.address,
+        phoneNumber: dto.phoneNumber,
         roleId: dto.roleId,
       },
     });
@@ -55,6 +57,8 @@ export class AuthService {
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
+        address: user.address,
+        phoneNumber: user.phoneNumber,
         role: role.name,
       },
     };
@@ -85,6 +89,8 @@ export class AuthService {
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
+        address: user.address,
+        phoneNumber: user.phoneNumber,
         role: user.role.name,
       },
     };
@@ -99,13 +105,15 @@ export class AuthService {
       throw new BadRequestException('Token đã được vô hiệu hóa trước đó');
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const decoded = this.jwtService.decode(token);
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const expiresAt = new Date(decoded.exp * 1000);
 
     await this.prisma.blacklistToken.create({
       data: {
         token,
-        expiresAt, // Thêm expiresAt vào data
+        expiresAt,
       },
     });
 

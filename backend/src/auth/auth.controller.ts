@@ -26,7 +26,25 @@ export class AuthController {
 
   @Post('register')
   @ApiOperation({ summary: 'Đăng ký người dùng mới' })
-  @ApiResponse({ status: 201, description: 'Đăng ký thành công' })
+  @ApiResponse({
+    status: 201,
+    description: 'Đăng ký thành công',
+    schema: {
+      example: {
+        message: 'Đăng ký thành công',
+        accessToken: 'jwt-token-here',
+        user: {
+          id: 1,
+          email: 'user@example.com',
+          firstName: 'John',
+          lastName: 'Doe',
+          address: '123 Đường Láng, Đống Đa, Hà Nội',
+          phoneNumber: '0912345678',
+          role: 'USER',
+        },
+      },
+    },
+  })
   @ApiResponse({
     status: 400,
     description: 'Email đã tồn tại hoặc dữ liệu không hợp lệ',
@@ -38,7 +56,25 @@ export class AuthController {
   @Post('login')
   @HttpCode(200)
   @ApiOperation({ summary: 'Đăng nhập người dùng' })
-  @ApiResponse({ status: 200, description: 'Đăng nhập thành công' })
+  @ApiResponse({
+    status: 200,
+    description: 'Đăng nhập thành công',
+    schema: {
+      example: {
+        message: 'Đăng nhập thành công',
+        accessToken: 'jwt-token-here',
+        user: {
+          id: 1,
+          email: 'user@example.com',
+          firstName: 'John',
+          lastName: 'Doe',
+          address: '123 Đường Láng, Đống Đa, Hà Nội',
+          phoneNumber: '0912345678',
+          role: 'USER',
+        },
+      },
+    },
+  })
   @ApiResponse({ status: 401, description: 'Email hoặc mật khẩu không đúng' })
   async login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);

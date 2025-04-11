@@ -50,6 +50,7 @@ export class PurchaseOrdersController {
     @Body() createPurchaseOrderDto: CreatePurchaseOrderDto,
     @Request() req: any
   ) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
     const createdById = req.user?.userId; // Sửa id thành userId
     if (!createdById) {
       throw new UnauthorizedException('Không thể xác định người dùng từ token');

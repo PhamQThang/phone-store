@@ -19,7 +19,18 @@ export class ProductsService {
 
   // Tạo một sản phẩm mới
   async create(createProductDto: CreateProductDto) {
-    const { name, price, storage, ram, modelId, files } = createProductDto;
+    const {
+      name,
+      price,
+      storage,
+      ram,
+      screenSize,
+      battery,
+      chip,
+      operatingSystem,
+      modelId,
+      files,
+    } = createProductDto;
 
     // Kiểm tra model có tồn tại không
     const model = await this.prisma.model.findUnique({
@@ -33,7 +44,7 @@ export class ProductsService {
       const slug =
         name.toLowerCase().replace(/\s+/g, '-') + '-' + storage + 'gb';
 
-      // Tạo sản phẩm
+      // Tạo sản phẩm với các thuộc tính mới
       const product = await this.prisma.product.create({
         data: {
           name,
@@ -41,6 +52,10 @@ export class ProductsService {
           price,
           storage,
           ram,
+          screenSize,
+          battery,
+          chip,
+          operatingSystem,
           modelId,
         },
       });
@@ -153,7 +168,19 @@ export class ProductsService {
       throw new NotFoundException('Sản phẩm không tồn tại');
     }
 
-    const { name, price, storage, ram, modelId, files } = updateProductDto;
+    const {
+      name,
+      price,
+      storage,
+      ram,
+      screenSize,
+      battery,
+      chip,
+      operatingSystem,
+      modelId,
+      files,
+      filesToDelete,
+    } = updateProductDto;
 
     if (modelId) {
       const model = await this.prisma.model.findUnique({
@@ -164,13 +191,34 @@ export class ProductsService {
       }
     }
 
+    // Kiểm tra nếu không có thay đổi
+    const hasChanges =
+      name !== undefined ||
+      price !== undefined ||
+      storage !== undefined ||
+      ram !== undefined ||
+      screenSize !== undefined ||
+      battery !== undefined ||
+      chip !== undefined ||
+      operatingSystem !== undefined ||
+      modelId !== undefined ||
+      (files && files.length > 0) ||
+      (filesToDelete && filesToDelete.length > 0);
+
+    if (!hasChanges) {
+      return {
+        message: 'Không có thay đổi để cập nhật',
+        data: product,
+      };
+    }
+
     try {
       const slug =
         name && storage
           ? name.toLowerCase().replace(/\s+/g, '-') + '-' + storage + 'gb'
           : undefined;
 
-      // Cập nhật sản phẩm
+      // Cập nhật sản phẩm với các thuộc tính mới
       const updatedProduct = await this.prisma.product.update({
         where: { id },
         data: {
@@ -179,31 +227,48 @@ export class ProductsService {
           price: price || undefined,
           storage: storage || undefined,
           ram: ram || undefined,
+          screenSize: screenSize || undefined,
+          battery: battery || undefined,
+          chip: chip || undefined,
+          operatingSystem: operatingSystem || undefined,
           modelId: modelId || undefined,
         },
       });
 
-      // Upload ảnh mới nếu có
-      if (files && files.length > 0) {
-        // Xóa các ảnh cũ trên Cloudinary và trong database
-        const deletePromises = product.productFiles.map(async productFile => {
-          await this.cloudinaryService.deleteFile(productFile.file.public_id);
-          await this.prisma.productFiles.delete({
+      // Xóa các ảnh được chỉ định trong filesToDelete
+      if (filesToDelete && filesToDelete.length > 0) {
+        const deletePromises = filesToDelete.map(async fileId => {
+          const productFile = await this.prisma.productFiles.findUnique({
             where: {
               productId_fileId: {
                 productId: product.id,
-                fileId: productFile.fileId,
+                fileId,
               },
             },
+            include: { file: true },
           });
-          await this.prisma.file.delete({
-            where: { id: productFile.fileId },
-          });
+
+          if (productFile) {
+            await this.cloudinaryService.deleteFile(productFile.file.public_id);
+            await this.prisma.productFiles.delete({
+              where: {
+                productId_fileId: {
+                  productId: product.id,
+                  fileId,
+                },
+              },
+            });
+            await this.prisma.file.delete({
+              where: { id: fileId },
+            });
+          }
         });
 
         await Promise.all(deletePromises);
+      }
 
-        // Upload ảnh mới
+      // Thêm ảnh mới nếu có
+      if (files && files.length > 0) {
         const filePromises = files.map(async (file, index) => {
           const uploadResult = await this.cloudinaryService.uploadFile(file);
           const fileRecord = await this.prisma.file.create({
@@ -216,11 +281,12 @@ export class ProductsService {
             },
           });
 
+          // Liên kết file với sản phẩm qua bảng ProductFiles
           await this.prisma.productFiles.create({
             data: {
               productId: product.id,
               fileId: fileRecord.id,
-              isMain: index === 0,
+              isMain: product.productFiles.length === 0 && index === 0,
             },
           });
 
@@ -300,6 +366,57 @@ export class ProductsService {
         }
       }
       throw error;
+    }
+  }
+
+  // Xóa một file của sản phẩm
+  async removeFile(productId: string, fileId: string) {
+    const product = await this.prisma.product.findUnique({
+      where: { id: productId },
+    });
+
+    if (!product) {
+      throw new NotFoundException('Sản phẩm không tồn tại');
+    }
+
+    const productFile = await this.prisma.productFiles.findUnique({
+      where: {
+        productId_fileId: {
+          productId,
+          fileId,
+        },
+      },
+      include: { file: true },
+    });
+
+    if (!productFile) {
+      throw new NotFoundException('File không tồn tại');
+    }
+
+    try {
+      // Xóa file trên Cloudinary
+      await this.cloudinaryService.deleteFile(productFile.file.public_id);
+
+      // Xóa bản ghi trong ProductFiles
+      await this.prisma.productFiles.delete({
+        where: {
+          productId_fileId: {
+            productId,
+            fileId,
+          },
+        },
+      });
+
+      // Xóa bản ghi trong File
+      await this.prisma.file.delete({
+        where: { id: fileId },
+      });
+
+      return {
+        message: 'Xóa file thành công',
+      };
+    } catch (error) {
+      throw new BadRequestException('Lỗi khi xóa file');
     }
   }
 }

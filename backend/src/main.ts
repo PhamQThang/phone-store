@@ -8,6 +8,17 @@ import { ValidationPipe } from '@nestjs/common';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // Cấu hình CORS
+  app.enableCors({
+    origin: 'http://localhost:3000', // Địa chỉ frontend
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS', // Các phương thức được phép
+    allowedHeaders: 'Content-Type, Authorization, No-Auth', // Các header được phép
+    exposedHeaders: 'Authorization', // Các header được phép truy cập từ client
+    maxAge: 3600, // Thời gian cache CORS
+    preflightContinue: false, // Không cho phép tiếp tục sau khi preflight
+    credentials: true,
+  });
+
   // Cấu hình Validation Pipe
   app.useGlobalPipes(
     new ValidationPipe({

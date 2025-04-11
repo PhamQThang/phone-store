@@ -122,4 +122,23 @@ export class ProductsController {
   async remove(@Param('id') id: string) {
     return this.productsService.remove(id);
   }
+
+  @Delete(':productId/files/:fileId')
+  @UseGuards(RoleGuard)
+  @Roles('Admin')
+  @ApiOperation({ summary: 'Xóa một file của sản phẩm' })
+  @ApiResponse({ status: 200, description: 'Xóa file thành công' })
+  @ApiResponse({ status: 404, description: 'Sản phẩm hoặc file không tồn tại' })
+  @ApiResponse({ status: 400, description: 'Lỗi khi xóa file' })
+  @ApiResponse({ status: 401, description: 'Không được phép' })
+  @ApiResponse({
+    status: 403,
+    description: 'Bạn không có quyền thực hiện hành động này',
+  })
+  async removeFile(
+    @Param('productId') productId: string,
+    @Param('fileId') fileId: string
+  ) {
+    return this.productsService.removeFile(productId, fileId);
+  }
 }
