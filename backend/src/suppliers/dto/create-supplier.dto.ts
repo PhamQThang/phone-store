@@ -3,8 +3,8 @@ import {
   IsNotEmpty,
   IsString,
   IsEmail,
-  IsPhoneNumber,
   IsOptional,
+  Matches,
 } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -24,10 +24,12 @@ export class CreateSupplierDto {
 
   @ApiProperty({
     description: 'Số điện thoại của nhà cung cấp',
-    example: '+84987654321',
+    example: '0901234567',
   })
-  @IsPhoneNumber(null, { message: 'Số điện thoại không hợp lệ' })
-  @IsNotEmpty({ message: 'Số điện thoại không được để trống' })
+  @IsString({ message: 'Số điện thoại phải là chuỗi' })
+  @Matches(/^[0-9]{10,11}$/, {
+    message: 'Số điện thoại phải có 10-11 chữ số và chỉ chứa số',
+  })
   phone: string;
 
   @ApiProperty({

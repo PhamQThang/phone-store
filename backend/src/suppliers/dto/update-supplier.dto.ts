@@ -1,5 +1,11 @@
 // backend/src/suppliers/dto/update-supplier.dto.ts
-import { IsOptional, IsString, IsEmail, IsPhoneNumber } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsEmail,
+  IsPhoneNumber,
+  Matches,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class UpdateSupplierDto {
@@ -23,10 +29,13 @@ export class UpdateSupplierDto {
 
   @ApiProperty({
     description: 'Số điện thoại của nhà cung cấp',
-    example: '+84912345678',
+    example: '0901234567',
     required: false,
   })
-  @IsPhoneNumber(null, { message: 'Số điện thoại không hợp lệ' })
+  @IsString({ message: 'Số điện thoại phải là chuỗi' })
+  @Matches(/^[0-9]{10,11}$/, {
+    message: 'Số điện thoại phải có 10-11 chữ số và chỉ chứa số',
+  })
   @IsOptional()
   phone?: string;
 

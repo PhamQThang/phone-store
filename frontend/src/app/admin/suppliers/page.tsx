@@ -13,7 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash, Eye, Plus } from "lucide-react";
+import { Edit, Trash, Eye, Plus, Loader2 } from "lucide-react";
 import {
   Supplier,
   getSuppliers,
@@ -144,6 +144,20 @@ export default function SuppliersPage() {
     }
   };
 
+  // Mở form chỉnh sửa và lấy dữ liệu nhà cung cấp
+  const handleOpenEdit = async (id: string) => {
+    try {
+      const supplier = await getSupplierById(id); // Lấy dữ liệu mới nhất từ API
+      setSelectedSupplier(supplier);
+      setIsEditOpen(true);
+    } catch (error: any) {
+      toast.error("Lỗi khi lấy thông tin nhà cung cấp", {
+        description: error.message || "Vui lòng thử lại sau.",
+        duration: 2000,
+      });
+    }
+  };
+
   if (!role) {
     return (
       <p className="text-center text-gray-500">
@@ -170,7 +184,9 @@ export default function SuppliersPage() {
       </div>
 
       {loading ? (
-        <p className="text-center text-gray-500">Đang tải...</p>
+        <div className="flex justify-center items-center py-4">
+          <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
+        </div>
       ) : suppliers.length === 0 ? (
         <p className="text-center text-gray-500">Không có nhà cung cấp nào.</p>
       ) : (
@@ -230,10 +246,7 @@ export default function SuppliersPage() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => {
-                                setSelectedSupplier(supplier);
-                                setIsEditOpen(true);
-                              }}
+                              onClick={() => handleOpenEdit(supplier.id)} // Sử dụng hàm mới
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
@@ -294,10 +307,7 @@ export default function SuppliersPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => {
-                            setSelectedSupplier(supplier);
-                            setIsEditOpen(true);
-                          }}
+                          onClick={() => handleOpenEdit(supplier.id)} // Sử dụng hàm mới
                         >
                           <Edit className="h-4 w-4 mr-1" />
                           Sửa

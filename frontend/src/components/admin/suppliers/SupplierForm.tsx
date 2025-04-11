@@ -1,4 +1,7 @@
 // frontend/components/ui/admin/suppliers/SupplierForm.tsx
+"use client"; // Thêm "use client" vì đây là client component
+
+import { useEffect } from "react"; // Thêm useEffect
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -56,6 +59,25 @@ export function SupplierForm({
       email: initialData?.email || "",
     },
   });
+
+  // Reset form khi initialData thay đổi
+  useEffect(() => {
+    if (initialData) {
+      form.reset({
+        name: initialData.name || "",
+        address: initialData.address || "",
+        phone: initialData.phone || "",
+        email: initialData.email || "",
+      });
+    } else {
+      form.reset({
+        name: "",
+        address: "",
+        phone: "",
+        email: "",
+      });
+    }
+  }, [initialData, form]);
 
   const handleSubmit = async (values: z.infer<typeof supplierSchema>) => {
     const data = {
