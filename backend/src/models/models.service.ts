@@ -34,6 +34,7 @@ export class ModelsService {
           slug,
           brandId,
         },
+        include: { brand: true }, // Bao gồm thông tin brand trong response
       });
 
       return {
@@ -113,6 +114,7 @@ export class ModelsService {
           slug: slug || undefined,
           brandId: brandId || undefined,
         },
+        include: { brand: true }, // Bao gồm thông tin brand trong response
       });
 
       return {

@@ -23,9 +23,9 @@ import {
   getProductById,
 } from "@/api/admin/productsApi";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ProductForm } from "@/components/admin/products/ProductForm";
 import { ProductDetail } from "@/components/admin/products/ProductDetail";
 import { clearLocalStorage } from "@/lib/utils";
+import { ProductForm } from "@/components/admin/products/ProductForm";
 
 export default function ProductsPage() {
   const router = useRouter();

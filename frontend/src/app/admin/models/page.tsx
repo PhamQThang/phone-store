@@ -133,6 +133,20 @@ export default function ModelsPage() {
     }
   };
 
+  // Mở form chỉnh sửa và lấy dữ liệu model
+  const handleOpenEdit = async (id: string) => {
+    try {
+      const model = await getModelById(id); // Lấy dữ liệu mới nhất từ API
+      setSelectedModel(model);
+      setIsEditOpen(true);
+    } catch (error: any) {
+      toast.error("Lỗi khi lấy thông tin model", {
+        description: error.message || "Vui lòng thử lại sau.",
+        duration: 2000,
+      });
+    }
+  };
+
   if (!role) {
     return (
       <p className="text-center text-gray-500">
@@ -198,7 +212,7 @@ export default function ModelsPage() {
                       {model.slug}
                     </TableCell>
                     <TableCell className="text-xs sm:text-sm">
-                      {model.brand.name}
+                      {model.brand?.name || "Không có thương hiệu"}
                     </TableCell>
                     <TableCell className="text-xs sm:text-sm">
                       {new Date(model.createdAt).toLocaleDateString()}
@@ -217,10 +231,7 @@ export default function ModelsPage() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => {
-                                setSelectedModel(model);
-                                setIsEditOpen(true);
-                              }}
+                              onClick={() => handleOpenEdit(model.id)}
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
@@ -258,7 +269,8 @@ export default function ModelsPage() {
                     <strong>Slug:</strong> {model.slug}
                   </p>
                   <p>
-                    <strong>Thương hiệu:</strong> {model.brand.name}
+                    <strong>Thương hiệu:</strong>{" "}
+                    {model.brand?.name || "Không có thương hiệu"}
                   </p>
                   <p>
                     <strong>Ngày tạo:</strong>{" "}
@@ -278,10 +290,7 @@ export default function ModelsPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => {
-                            setSelectedModel(model);
-                            setIsEditOpen(true);
-                          }}
+                          onClick={() => handleOpenEdit(model.id)}
                         >
                           <Edit className="h-4 w-4 mr-1" />
                           Sửa

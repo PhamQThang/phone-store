@@ -132,6 +132,19 @@ export default function BrandsPage() {
     }
   };
 
+  const handleOpenEdit = async (id: string) => {
+    try {
+      const brand = await getBrandById(id);
+      setSelectedBrand(brand);
+      setIsEditOpen(true);
+    } catch (error: any) {
+      toast.error("Lỗi khi lấy thông tin thương hiệu", {
+        description: error.message || "Vui lòng thử lại sau.",
+        duration: 2000,
+      });
+    }
+  };
+
   if (!role) {
     return (
       <p className="text-center text-gray-500">
@@ -210,10 +223,7 @@ export default function BrandsPage() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => {
-                                setSelectedBrand(brand);
-                                setIsEditOpen(true);
-                              }}
+                              onClick={() => handleOpenEdit(brand.id)}
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
@@ -268,10 +278,7 @@ export default function BrandsPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => {
-                            setSelectedBrand(brand);
-                            setIsEditOpen(true);
-                          }}
+                          onClick={() => handleOpenEdit(brand.id)}
                         >
                           <Edit className="h-4 w-4 mr-1" />
                           Sửa
@@ -294,7 +301,6 @@ export default function BrandsPage() {
         </>
       )}
 
-      {/* Modal Thêm thương hiệu */}
       {role === "Admin" && (
         <BrandForm
           open={isAddOpen}
@@ -303,7 +309,6 @@ export default function BrandsPage() {
         />
       )}
 
-      {/* Modal Sửa thương hiệu */}
       {role === "Admin" && (
         <BrandForm
           open={isEditOpen}
@@ -313,7 +318,6 @@ export default function BrandsPage() {
         />
       )}
 
-      {/* Modal Xem chi tiết thương hiệu */}
       <BrandDetail
         open={isDetailOpen}
         onOpenChange={setIsDetailOpen}

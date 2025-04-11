@@ -1,8 +1,10 @@
 // frontend/components/ui/admin/models/ModelForm.tsx
+"use client"; // Thêm "use client" vì đây là client component
+
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -58,6 +60,21 @@ export function ModelForm({
       brandId: initialData?.brandId || "",
     },
   });
+
+  // Reset form khi initialData thay đổi
+  useEffect(() => {
+    if (initialData) {
+      form.reset({
+        name: initialData.name || "",
+        brandId: initialData.brandId || "",
+      });
+    } else {
+      form.reset({
+        name: "",
+        brandId: "",
+      });
+    }
+  }, [initialData, form]);
 
   // Lấy danh sách thương hiệu khi modal mở
   useEffect(() => {
@@ -127,7 +144,7 @@ export function ModelForm({
                   </FormLabel>
                   <Select
                     onValueChange={field.onChange}
-                    defaultValue={field.value}
+                    value={field.value} // Sử dụng value thay vì defaultValue để đảm bảo giá trị được cập nhật
                   >
                     <FormControl>
                       <SelectTrigger className="text-sm sm:text-base">

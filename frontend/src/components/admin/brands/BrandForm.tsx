@@ -1,4 +1,5 @@
-// frontend/components/ui/admin/brands/BrandForm.tsx
+"use client";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -43,6 +44,18 @@ export function BrandForm({
       name: initialData?.name || "",
     },
   });
+
+  useEffect(() => {
+    if (initialData) {
+      form.reset({
+        name: initialData.name || "",
+      });
+    } else {
+      form.reset({
+        name: "",
+      });
+    }
+  }, [initialData, form]);
 
   const handleSubmit = async (values: z.infer<typeof brandSchema>) => {
     await onSubmit(values);
