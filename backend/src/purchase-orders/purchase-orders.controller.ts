@@ -51,7 +51,7 @@ export class PurchaseOrdersController {
     @Request() req: any
   ) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
-    const createdById = req.user?.userId; // Sửa id thành userId
+    const createdById = req.user?.userId;
     if (!createdById) {
       throw new UnauthorizedException('Không thể xác định người dùng từ token');
     }
@@ -98,7 +98,7 @@ export class PurchaseOrdersController {
 
   @Patch(':id')
   @UseGuards(RoleGuard)
-  @Roles('Admin', 'Employee') // Chỉ Admin và Employee được cập nhật
+  @Roles('Admin', 'Employee')
   @ApiOperation({ summary: 'Cập nhật trạng thái đơn nhập hàng' })
   @ApiResponse({
     status: 200,
@@ -114,7 +114,14 @@ export class PurchaseOrdersController {
     @Param('id') id: string,
     @Body() updatePurchaseOrderDto: UpdatePurchaseOrderDto
   ) {
-    return this.purchaseOrdersService.update(id, updatePurchaseOrderDto);
+    const updatedOrder = await this.purchaseOrdersService.update(
+      id,
+      updatePurchaseOrderDto
+    );
+    return {
+      message: 'Cập nhật đơn nhập hàng thành công',
+      data: updatedOrder,
+    };
   }
 
   @Delete(':id')
@@ -134,5 +141,11 @@ export class PurchaseOrdersController {
   })
   async remove(@Param('id') id: string) {
     return this.purchaseOrdersService.remove(id);
+  }
+
+  @Get('details/:id')
+  async getPurchaseOrderDetail(@Param('id') id: string) {
+    const detail = await this.purchaseOrdersService.getPurchaseOrderDetail(id);
+    return { message: 'Lấy chi tiết đơn nhập hàng thành công', data: detail };
   }
 }

@@ -15,6 +15,12 @@ import Link from "next/link";
 // Menu items
 const items = [
   {
+    title: "Dashboard",
+    url: "/admin/dashboard",
+    icon: Package,
+    allowedRoles: ["Admin", "Employee"],
+  },
+  {
     title: "Quản lý thương hiệu",
     url: "/admin/brands",
     icon: Ban,
@@ -40,7 +46,7 @@ const items = [
   },
   {
     title: "Quản lý đơn hàng",
-    url: "/admin/orders",
+    url: "/admin/purchase-orders",
     icon: ShoppingCart,
     allowedRoles: ["Admin"],
   },

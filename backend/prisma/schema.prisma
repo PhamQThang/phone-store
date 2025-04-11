@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,19 +8,19 @@ datasource db {
 }
 
 model User {
-  id           Int             @id @default(autoincrement())
-  email        String          @unique
-  password     String
-  firstName    String
-  lastName     String
-  address      String?
-  phoneNumber  String?
-  roleId       Int
-  role         Role            @relation(fields: [roleId], references: [id])
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @default(now()) @updatedAt
-  orders       Order[]
+  id             Int             @id @default(autoincrement())
+  email          String          @unique
+  password       String
+  firstName      String
+  lastName       String
+  roleId         Int
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @default(now()) @updatedAt
+  address        String?
+  phoneNumber    String?
+  orders         Order[]
   purchaseOrders PurchaseOrder[] @relation("CreatedBy")
+  role           Role            @relation(fields: [roleId], references: [id])
 }
 
 model Role {
@@ -38,90 +32,94 @@ model Role {
 }
 
 model Supplier {
-  id        String   @id @default(uuid())
-  name      String
-  address   String
-  phone     String   @unique
-  email     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
+  id             String          @id @default(uuid())
+  name           String
+  address        String
+  phone          String          @unique
+  email          String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @default(now()) @updatedAt
   purchaseOrders PurchaseOrder[]
 }
 
 model PurchaseOrder {
-  id          String        @id @default(uuid())
-  supplierId  String
-  supplier    Supplier      @relation(fields: [supplierId], references: [id])
-  importDate  DateTime      @default(now())
-  totalCost   Int
-  status      String        @default("Pending")
-  note        String?
-  createdById Int?
-  createdBy   User?         @relation("CreatedBy", fields: [createdById], references: [id])
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @default(now()) @updatedAt
+  id                   String                @id @default(uuid())
+  supplierId           String
+  importDate           DateTime              @default(now())
+  totalCost            Int
+  status               String                @default("Pending")
+  note                 String?
+  createdById          Int?
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @default(now()) @updatedAt
+  createdBy            User?                 @relation("CreatedBy", fields: [createdById], references: [id])
+  supplier             Supplier              @relation(fields: [supplierId], references: [id])
   purchaseOrderDetails PurchaseOrderDetail[]
 }
 
 model PurchaseOrderDetail {
-  id              String        @id @default(uuid())
-  importId        String
-  import          PurchaseOrder @relation(fields: [importId], references: [id])
-  productId       String
-  product         Product       @relation(fields: [productId], references: [id])
-  colorId         String
-  color           Color         @relation(fields: [colorId], references: [id])
-  productIdentityId String      @unique
-  productIdentity ProductIdentity @relation(fields: [productIdentityId], references: [id])
-  importPrice     Int
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @default(now()) @updatedAt
+  id                String           @id @default(uuid())
+  importId          String
+  productId         String
+  colorId           String
+  productIdentityId String?          @unique
+  importPrice       Int
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @default(now()) @updatedAt
+  imei              String?
+  color             Color            @relation(fields: [colorId], references: [id])
+  import            PurchaseOrder    @relation(fields: [importId], references: [id])
+  product           Product          @relation(fields: [productId], references: [id])
+  productIdentity   ProductIdentity? @relation(fields: [productIdentityId], references: [id])
 }
 
 model ProductIdentity {
-  id        String   @id @default(uuid())
-  imei      String   @unique
-  colorId   String
-  color     Color    @relation(fields: [colorId], references: [id])
-  productId String
-  product   Product  @relation(fields: [productId], references: [id])
-  isSold    Boolean  @default(false) @map("is_sold")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
-  orderDetail OrderDetail?
+  id                  String               @id @default(uuid())
+  imei                String               @unique
+  colorId             String
+  productId           String
+  isSold              Boolean              @default(false) @map("is_sold")
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @default(now()) @updatedAt
+  orderDetail         OrderDetail?
+  color               Color                @relation(fields: [colorId], references: [id])
+  product             Product              @relation(fields: [productId], references: [id])
   purchaseOrderDetail PurchaseOrderDetail?
+
+  @@index([imei], map: "idx_product_identity_imei")
 }
 
 model Product {
-  id                  String               @id @default(uuid())
-  name                String
-  slug                String               @unique
-  price               Int
-  storage             Int
-  ram                 Int
-  screenSize          Float
-  battery             Int
-  chip                String
-  operatingSystem     String
-  modelId             String
-  model               Model                @relation(fields: [modelId], references: [id])
-  createdAt           DateTime             @default(now())
-  updatedAt           DateTime             @default(now()) @updatedAt
-  productIdentities   ProductIdentity[]
-  orderDetails        OrderDetail[]
+  id                   String                @id @default(uuid())
+  name                 String
+  slug                 String                @unique
+  price                Int
+  storage              Int
+  ram                  Int
+  screenSize           Float
+  battery              Int
+  chip                 String
+  operatingSystem      String
+  modelId              String
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @default(now()) @updatedAt
+  orderDetails         OrderDetail[]
+  model                Model                 @relation(fields: [modelId], references: [id])
+  productFiles         ProductFiles[]
+  productIdentities    ProductIdentity[]
   purchaseOrderDetails PurchaseOrderDetail[]
-  productFiles        ProductFiles[]
 }
 
 model Model {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   name      String
   slug      String
   brandId   String
-  brand     Brand    @relation(fields: [brandId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @default(now()) @updatedAt
+  brand     Brand     @relation(fields: [brandId], references: [id])
   products  Product[]
+
   @@unique([name, brandId])
 }
 
@@ -135,80 +133,81 @@ model Brand {
 }
 
 model Color {
-  id        String   @id @default(uuid())
-  name      String   @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
-  productIdentities ProductIdentity[]
-  orderDetails OrderDetail[]
+  id                   String                @id @default(uuid())
+  name                 String                @unique
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @default(now()) @updatedAt
+  orderDetails         OrderDetail[]
+  productIdentities    ProductIdentity[]
   purchaseOrderDetails PurchaseOrderDetail[]
 }
 
 model File {
-  id          String   @id @default(uuid())
-  url         String
-  public_id   String   @unique
-  file_type   String   @default("image")
-  size        Int?
-  uploaded_at DateTime @default(now())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @default(now()) @updatedAt
+  id           String         @id @default(uuid())
+  url          String
+  public_id    String         @unique
+  file_type    String         @default("image")
+  size         Int?
+  uploaded_at  DateTime       @default(now())
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @default(now()) @updatedAt
   productFiles ProductFiles[]
-  slides      Slide[]
+  slides       Slide[]
 }
 
 model ProductFiles {
   productId String
   fileId    String
-  product   Product  @relation(fields: [productId], references: [id])
-  file      File     @relation(fields: [fileId], references: [id])
   isMain    Boolean  @default(false) @map("is_main")
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
+  file      File     @relation(fields: [fileId], references: [id])
+  product   Product  @relation(fields: [productId], references: [id])
+
   @@id([productId, fileId])
 }
 
 model Order {
-  id          String      @id @default(uuid())
-  userId      Int
-  user        User        @relation(fields: [userId], references: [id])
-  address     String
-  status      String      @default("Pending")
-  totalAmount Int         @map("total_amount")
-  note        String?
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @default(now()) @updatedAt
+  id           String        @id @default(uuid())
+  userId       Int
+  address      String
+  status       String        @default("Pending")
+  totalAmount  Int           @map("total_amount")
+  note         String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @default(now()) @updatedAt
+  user         User          @relation(fields: [userId], references: [id])
   orderDetails OrderDetail[]
 }
 
 model OrderDetail {
-  id              String        @id @default(uuid())
-  orderId         String
-  order           Order         @relation(fields: [orderId], references: [id])
-  productId       String
-  product         Product       @relation(fields: [productId], references: [id])
-  colorId         String
-  color           Color         @relation(fields: [colorId], references: [id])
-  productIdentityId String      @unique
-  productIdentity ProductIdentity @relation(fields: [productIdentityId], references: [id])
-  price           Int
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @default(now()) @updatedAt
+  id                String          @id @default(uuid())
+  orderId           String
+  productId         String
+  colorId           String
+  productIdentityId String          @unique
+  price             Int
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @default(now()) @updatedAt
+  color             Color           @relation(fields: [colorId], references: [id])
+  order             Order           @relation(fields: [orderId], references: [id])
+  product           Product         @relation(fields: [productId], references: [id])
+  productIdentity   ProductIdentity @relation(fields: [productIdentityId], references: [id])
 }
 
 model Slide {
-  id          String   @id @default(uuid())
-  title       String?
-  description String?
-  imageId     String
-  image       File     @relation(fields: [imageId], references: [id])
-  link        String?
-  isActive    Boolean  @default(true) @map("is_active")
-  displayOrder Int     @default(0) @map("display_order")
-  startDate   DateTime? @map("start_date")
-  endDate     DateTime? @map("end_date")
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @default(now()) @updatedAt
+  id           String    @id @default(uuid())
+  title        String?
+  description  String?
+  imageId      String
+  link         String?
+  isActive     Boolean   @default(true) @map("is_active")
+  displayOrder Int       @default(0) @map("display_order")
+  startDate    DateTime? @map("start_date")
+  endDate      DateTime? @map("end_date")
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now()) @updatedAt
+  image        File      @relation(fields: [imageId], references: [id])
 }
 
 model BlacklistToken {
