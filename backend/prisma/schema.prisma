@@ -137,7 +137,6 @@ model Brand {
 model Color {
   id        String   @id @default(uuid())
   name      String   @unique
-  hex_code  String?
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
   productIdentities ProductIdentity[]
