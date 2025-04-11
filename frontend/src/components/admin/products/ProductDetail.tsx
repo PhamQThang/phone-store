@@ -49,6 +49,18 @@ export function ProductDetail({
             <strong>RAM:</strong> {product.ram} GB
           </div>
           <div>
+            <strong>Kích thước màn hình:</strong> {product.screenSize} inch
+          </div>
+          <div>
+            <strong>Dung lượng pin:</strong> {product.battery} mAh
+          </div>
+          <div>
+            <strong>Chip:</strong> {product.chip}
+          </div>
+          <div>
+            <strong>Hệ điều hành:</strong> {product.operatingSystem}
+          </div>
+          <div>
             <strong>Model:</strong> {product.model.name} (
             {product.model.brand.name})
           </div>

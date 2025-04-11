@@ -74,6 +74,10 @@ export default function ProductsPage() {
     price: number;
     storage: number;
     ram: number;
+    screenSize: number; // Thêm screenSize
+    battery: number; // Thêm battery
+    chip: string; // Thêm chip
+    operatingSystem: string; // Thêm operatingSystem
     modelId: string;
     files: FileList | null;
   }) => {
@@ -95,6 +99,10 @@ export default function ProductsPage() {
     price: number;
     storage: number;
     ram: number;
+    screenSize: number; // Thêm screenSize
+    battery: number; // Thêm battery
+    chip: string; // Thêm chip
+    operatingSystem: string; // Thêm operatingSystem
     modelId: string;
     files: FileList | null;
   }) => {
@@ -197,7 +205,6 @@ export default function ProductsPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  {/* <TableHead className="text-xs sm:text-sm">ID</TableHead> */}
                   <TableHead className="text-xs sm:text-sm">
                     Tên sản phẩm
                   </TableHead>
@@ -207,6 +214,14 @@ export default function ProductsPage() {
                     Dung lượng
                   </TableHead>
                   <TableHead className="text-xs sm:text-sm">RAM</TableHead>
+                  <TableHead className="text-xs sm:text-sm">
+                    Kích thước màn hình
+                  </TableHead>
+                  <TableHead className="text-xs sm:text-sm">Pin</TableHead>
+                  <TableHead className="text-xs sm:text-sm">Chip</TableHead>
+                  <TableHead className="text-xs sm:text-sm">
+                    Hệ điều hành
+                  </TableHead>
                   <TableHead className="text-xs sm:text-sm">Model</TableHead>
                   <TableHead className="text-xs sm:text-sm">Ngày tạo</TableHead>
                   <TableHead className="text-xs sm:text-sm">
@@ -217,9 +232,6 @@ export default function ProductsPage() {
               <TableBody>
                 {products.map((product) => (
                   <TableRow key={product.id}>
-                    {/* <TableCell className="text-xs sm:text-sm">
-                      {product.id}
-                    </TableCell> */}
                     <TableCell className="text-xs sm:text-sm">
                       {product.name}
                     </TableCell>
@@ -234,6 +246,18 @@ export default function ProductsPage() {
                     </TableCell>
                     <TableCell className="text-xs sm:text-sm">
                       {product.ram} GB
+                    </TableCell>
+                    <TableCell className="text-xs sm:text-sm">
+                      {product.screenSize} inch
+                    </TableCell>
+                    <TableCell className="text-xs sm:text-sm">
+                      {product.battery} mAh
+                    </TableCell>
+                    <TableCell className="text-xs sm:text-sm">
+                      {product.chip}
+                    </TableCell>
+                    <TableCell className="text-xs sm:text-sm">
+                      {product.operatingSystem}
                     </TableCell>
                     <TableCell className="text-xs sm:text-sm">
                       {product.model.name} ({product.model.brand.name})
@@ -255,7 +279,7 @@ export default function ProductsPage() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleOpenEdit(product.id)} // Sử dụng hàm mới
+                              onClick={() => handleOpenEdit(product.id)}
                             >
                               <Edit className="h-4 w-4" />
                             </Button>
@@ -302,6 +326,19 @@ export default function ProductsPage() {
                     <strong>RAM:</strong> {product.ram} GB
                   </p>
                   <p>
+                    <strong>Kích thước màn hình:</strong> {product.screenSize}{" "}
+                    inch
+                  </p>
+                  <p>
+                    <strong>Pin:</strong> {product.battery} mAh
+                  </p>
+                  <p>
+                    <strong>Chip:</strong> {product.chip}
+                  </p>
+                  <p>
+                    <strong>Hệ điều hành:</strong> {product.operatingSystem}
+                  </p>
+                  <p>
                     <strong>Model:</strong> {product.model.name} (
                     {product.model.brand.name})
                   </p>
@@ -323,7 +360,7 @@ export default function ProductsPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => handleOpenEdit(product.id)} // Sử dụng hàm mới
+                          onClick={() => handleOpenEdit(product.id)}
                         >
                           <Edit className="h-4 w-4 mr-1" />
                           Sửa
