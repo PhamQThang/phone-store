@@ -27,6 +27,7 @@ interface AuthResponse {
     address: string;
     phoneNumber: string;
     role: string;
+    cartId: string;
   };
 }
 

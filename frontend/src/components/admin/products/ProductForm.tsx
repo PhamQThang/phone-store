@@ -283,7 +283,7 @@ export function ProductForm({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+      <DialogContent className="w-full max-w-2xl p-4 sm:p-6 max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {initialData ? "Sửa sản phẩm" : "Thêm sản phẩm"}
@@ -297,6 +297,7 @@ export function ProductForm({
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
+              className="mt-1"
             />
           </div>
           <div>
@@ -307,6 +308,7 @@ export function ProductForm({
               value={price}
               onChange={(e) => setPrice(e.target.value)}
               required={!initialData}
+              className="mt-1"
             />
           </div>
           <div>
@@ -317,6 +319,7 @@ export function ProductForm({
               value={storage}
               onChange={(e) => setStorage(e.target.value)}
               required={!initialData}
+              className="mt-1"
             />
           </div>
           <div>
@@ -327,6 +330,7 @@ export function ProductForm({
               value={ram}
               onChange={(e) => setRam(e.target.value)}
               required={!initialData}
+              className="mt-1"
             />
           </div>
           <div>
@@ -338,6 +342,7 @@ export function ProductForm({
               value={screenSize}
               onChange={(e) => setScreenSize(e.target.value)}
               required={!initialData}
+              className="mt-1"
             />
           </div>
           <div>
@@ -348,6 +353,7 @@ export function ProductForm({
               value={battery}
               onChange={(e) => setBattery(e.target.value)}
               required={!initialData}
+              className="mt-1"
             />
           </div>
           <div>
@@ -357,6 +363,7 @@ export function ProductForm({
               value={chip}
               onChange={(e) => setChip(e.target.value)}
               required={!initialData}
+              className="mt-1"
             />
           </div>
           <div>
@@ -366,12 +373,13 @@ export function ProductForm({
               value={operatingSystem}
               onChange={(e) => setOperatingSystem(e.target.value)}
               required={!initialData}
+              className="mt-1"
             />
           </div>
           <div>
             <Label htmlFor="modelId">Model</Label>
             <Select value={modelId} onValueChange={setModelId} required>
-              <SelectTrigger>
+              <SelectTrigger className="mt-1">
                 <SelectValue placeholder="Chọn model" />
               </SelectTrigger>
               <SelectContent>
@@ -427,6 +435,7 @@ export function ProductForm({
               multiple
               onChange={handleFileChange}
               accept="image/*"
+              className="mt-1"
             />
           </div>
 

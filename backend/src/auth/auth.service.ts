@@ -1,4 +1,4 @@
-// backend/src/auth/auth.service.ts
+// src/auth/auth.service.ts
 import {
   Injectable,
   BadRequestException,
@@ -34,16 +34,26 @@ export class AuthService {
 
     const hashedPassword = await bcrypt.hash(dto.password, 10);
 
-    const user = await this.prisma.user.create({
-      data: {
-        email: dto.email,
-        password: hashedPassword,
-        firstName: dto.firstName,
-        lastName: dto.lastName,
-        address: dto.address,
-        phoneNumber: dto.phoneNumber,
-        roleId: dto.roleId,
-      },
+    const user = await this.prisma.$transaction(async prisma => {
+      const newUser = await prisma.user.create({
+        data: {
+          email: dto.email,
+          password: hashedPassword,
+          firstName: dto.firstName,
+          lastName: dto.lastName,
+          address: dto.address,
+          phoneNumber: dto.phoneNumber,
+          roleId: dto.roleId,
+        },
+      });
+
+      await prisma.cart.create({
+        data: {
+          userId: newUser.id,
+        },
+      });
+
+      return newUser;
     });
 
     const payload = { sub: user.id, email: user.email, role: role.name };
@@ -67,7 +77,7 @@ export class AuthService {
   async login(dto: LoginDto) {
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
-      include: { role: true },
+      include: { role: true, cart: true },
     });
     if (!user) {
       throw new UnauthorizedException('Email hoặc mật khẩu không đúng');
@@ -92,6 +102,7 @@ export class AuthService {
         address: user.address,
         phoneNumber: user.phoneNumber,
         role: user.role.name,
+        cartId: user.cart?.id,
       },
     };
   }
@@ -105,9 +116,7 @@ export class AuthService {
       throw new BadRequestException('Token đã được vô hiệu hóa trước đó');
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const decoded = this.jwtService.decode(token);
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const expiresAt = new Date(decoded.exp * 1000);
 
     await this.prisma.blacklistToken.create({

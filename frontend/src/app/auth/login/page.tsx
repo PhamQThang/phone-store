@@ -68,9 +68,9 @@ export default function LoginPage() {
         "fullName",
         `${response.user.firstName} ${response.user.lastName}`
       );
-      localStorage.setItem("address", response.user.address); // Lưu address
-      localStorage.setItem("phoneNumber", response.user.phoneNumber); // Lưu phoneNumber
-
+      localStorage.setItem("address", response.user.address);
+      localStorage.setItem("phoneNumber", response.user.phoneNumber);
+      localStorage.setItem("cartId", response.user.cartId);
       const role = response.user.role;
       if (!role) {
         throw new Error("Không nhận được vai trò từ server.");
@@ -87,7 +87,6 @@ export default function LoginPage() {
         duration: 2000,
       });
 
-      // Chuyển hướng dựa trên vai trò
       if (role === "Customer") {
         router.push("/client");
       } else {

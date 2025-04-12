@@ -21,6 +21,10 @@ model User {
   orders         Order[]
   purchaseOrders PurchaseOrder[] @relation("CreatedBy")
   role           Role            @relation(fields: [roleId], references: [id])
+  cart           Cart?           @relation("UserCart")
+  reviews        ProductReview[]
+  warranties     Warranty[]
+  returns        ProductReturn[]
 }
 
 model Role {
@@ -85,6 +89,8 @@ model ProductIdentity {
   color               Color                @relation(fields: [colorId], references: [id])
   product             Product              @relation(fields: [productId], references: [id])
   purchaseOrderDetail PurchaseOrderDetail?
+  warranties          Warranty[]
+  returns             ProductReturn[]
 
   @@index([imei], map: "idx_product_identity_imei")
 }
@@ -108,6 +114,9 @@ model Product {
   productFiles         ProductFiles[]
   productIdentities    ProductIdentity[]
   purchaseOrderDetails PurchaseOrderDetail[]
+  reviews              ProductReview[]
+  promotions           ProductPromotion[]
+  cartItems            CartItem[] // Thêm quan hệ ngược lại với CartItem
 }
 
 model Model {
@@ -140,6 +149,7 @@ model Color {
   orderDetails         OrderDetail[]
   productIdentities    ProductIdentity[]
   purchaseOrderDetails PurchaseOrderDetail[]
+  cartItems            CartItem[] // Thêm quan hệ ngược lại với CartItem
 }
 
 model File {
@@ -168,16 +178,19 @@ model ProductFiles {
 }
 
 model Order {
-  id           String        @id @default(uuid())
-  userId       Int
-  address      String
-  status       String        @default("Pending")
-  totalAmount  Int           @map("total_amount")
-  note         String?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @default(now()) @updatedAt
-  user         User          @relation(fields: [userId], references: [id])
-  orderDetails OrderDetail[]
+  id            String        @id @default(uuid())
+  userId        Int
+  address       String
+  status        String        @default("Pending")
+  totalAmount   Int           @map("total_amount")
+  paymentMethod String
+  paymentStatus String        @default("Pending")
+  note          String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @default(now()) @updatedAt
+  user          User          @relation(fields: [userId], references: [id])
+  orderDetails  OrderDetail[]
+  payment       Payment?
 }
 
 model OrderDetail {
@@ -215,4 +228,110 @@ model BlacklistToken {
   token     String   @unique
   expiresAt DateTime
   createdAt DateTime @default(now())
+}
+
+// Bảng giỏ hàng
+model Cart {
+  id         String     @id @default(uuid())
+  userId     Int        @unique
+  user       User       @relation("UserCart", fields: [userId], references: [id])
+  cartItems  CartItem[] @relation("CartItems")
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @default(now()) @updatedAt
+}
+
+model CartItem {
+  id        String   @id @default(uuid())
+  cartId    String
+  cart      Cart     @relation("CartItems", fields: [cartId], references: [id])
+  productId String
+  colorId   String
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  product   Product  @relation(fields: [productId], references: [id])
+  color     Color    @relation(fields: [colorId], references: [id])
+
+  @@unique([cartId, productId, colorId])
+}
+
+// Bảng đánh giá sản phẩm
+model ProductReview {
+  id        String   @id @default(uuid())
+  userId    Int
+  productId String
+  rating    Int      @default(5)
+  comment   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
+  product   Product  @relation(fields: [productId], references: [id])
+}
+
+// Bảng khuyến mãi
+model Promotion {
+  id          String             @id @default(uuid())
+  code        String             @unique
+  description String?
+  discount    Int
+  startDate   DateTime
+  endDate     DateTime
+  isActive    Boolean            @default(true) @map("is_active")
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @default(now()) @updatedAt
+  products    ProductPromotion[]
+}
+
+// Bảng liên kết giữa sản phẩm và khuyến mãi
+model ProductPromotion {
+  productId   String
+  promotionId String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt
+  product     Product   @relation(fields: [productId], references: [id])
+  promotion   Promotion @relation(fields: [promotionId], references: [id])
+
+  @@id([productId, promotionId])
+}
+
+// Bảng bảo hành
+model Warranty {
+  id                String          @id @default(uuid())
+  userId            Int
+  productIdentityId String
+  startDate         DateTime        @default(now())
+  endDate           DateTime
+  status            String          @default("Active")
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @default(now()) @updatedAt
+  user              User            @relation(fields: [userId], references: [id])
+  productIdentity   ProductIdentity @relation(fields: [productIdentityId], references: [id])
+}
+
+// Bảng đổi trả sản phẩm
+model ProductReturn {
+  id                String          @id @default(uuid())
+  userId            Int
+  productIdentityId String
+  reason            String
+  status            String          @default("Pending")
+  returnDate        DateTime        @default(now())
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @default(now()) @updatedAt
+  user              User            @relation(fields: [userId], references: [id])
+  productIdentity   ProductIdentity @relation(fields: [productIdentityId], references: [id])
+}
+
+// Bảng giao dịch thanh toán
+model Payment {
+  id              String    @id @default(uuid())
+  orderId         String    @unique
+  amount          Int
+  paymentMethod   String
+  status          String    @default("Pending")
+  transactionId   String?
+  transactionDate DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @default(now()) @updatedAt
+  order           Order     @relation(fields: [orderId], references: [id])
 }

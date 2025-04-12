@@ -12,4 +12,5 @@ export const clearLocalStorage = () => {
   localStorage.removeItem("fullName");
   localStorage.removeItem("address");
   localStorage.removeItem("phoneNumber");
+  localStorage.removeItem("cartId");
 };
