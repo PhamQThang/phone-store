@@ -38,7 +38,6 @@ import {
   PurchaseOrder,
   PurchaseOrderDetailInput,
 } from "@/api/admin/purchaseOrdersApi";
-import axiosInstance from "@/api/axiosConfig";
 
 const purchaseOrderDetailSchema = z.object({
   id: z.string().optional(),
@@ -78,39 +77,38 @@ export function PurchaseOrderForm({
     defaultValues: {
       supplierId: initialData?.supplierId || "",
       note: initialData?.note || "",
-      details:
-        initialData?.purchaseOrderDetails?.map((detail) => ({
-          id: detail.id,
-          productId: detail.productId,
-          colorId: detail.colorId,
-          imei: detail.imei || "",
-          importPrice: detail.importPrice,
-        })) || [],
+      details: [],
     },
   });
 
-  const { fields, append, remove, update } = useFieldArray({
+  const { fields, append, remove, replace } = useFieldArray({
     control: form.control,
     name: "details",
   });
 
   useEffect(() => {
     if (initialData) {
+      const validDetails = (initialData.purchaseOrderDetails || []).map(
+        (detail) => ({
+          id: detail.id,
+          productId: detail.productId,
+          colorId: detail.colorId,
+          imei: detail.imei || "",
+          importPrice: detail.importPrice,
+        })
+      );
+
       form.reset({
         supplierId: initialData.supplierId,
         note: initialData.note || "",
-        details:
-          initialData.purchaseOrderDetails?.map((detail) => ({
-            id: detail.id,
-            productId: detail.productId,
-            colorId: detail.colorId,
-            imei: detail.imei || "",
-            importPrice: detail.importPrice,
-          })) || [],
+        details: validDetails,
       });
+
+      replace(validDetails); // Đồng bộ useFieldArray với dữ liệu mới
+
       setDetailsToDelete([]);
     }
-  }, [initialData, form]);
+  }, [initialData, form, replace]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -136,10 +134,23 @@ export function PurchaseOrderForm({
   const handleSubmit = async (values: z.infer<typeof purchaseOrderSchema>) => {
     setLoading(true);
     try {
+      if (values.details && values.details.length === 0) {
+        toast.error("Vui lòng thêm ít nhất một sản phẩm vào đơn nhập hàng");
+        setLoading(false);
+        return;
+      }
+
       if (initialData) {
         const newDetails = values.details?.filter((detail) => !detail.id) || [];
         const updatedDetails =
           values.details?.filter((detail) => detail.id) || [];
+
+        console.log("Submitting values:", {
+          status: initialData.status,
+          details: newDetails,
+          detailsToDelete,
+          detailsToUpdate: updatedDetails,
+        }); // Thêm log để kiểm tra
 
         await updatePurchaseOrder(initialData.id, {
           status: initialData.status,
@@ -207,31 +218,18 @@ export function PurchaseOrderForm({
     }
   };
 
-  const handleDeleteDetail = async (index: number, detailId?: string) => {
-    if (detailId) {
-      try {
-        const response = await axiosInstance.get(
-          `/purchase-orders/details/${detailId}`
-        );
-        if (response.status === 200) {
-          setDetailsToDelete([...detailsToDelete, detailId]);
-        }
-      } catch (error: any) {
-        if (error.response?.status === 404) {
-          toast.error("Chi tiết đơn nhập hàng không tồn tại", {
-            description: "Sản phẩm này có thể đã bị xóa trước đó.",
-            duration: 2000,
-          });
-        } else {
-          toast.error("Lỗi khi kiểm tra chi tiết đơn nhập hàng", {
-            description: error.message || "Vui lòng thử lại sau.",
-            duration: 2000,
-          });
-        }
-        return;
-      }
+  const handleDeleteDetail = (index: number) => {
+    if (!confirm("Bạn có chắc chắn muốn xóa chi tiết này?")) {
+      return;
     }
+
+    const detail = form.getValues(`details.${index}`);
+    if (detail.id) {
+      setDetailsToDelete([...detailsToDelete, detail.id]);
+    }
+
     remove(index);
+    toast.success("Đã xóa chi tiết khỏi giao diện");
   };
 
   return (
@@ -322,7 +320,7 @@ export function PurchaseOrderForm({
                             <Select
                               onValueChange={field.onChange}
                               value={field.value}
-                              disabled={!!field.id}
+                              disabled={!!form.getValues(`details.${index}.id`)}
                             >
                               <SelectTrigger>
                                 <SelectValue placeholder="Chọn sản phẩm" />
@@ -356,7 +354,7 @@ export function PurchaseOrderForm({
                             <Select
                               onValueChange={field.onChange}
                               value={field.value}
-                              disabled={!!field.id}
+                              disabled={!!form.getValues(`details.${index}.id`)}
                             >
                               <SelectTrigger>
                                 <SelectValue placeholder="Chọn màu sắc" />
@@ -420,14 +418,13 @@ export function PurchaseOrderForm({
                       type="button"
                       variant="destructive"
                       size="sm"
-                      onClick={() => handleDeleteDetail(index, field.id)}
+                      onClick={() => handleDeleteDetail(index)}
                     >
                       Xóa sản phẩm
                     </Button>
                   </div>
                 ))
               )}
-              {/* Sửa điều kiện hiển thị nút "Thêm sản phẩm" */}
               {(!initialData || initialData?.status === "Pending") && (
                 <Button
                   type="button"

@@ -233,7 +233,6 @@ export class PurchaseOrdersService {
       updatePurchaseOrderDto;
 
     try {
-      // Tăng thời gian chờ của giao dịch lên 10 giây (10000ms)
       return await this.prisma.$transaction(
         async prisma => {
           const purchaseOrder = await prisma.purchaseOrder.findUnique({
@@ -254,10 +253,12 @@ export class PurchaseOrdersService {
           }
 
           // ===================== XÓA =====================
+          console.log('detailsToDelete:', detailsToDelete);
           if (detailsToDelete?.length) {
             const deleteDetails = await prisma.purchaseOrderDetail.findMany({
               where: { id: { in: detailsToDelete } },
             });
+            console.log('deleteDetails:', deleteDetails);
 
             for (const detail of deleteDetails) {
               if (detail.productIdentityId) {
@@ -267,10 +268,21 @@ export class PurchaseOrdersService {
               }
             }
 
-            await prisma.purchaseOrderDetail.deleteMany({
+            const deleteResult = await prisma.purchaseOrderDetail.deleteMany({
               where: { id: { in: detailsToDelete } },
             });
+            console.log('deleteResult:', deleteResult);
           }
+
+          // Lấy lại danh sách chi tiết còn lại sau khi xóa
+          const remainingDetailsAfterDelete =
+            await prisma.purchaseOrderDetail.findMany({
+              where: { importId: id },
+            });
+          console.log(
+            'remainingDetailsAfterDelete:',
+            remainingDetailsAfterDelete
+          );
 
           // ===================== CẬP NHẬT =====================
           if (detailsToUpdate?.length) {
@@ -332,6 +344,16 @@ export class PurchaseOrdersService {
             await Promise.all(updatePromises);
           }
 
+          // Lấy lại danh sách chi tiết sau khi cập nhật
+          const remainingDetailsAfterUpdate =
+            await prisma.purchaseOrderDetail.findMany({
+              where: { importId: id },
+            });
+          console.log(
+            'remainingDetailsAfterUpdate:',
+            remainingDetailsAfterUpdate
+          );
+
           // ===================== TẠO MỚI =====================
           let createdDetails: PurchaseOrderDetail[] = [];
 
@@ -386,15 +408,16 @@ export class PurchaseOrdersService {
           }
 
           // ===================== TÍNH TỔNG TIỀN =====================
-          const remainingDetails = purchaseOrder.purchaseOrderDetails.filter(
-            d => !detailsToDelete?.includes(d.id)
-          );
-          const allDetails = [...remainingDetails, ...createdDetails];
+          const finalDetails = await prisma.purchaseOrderDetail.findMany({
+            where: { importId: id },
+          });
+          console.log('finalDetails:', finalDetails);
 
-          const totalCost = allDetails.reduce(
+          const totalCost = finalDetails.reduce(
             (sum, d) => sum + d.importPrice,
             0
           );
+          console.log('Calculated totalCost:', totalCost);
 
           const updatedPurchaseOrder = await prisma.purchaseOrder.update({
             where: { id },
@@ -444,20 +467,10 @@ export class PurchaseOrdersService {
 
           return updatedPurchaseOrder;
         },
-        { timeout: 10000 } // Tăng thời gian chờ lên 10 giây
+        { timeout: 10000 }
       );
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError) {
-        if (error.code === 'P2002') {
-          throw new BadRequestException(
-            'Dữ liệu bị trùng (có thể là IMEI hoặc khóa chính): ' +
-              error.message
-          );
-        }
-        throw new BadRequestException(
-          `Không thể cập nhật đơn nhập hàng: ${error.message}`
-        );
-      }
+      console.error('Error in update:', error);
       throw error;
     }
   }

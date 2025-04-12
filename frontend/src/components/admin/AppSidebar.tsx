@@ -45,7 +45,7 @@ const items = [
     allowedRoles: ["Admin"],
   },
   {
-    title: "Quản lý đơn hàng",
+    title: "Quản lý đơn nhập hàng",
     url: "/admin/purchase-orders",
     icon: ShoppingCart,
     allowedRoles: ["Admin"],

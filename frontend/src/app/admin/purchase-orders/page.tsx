@@ -65,6 +65,7 @@ export default function PurchaseOrdersPage() {
     try {
       const data = await getPurchaseOrders();
       setPurchaseOrders(data);
+      setSelectedPurchaseOrder(null);
     } catch (error: any) {
       toast.error("Lỗi khi lấy danh sách đơn nhập hàng", {
         description: error.message || "Vui lòng thử lại sau.",
@@ -121,8 +122,8 @@ export default function PurchaseOrdersPage() {
       return;
     }
     try {
-      // Gọi API để lấy dữ liệu chi tiết của đơn nhập hàng
       const detailedOrder = await getPurchaseOrderById(order.id);
+      console.log("Initial data for edit:", detailedOrder); // Thêm log
       setSelectedPurchaseOrder(detailedOrder);
       setIsEditOpen(true);
     } catch (error: any) {
@@ -133,6 +134,12 @@ export default function PurchaseOrdersPage() {
     }
   };
 
+  const handleEditClose = (open: boolean) => {
+    setIsEditOpen(open);
+    if (!open) {
+      setSelectedPurchaseOrder(null);
+    }
+  };
   if (!role) {
     return (
       <p className="text-center text-gray-500">
@@ -367,7 +374,7 @@ export default function PurchaseOrdersPage() {
           />
           <PurchaseOrderForm
             open={isEditOpen}
-            onOpenChange={setIsEditOpen}
+            onOpenChange={handleEditClose}
             onSuccess={fetchPurchaseOrders}
             initialData={selectedPurchaseOrder || undefined}
           />

@@ -54,5 +54,5 @@ export class UpdatePurchaseOrderDto {
   })
   @IsArray({ message: 'Danh sách chi tiết cần chỉnh sửa phải là mảng' })
   @IsOptional()
-  detailsToUpdate?: PurchaseOrderDetailDto[]; // Thêm trường để chứa danh sách chi tiết cần chỉnh sửa
+  detailsToUpdate?: PurchaseOrderDetailDto[];
 }
