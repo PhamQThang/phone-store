@@ -1,4 +1,3 @@
-// frontend/api/admin/purchaseOrdersApi.ts
 import { PurchaseOrder } from "@/lib/types";
 import axiosInstance from "../axiosConfig";
 
@@ -24,32 +23,47 @@ export interface PurchaseOrderDetailInput {
 }
 
 // Lấy danh sách đơn nhập hàng
-export const getPurchaseOrders = async (): Promise<PurchaseOrder[]> => {
+export const getPurchaseOrders = async (
+  token: string
+): Promise<PurchaseOrder[]> => {
   const response: PurchaseOrdersResponse = await axiosInstance.get(
-    "/purchase-orders"
+    "/purchase-orders",
+    {
+      headers: { Authorization: `Bearer ${token}` },
+    }
   );
   return response.data;
 };
 
 // Lấy chi tiết một đơn nhập hàng
 export const getPurchaseOrderById = async (
-  id: string
+  id: string,
+  token: string
 ): Promise<PurchaseOrder> => {
   const response: PurchaseOrderResponse = await axiosInstance.get(
-    `/purchase-orders/${id}`
+    `/purchase-orders/${id}`,
+    {
+      headers: { Authorization: `Bearer ${token}` },
+    }
   );
   return response.data;
 };
 
 // Tạo đơn nhập hàng mới
-export const createPurchaseOrder = async (data: {
-  supplierId: string;
-  note?: string;
-  details: PurchaseOrderDetailInput[];
-}): Promise<PurchaseOrder> => {
+export const createPurchaseOrder = async (
+  data: {
+    supplierId: string;
+    note?: string;
+    details: PurchaseOrderDetailInput[];
+  },
+  token: string
+): Promise<PurchaseOrder> => {
   const response: PurchaseOrderResponse = await axiosInstance.post(
     "/purchase-orders",
-    data
+    data,
+    {
+      headers: { Authorization: `Bearer ${token}` },
+    }
   );
   return response.data;
 };
@@ -62,21 +76,29 @@ export const updatePurchaseOrder = async (
     details?: PurchaseOrderDetailInput[];
     detailsToDelete?: string[];
     detailsToUpdate?: (PurchaseOrderDetailInput & { id: string })[];
-  }
+  },
+  token: string
 ): Promise<PurchaseOrder> => {
   const response: PurchaseOrderResponse = await axiosInstance.patch(
     `/purchase-orders/${id}`,
-    data
+    data,
+    {
+      headers: { Authorization: `Bearer ${token}` },
+    }
   );
   return response.data;
 };
 
 // Xóa đơn nhập hàng
 export const deletePurchaseOrder = async (
-  id: string
+  id: string,
+  token: string
 ): Promise<DeleteResponse> => {
   const response: DeleteResponse = await axiosInstance.delete(
-    `/purchase-orders/${id}`
+    `/purchase-orders/${id}`,
+    {
+      headers: { Authorization: `Bearer ${token}` },
+    }
   );
   return response;
 };

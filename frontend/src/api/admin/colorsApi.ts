@@ -1,12 +1,15 @@
-// frontend/api/admin/colorsApi.ts
 import { Color } from "@/lib/types";
 import axiosInstance from "../axiosConfig";
+
 interface ColorsResponse {
   message: string;
   data: Color[];
 }
 
-export const getColors = async (): Promise<Color[]> => {
-  const response: ColorsResponse = await axiosInstance.get("/colors");
+// Lấy danh sách màu sắc
+export const getColors = async (token: string): Promise<Color[]> => {
+  const response: ColorsResponse = await axiosInstance.get("/colors", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
   return response.data;
 };

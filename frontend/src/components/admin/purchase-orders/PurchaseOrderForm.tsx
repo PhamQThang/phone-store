@@ -1,4 +1,3 @@
-// frontend/components/admin/purchase-orders/PurchaseOrderForm.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -32,11 +31,6 @@ import { toast } from "sonner";
 import { getSuppliers } from "@/api/admin/suppliersApi";
 import { getProducts } from "@/api/admin/productsApi";
 import { getColors } from "@/api/admin/colorsApi";
-import {
-  createPurchaseOrder,
-  updatePurchaseOrder,
-  PurchaseOrderDetailInput,
-} from "@/api/admin/purchaseOrdersApi";
 import { Color, Product, PurchaseOrder, Supplier } from "@/lib/types";
 
 const purchaseOrderDetailSchema = z.object({
@@ -56,20 +50,30 @@ const purchaseOrderSchema = z.object({
 interface PurchaseOrderFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSuccess: () => void;
+  onSubmit: (data: {
+    supplierId: string;
+    note?: string;
+    status?: string;
+    details: any[];
+    detailsToDelete: string[];
+    detailsToUpdate: any[];
+  }) => Promise<void>;
   initialData?: PurchaseOrder;
+  isLoading: boolean;
+  token: string; // Nhận token từ props
 }
 
 export function PurchaseOrderForm({
   open,
   onOpenChange,
-  onSuccess,
+  onSubmit,
   initialData,
+  isLoading,
+  token, // Nhận token từ props
 }: PurchaseOrderFormProps) {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [colors, setColors] = useState<Color[]>([]);
-  const [loading, setLoading] = useState(false);
   const [detailsToDelete, setDetailsToDelete] = useState<string[]>([]);
 
   const form = useForm<z.infer<typeof purchaseOrderSchema>>({
@@ -87,36 +91,15 @@ export function PurchaseOrderForm({
   });
 
   useEffect(() => {
-    if (initialData) {
-      const validDetails = (initialData.purchaseOrderDetails || []).map(
-        (detail) => ({
-          id: detail.id,
-          productId: detail.productId,
-          colorId: detail.colorId,
-          imei: detail.imei || "",
-          importPrice: detail.importPrice,
-        })
-      );
-
-      form.reset({
-        supplierId: initialData.supplierId,
-        note: initialData.note || "",
-        details: validDetails,
-      });
-
-      replace(validDetails);
-
-      setDetailsToDelete([]);
-    }
-  }, [initialData, form, replace]);
-
-  useEffect(() => {
     const fetchData = async () => {
       try {
+        if (!token) {
+          throw new Error("Không tìm thấy token xác thực");
+        }
         const [suppliersData, productsData, colorsData] = await Promise.all([
-          getSuppliers(),
-          getProducts(),
-          getColors(),
+          getSuppliers(token),
+          getProducts(undefined, undefined, token),
+          getColors(token),
         ]);
         setSuppliers(suppliersData);
         setProducts(productsData);
@@ -129,100 +112,64 @@ export function PurchaseOrderForm({
       }
     };
     fetchData();
-  }, []);
+  }, [token]);
 
-  const handleSubmit = async (values: z.infer<typeof purchaseOrderSchema>) => {
-    setLoading(true);
-    try {
-      if (values.details && values.details.length === 0) {
-        toast.error("Vui lòng thêm ít nhất một sản phẩm vào đơn nhập hàng");
-        setLoading(false);
-        return;
-      }
-
-      if (initialData) {
-        const newDetails = values.details?.filter((detail) => !detail.id) || [];
-        const updatedDetails =
-          values.details?.filter((detail) => detail.id) || [];
-
-        await updatePurchaseOrder(initialData.id, {
-          status: initialData.status,
-          details: newDetails.map((detail) => ({
-            productId: detail.productId,
-            colorId: detail.colorId,
-            imei: detail.imei,
-            importPrice: detail.importPrice,
-          })),
-          detailsToDelete,
-          detailsToUpdate: updatedDetails.map((detail) => ({
-            id: detail.id!,
-            productId: detail.productId,
-            colorId: detail.colorId,
-            imei: detail.imei,
-            importPrice: detail.importPrice,
-          })),
-        });
-        toast.success("Cập nhật đơn nhập hàng thành công");
-      } else {
-        const data = {
-          supplierId: values.supplierId,
-          note: values.note || undefined,
-          details: (values.details || []).map((detail) => ({
-            productId: detail.productId,
-            colorId: detail.colorId,
-            imei: detail.imei,
-            importPrice: detail.importPrice,
-          })) as PurchaseOrderDetailInput[],
-        };
-        await createPurchaseOrder(data);
-        toast.success("Tạo đơn nhập hàng thành công");
-      }
-      onSuccess();
-      onOpenChange(false);
-      form.reset();
+  useEffect(() => {
+    if (initialData) {
+      const validDetails = (initialData.purchaseOrderDetails || []).map(
+        (detail) => ({
+          id: detail.id,
+          productId: detail.productId,
+          colorId: detail.colorId,
+          imei: detail.imei || "",
+          importPrice: detail.importPrice,
+        })
+      );
+      form.reset({
+        supplierId: initialData.supplierId,
+        note: initialData.note || "",
+        details: validDetails,
+      });
+      replace(validDetails);
       setDetailsToDelete([]);
-    } catch (error: any) {
-      if (error.code === "ECONNABORTED") {
-        toast.warning("Yêu cầu mất quá nhiều thời gian", {
-          description:
-            "Dữ liệu có thể đã được lưu. Vui lòng kiểm tra lại danh sách đơn nhập hàng.",
-          duration: 3000,
-        });
-        onSuccess();
-        onOpenChange(false);
-        form.reset();
-        setDetailsToDelete([]);
-      } else {
-        toast.error(
-          initialData
-            ? "Cập nhật đơn nhập hàng thất bại"
-            : "Tạo đơn nhập hàng thất bại",
-          {
-            description:
-              error.response?.data?.message ||
-              error.message ||
-              "Vui lòng thử lại sau.",
-            duration: 2000,
-          }
-        );
-      }
-    } finally {
-      setLoading(false);
+    } else {
+      form.reset({
+        supplierId: "",
+        note: "",
+        details: [],
+      });
+      setDetailsToDelete([]);
     }
-  };
+  }, [initialData, form, replace]);
 
   const handleDeleteDetail = (index: number) => {
-    if (!confirm("Bạn có chắc chắn muốn xóa chi tiết này?")) {
-      return;
-    }
+    if (!confirm("Bạn có chắc chắn muốn xóa chi tiết này?")) return;
 
     const detail = form.getValues(`details.${index}`);
     if (detail.id) {
       setDetailsToDelete([...detailsToDelete, detail.id]);
     }
-
     remove(index);
     toast.success("Đã xóa chi tiết khỏi giao diện");
+  };
+
+  const handleSubmit = async (values: z.infer<typeof purchaseOrderSchema>) => {
+    if (!values.details || values.details.length === 0) {
+      toast.error("Vui lòng thêm ít nhất một sản phẩm vào đơn nhập hàng");
+      return;
+    }
+
+    const newDetails = values.details?.filter((detail) => !detail.id) || [];
+    const updatedDetails = values.details?.filter((detail) => detail.id) || [];
+
+    await onSubmit({
+      supplierId: values.supplierId,
+      note: values.note || undefined,
+      status: initialData?.status || "Pending",
+      details: newDetails,
+      detailsToDelete,
+      detailsToUpdate: updatedDetails,
+    });
   };
 
   return (
@@ -449,15 +396,20 @@ export function PurchaseOrderForm({
                   setDetailsToDelete([]);
                 }}
                 className="w-full sm:w-auto"
+                disabled={isLoading}
               >
                 Hủy
               </Button>
               <Button
                 type="submit"
                 className="w-full sm:w-auto"
-                disabled={loading}
+                disabled={isLoading}
               >
-                {loading ? "Đang xử lý..." : initialData ? "Cập nhật" : "Thêm"}
+                {isLoading
+                  ? "Đang xử lý..."
+                  : initialData
+                  ? "Cập nhật"
+                  : "Thêm"}
               </Button>
             </div>
           </form>

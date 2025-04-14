@@ -1,4 +1,4 @@
-// frontend/components/admin/suppliers/SupplierForm.tsx
+// components/admin/suppliers/SupplierForm.tsx
 "use client";
 
 import { useEffect } from "react";
@@ -22,6 +22,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Supplier } from "@/lib/types";
+import { Loader2 } from "lucide-react";
 
 const supplierSchema = z.object({
   name: z.string().min(2, "Tên nhà cung cấp phải có ít nhất 2 ký tự"),
@@ -42,6 +43,7 @@ interface SupplierFormProps {
     email?: string;
   }) => Promise<void>;
   initialData?: Supplier;
+  isLoading: boolean;
 }
 
 export function SupplierForm({
@@ -49,6 +51,7 @@ export function SupplierForm({
   onOpenChange,
   onSubmit,
   initialData,
+  isLoading,
 }: SupplierFormProps) {
   const form = useForm<z.infer<typeof supplierSchema>>({
     resolver: zodResolver(supplierSchema),
@@ -183,11 +186,25 @@ export function SupplierForm({
                 variant="outline"
                 onClick={() => onOpenChange(false)}
                 className="w-full sm:w-auto"
+                disabled={isLoading}
               >
                 Hủy
               </Button>
-              <Button type="submit" className="w-full sm:w-auto">
-                {initialData ? "Cập nhật" : "Thêm"}
+              <Button
+                type="submit"
+                className="w-full sm:w-auto"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Đang xử lý...
+                  </>
+                ) : initialData ? (
+                  "Cập nhật"
+                ) : (
+                  "Thêm"
+                )}
               </Button>
             </div>
           </form>

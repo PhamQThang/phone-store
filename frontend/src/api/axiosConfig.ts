@@ -1,4 +1,4 @@
-// axiosConfig.ts
+// api/axiosConfig.ts
 import axios, { AxiosInstance, AxiosError } from "axios";
 
 interface ApiError {
@@ -15,23 +15,6 @@ const axiosInstance: AxiosInstance = axios.create({
   timeout: 30000,
 });
 
-axiosInstance.interceptors.request.use(
-  (config) => {
-    if (config.headers["No-Auth"]) {
-      return config;
-    }
-
-    const token = localStorage.getItem("accessToken");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error: AxiosError) => {
-    return Promise.reject(error);
-  }
-);
-
 axiosInstance.interceptors.response.use(
   (response) => {
     return response.data;
@@ -43,16 +26,6 @@ axiosInstance.interceptors.response.use(
         error.response?.data?.message || error.message || "Đã có lỗi xảy ra",
       error: error.response?.data?.error || error.name,
     };
-
-    if (error.response?.status === 401) {
-      localStorage.removeItem("accessToken");
-      if (!error.config?.url?.includes("/auth/logout")) {
-        window.dispatchEvent(new Event("unauthorized"));
-        if (typeof window !== "undefined") {
-          window.location.href = "/auth/login";
-        }
-      }
-    }
 
     return Promise.reject(errorResponse);
   }

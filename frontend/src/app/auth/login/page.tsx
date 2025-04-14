@@ -28,6 +28,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { Mail, Lock, Loader2 } from "lucide-react";
 import { login } from "@/api/auth/authApi";
+import Cookies from "js-cookie";
 
 // Định nghĩa schema cho form
 const loginSchema = z.object({
@@ -60,17 +61,19 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const response = await login(values);
-
-      // Lưu thông tin user vào localStorage
-      localStorage.setItem("userEmail", response.user.email);
-      localStorage.setItem("role", response.user.role);
-      localStorage.setItem(
+      // Lưu thông tin vào cookies bằng js-cookie
+      Cookies.set("accessToken", response.accessToken, { path: "/" });
+      Cookies.set("userEmail", response.user.email, { path: "/" });
+      Cookies.set("role", response.user.role, { path: "/" });
+      Cookies.set(
         "fullName",
-        `${response.user.firstName} ${response.user.lastName}`
+        `${response.user.firstName} ${response.user.lastName}`,
+        { path: "/" }
       );
-      localStorage.setItem("address", response.user.address);
-      localStorage.setItem("phoneNumber", response.user.phoneNumber);
-      localStorage.setItem("cartId", response.user.cartId);
+      Cookies.set("address", response.user.address, { path: "/" });
+      Cookies.set("phoneNumber", response.user.phoneNumber, { path: "/" });
+      Cookies.set("cartId", response.user.cartId, { path: "/" });
+
       const role = response.user.role;
       if (!role) {
         throw new Error("Không nhận được vai trò từ server.");

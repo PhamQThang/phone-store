@@ -1,4 +1,4 @@
-// frontend/components/ui/admin/brands/BrandDetail.tsx
+// components/admin/brands/BrandDetail.tsx
 import {
   Dialog,
   DialogContent,

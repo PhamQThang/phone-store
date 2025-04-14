@@ -1,4 +1,3 @@
-// frontend/api/admin/slidesApi.ts
 import { Slide } from "@/lib/types";
 import axiosInstance from "../axiosConfig";
 
@@ -17,22 +16,33 @@ interface DeleteResponse {
 }
 
 // Lấy danh sách tất cả Slide
-export const getSlides = async (): Promise<Slide[]> => {
-  const response: SlidesResponse = await axiosInstance.get("/slides");
+export const getSlides = async (token: string): Promise<Slide[]> => {
+  const response: SlidesResponse = await axiosInstance.get("/slides", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
   return response.data;
 };
 
 // Lấy thông tin chi tiết một Slide theo ID
-export const getSlideById = async (id: string): Promise<Slide> => {
-  const response: SlideResponse = await axiosInstance.get(`/slides/${id}`);
+export const getSlideById = async (
+  id: string,
+  token: string
+): Promise<Slide> => {
+  const response: SlideResponse = await axiosInstance.get(`/slides/${id}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
   return response.data;
 };
 
 // Tạo một Slide mới
-export const createSlide = async (data: FormData): Promise<Slide> => {
+export const createSlide = async (
+  data: FormData,
+  token: string
+): Promise<Slide> => {
   const response: SlideResponse = await axiosInstance.post("/slides", data, {
     headers: {
       "Content-Type": "multipart/form-data",
+      Authorization: `Bearer ${token}`,
     },
   });
   return response.data;
@@ -41,7 +51,8 @@ export const createSlide = async (data: FormData): Promise<Slide> => {
 // Cập nhật thông tin một Slide
 export const updateSlide = async (
   id: string,
-  data: FormData
+  data: FormData,
+  token: string
 ): Promise<Slide> => {
   const response: SlideResponse = await axiosInstance.patch(
     `/slides/${id}`,
@@ -49,6 +60,7 @@ export const updateSlide = async (
     {
       headers: {
         "Content-Type": "multipart/form-data",
+        Authorization: `Bearer ${token}`,
       },
     }
   );
@@ -56,7 +68,12 @@ export const updateSlide = async (
 };
 
 // Xóa một Slide
-export const deleteSlide = async (id: string): Promise<DeleteResponse> => {
-  const response: DeleteResponse = await axiosInstance.delete(`/slides/${id}`);
+export const deleteSlide = async (
+  id: string,
+  token: string
+): Promise<DeleteResponse> => {
+  const response: DeleteResponse = await axiosInstance.delete(`/slides/${id}`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
   return response;
 };

@@ -41,17 +41,6 @@ export const register = async (data: RegisterDto): Promise<AuthResponse> => {
 
 export const login = async (data: LoginDto): Promise<AuthResponse> => {
   const response = await axiosInstance.post("/auth/login", data);
-
-  // Kiểm tra xem response có phải là lỗi hay không
-  if (response.statusCode && response.statusCode >= 400) {
-    throw new Error(response.message || "Đăng nhập thất bại");
-  }
-
-  if (!response.accessToken) {
-    throw new Error("Không nhận được accessToken từ server");
-  }
-
-  localStorage.setItem("accessToken", response.accessToken);
   return response;
 };
 
@@ -61,6 +50,5 @@ export const logout = async (): Promise<LogoutResponse> => {
     throw new Error("Không tìm thấy token");
   }
   const response = await axiosInstance.post("/auth/logout", { token });
-  localStorage.removeItem("accessToken");
   return response;
 };

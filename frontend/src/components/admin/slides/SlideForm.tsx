@@ -1,4 +1,3 @@
-// components/admin/slides/SlideForm.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -21,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { Trash } from "lucide-react";
 import Image from "next/image";
-import { File } from "@/lib/types";
+import { File as FileType } from "@/lib/types";
 
 interface SlideFormProps {
   open: boolean;
@@ -39,8 +38,10 @@ interface SlideFormProps {
     link: string;
     isActive: boolean;
     displayOrder: number;
-    image: File;
+    image: FileType;
   }>;
+  isLoading: boolean;
+  token: string;
 }
 
 export function SlideForm({
@@ -48,6 +49,8 @@ export function SlideForm({
   onOpenChange,
   onSubmit,
   initialData,
+  isLoading,
+  token,
 }: SlideFormProps) {
   const [title, setTitle] = useState("");
   const [link, setLink] = useState("");
@@ -55,8 +58,7 @@ export function SlideForm({
   const [displayOrder, setDisplayOrder] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
-  const [currentImage, setCurrentImage] = useState<File | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [currentImage, setCurrentImage] = useState<FileType | null>(null);
 
   // Cập nhật state khi initialData thay đổi
   useEffect(() => {
@@ -112,7 +114,6 @@ export function SlideForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
 
     try {
       const parsedDisplayOrder = parseInt(displayOrder) || 0;
@@ -149,7 +150,6 @@ export function SlideForm({
       // Kiểm tra nếu không có thay đổi và không có file mới
       if (initialData && Object.keys(data).length === 2 && data.file === null) {
         toast.info("Không có thay đổi để cập nhật");
-        setLoading(false);
         return;
       }
 
@@ -168,8 +168,6 @@ export function SlideForm({
         description: error.message || "Vui lòng thử lại sau.",
         duration: 2000,
       });
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -181,25 +179,31 @@ export function SlideForm({
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="title">Tiêu đề</Label>
+            <Label htmlFor="title" className="text-sm sm:text-base">
+              Tiêu đề
+            </Label>
             <Input
               id="title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="mt-1"
+              className="mt-1 text-sm sm:text-base"
             />
           </div>
           <div>
-            <Label htmlFor="link">Link</Label>
+            <Label htmlFor="link" className="text-sm sm:text-base">
+              Link
+            </Label>
             <Input
               id="link"
               value={link}
               onChange={(e) => setLink(e.target.value)}
-              className="mt-1"
+              className="mt-1 text-sm sm:text-base"
             />
           </div>
           <div>
-            <Label htmlFor="isActive">Trạng thái</Label>
+            <Label htmlFor="isActive" className="text-sm sm:text-base">
+              Trạng thái
+            </Label>
             <Select
               value={isActive.toString()}
               onValueChange={(value) => setIsActive(value === "true")}
@@ -214,21 +218,23 @@ export function SlideForm({
             </Select>
           </div>
           <div>
-            <Label htmlFor="displayOrder">Thứ tự hiển thị</Label>
+            <Label htmlFor="displayOrder" className="text-sm sm:text-base">
+              Thứ tự hiển thị
+            </Label>
             <Input
               id="displayOrder"
               type="number"
               value={displayOrder}
               onChange={(e) => setDisplayOrder(e.target.value)}
               required
-              className="mt-1"
+              className="mt-1 text-sm sm:text-base"
             />
           </div>
 
           {/* Hiển thị hình ảnh hiện tại */}
           {currentImage && (
             <div>
-              <Label>Hình ảnh hiện tại</Label>
+              <Label className="text-sm sm:text-base">Hình ảnh hiện tại</Label>
               <div className="relative w-full h-24 mt-2">
                 <Image
                   src={currentImage.url}
@@ -242,7 +248,9 @@ export function SlideForm({
 
           {/* Input để chọn file mới */}
           <div>
-            <Label htmlFor="file">Hình ảnh Slide</Label>
+            <Label htmlFor="file" className="text-sm sm:text-base">
+              Hình ảnh Slide
+            </Label>
             <Input
               id="file"
               type="file"
@@ -256,7 +264,9 @@ export function SlideForm({
           {/* Hiển thị preview của file mới đã chọn */}
           {file && preview && (
             <div>
-              <Label>Hình ảnh mới đã chọn</Label>
+              <Label className="text-sm sm:text-base">
+                Hình ảnh mới đã chọn
+              </Label>
               <div className="relative w-full h-24 mt-2">
                 <Image
                   src={preview}
@@ -277,9 +287,24 @@ export function SlideForm({
             </div>
           )}
 
-          <Button type="submit" disabled={loading}>
-            {loading ? "Đang xử lý..." : initialData ? "Cập nhật" : "Thêm"}
-          </Button>
+          <div className="flex justify-end space-x-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+              className="w-full sm:w-auto"
+              disabled={isLoading}
+            >
+              Hủy
+            </Button>
+            <Button
+              type="submit"
+              className="w-full sm:w-auto"
+              disabled={isLoading}
+            >
+              {isLoading ? "Đang xử lý..." : initialData ? "Cập nhật" : "Thêm"}
+            </Button>
+          </div>
         </form>
       </DialogContent>
     </Dialog>

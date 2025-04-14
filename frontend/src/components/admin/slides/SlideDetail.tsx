@@ -1,4 +1,3 @@
-// components/admin/slides/SlideDetail.tsx
 "use client";
 
 import {

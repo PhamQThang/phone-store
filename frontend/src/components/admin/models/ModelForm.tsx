@@ -1,7 +1,7 @@
-// frontend/components/admin/models/ModelForm.tsx
+// components/admin/models/ModelForm.tsx
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -28,9 +28,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getBrands } from "@/api/admin/brandsApi";
-import { toast } from "sonner";
 import { Brand, Model } from "@/lib/types";
+import { Loader2 } from "lucide-react";
 
 const modelSchema = z.object({
   name: z.string().min(2, "Tên model phải có ít nhất 2 ký tự"),
@@ -42,6 +41,8 @@ interface ModelFormProps {
   onOpenChange: (open: boolean) => void;
   onSubmit: (data: { name: string; brandId: string }) => Promise<void>;
   initialData?: Model;
+  brands: Brand[];
+  isLoading: boolean;
 }
 
 export function ModelForm({
@@ -49,10 +50,9 @@ export function ModelForm({
   onOpenChange,
   onSubmit,
   initialData,
+  brands,
+  isLoading,
 }: ModelFormProps) {
-  const [brands, setBrands] = useState<Brand[]>([]);
-  const [loadingBrands, setLoadingBrands] = useState(false);
-
   const form = useForm<z.infer<typeof modelSchema>>({
     resolver: zodResolver(modelSchema),
     defaultValues: {
@@ -75,27 +75,6 @@ export function ModelForm({
       });
     }
   }, [initialData, form]);
-
-  // Lấy danh sách thương hiệu khi modal mở
-  useEffect(() => {
-    if (open) {
-      const fetchBrands = async () => {
-        setLoadingBrands(true);
-        try {
-          const data = await getBrands();
-          setBrands(data);
-        } catch (error: any) {
-          toast.error("Lỗi khi lấy danh sách thương hiệu", {
-            description: error.message || "Vui lòng thử lại sau.",
-            duration: 2000,
-          });
-        } finally {
-          setLoadingBrands(false);
-        }
-      };
-      fetchBrands();
-    }
-  }, [open]);
 
   const handleSubmit = async (values: z.infer<typeof modelSchema>) => {
     await onSubmit(values);
@@ -142,17 +121,10 @@ export function ModelForm({
                   <FormLabel className="text-sm sm:text-base">
                     Thương hiệu
                   </FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    value={field.value} // Sử dụng value thay vì defaultValue để đảm bảo giá trị được cập nhật
-                  >
+                  <Select onValueChange={field.onChange} value={field.value}>
                     <FormControl>
                       <SelectTrigger className="text-sm sm:text-base">
-                        <SelectValue
-                          placeholder={
-                            loadingBrands ? "Đang tải..." : "Chọn thương hiệu"
-                          }
-                        />
+                        <SelectValue placeholder="Chọn thương hiệu" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -177,11 +149,25 @@ export function ModelForm({
                 variant="outline"
                 onClick={() => onOpenChange(false)}
                 className="w-full sm:w-auto"
+                disabled={isLoading}
               >
                 Hủy
               </Button>
-              <Button type="submit" className="w-full sm:w-auto">
-                {initialData ? "Cập nhật" : "Thêm"}
+              <Button
+                type="submit"
+                className="w-full sm:w-auto"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Đang xử lý...
+                  </>
+                ) : initialData ? (
+                  "Cập nhật"
+                ) : (
+                  "Thêm"
+                )}
               </Button>
             </div>
           </form>

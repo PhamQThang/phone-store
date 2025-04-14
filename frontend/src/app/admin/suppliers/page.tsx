@@ -1,359 +1,178 @@
 // app/admin/suppliers/page.tsx
-"use client";
-
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
+import { getCookieValue } from "@/lib/cookieUtils";
+import { Supplier } from "@/lib/types";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Edit, Trash, Eye, Plus, Loader2 } from "lucide-react";
-import {
-  Supplier,
   getSuppliers,
   createSupplier,
   updateSupplier,
   deleteSupplier,
   getSupplierById,
 } from "@/api/admin/suppliersApi";
-import { SupplierForm } from "@/components/admin/suppliers/SupplierForm";
-import { SupplierDetail } from "@/components/admin/suppliers/SupplierDetail";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { clearLocalStorage } from "@/lib/utils";
+import ClientModals from "@/components/admin/suppliers/ClientModals";
 
-export default function SuppliersPage() {
-  const router = useRouter();
-  const [role, setRole] = useState<string | null>(null);
-  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [isAddOpen, setIsAddOpen] = useState(false);
-  const [isEditOpen, setIsEditOpen] = useState(false);
-  const [isDetailOpen, setIsDetailOpen] = useState(false);
-  const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(
-    null
-  );
-  const [loading, setLoading] = useState(false);
+// Server-side function để lấy thông tin role và token
+async function getAuthInfo() {
+  const role = await getCookieValue("role");
+  const token = await getCookieValue("accessToken");
+  return { role, token };
+}
 
-  useEffect(() => {
-    const userRole = localStorage.getItem("role");
-    setRole(userRole);
-
-    if (!userRole || userRole !== "Admin") {
-      toast.error("Không có quyền truy cập", {
-        description: "Chỉ Admin mới được truy cập trang này.",
-        duration: 2000,
-      });
-      clearLocalStorage();
-      router.push("/auth/login");
-    } else {
-      fetchSuppliers();
-    }
-  }, [router]);
-
-  // Lấy danh sách nhà cung cấp
-  const fetchSuppliers = async () => {
-    setLoading(true);
-    try {
-      const data = await getSuppliers();
-      setSuppliers(data);
-    } catch (error: any) {
-      toast.error("Lỗi khi lấy danh sách nhà cung cấp", {
-        description: error.message || "Vui lòng thử lại sau.",
-        duration: 2000,
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Thêm nhà cung cấp
-  const handleAddSupplier = async (data: {
-    name: string;
-    address: string;
-    phone: string;
-    email?: string;
-  }) => {
-    try {
-      const newSupplier = await createSupplier(data);
-      setSuppliers([...suppliers, newSupplier]);
-      toast.success("Thêm nhà cung cấp thành công");
-    } catch (error: any) {
-      toast.error("Thêm nhà cung cấp thất bại", {
-        description: error.message || "Vui lòng thử lại sau.",
-        duration: 2000,
-      });
-    }
-  };
-
-  // Sửa nhà cung cấp
-  const handleEditSupplier = async (data: {
-    name: string;
-    address: string;
-    phone: string;
-    email?: string;
-  }) => {
-    if (!selectedSupplier) return;
-    try {
-      const updatedSupplier = await updateSupplier(selectedSupplier.id, data);
-      setSuppliers(
-        suppliers.map((supplier) =>
-          supplier.id === updatedSupplier.id ? updatedSupplier : supplier
-        )
-      );
-      toast.success("Cập nhật nhà cung cấp thành công");
-    } catch (error: any) {
-      toast.error("Cập nhật nhà cung cấp thất bại", {
-        description: error.message || "Vui lòng thử lại sau.",
-        duration: 2000,
-      });
-    }
-  };
-
-  // Xóa nhà cung cấp
-  const handleDeleteSupplier = async (id: string) => {
-    if (confirm("Bạn có chắc chắn muốn xóa nhà cung cấp này?")) {
-      try {
-        await deleteSupplier(id);
-        setSuppliers(suppliers.filter((supplier) => supplier.id !== id));
-        toast.success("Xóa nhà cung cấp thành công");
-      } catch (error: any) {
-        toast.error("Xóa nhà cung cấp thất bại", {
-          description: error.message || "Vui lòng thử lại sau.",
-          duration: 2000,
-        });
-      }
-    }
-  };
-
-  // Xem chi tiết nhà cung cấp
-  const handleViewDetail = async (id: string) => {
-    try {
-      const supplier = await getSupplierById(id);
-      setSelectedSupplier(supplier);
-      setIsDetailOpen(true);
-    } catch (error: any) {
-      toast.error("Lỗi khi lấy chi tiết nhà cung cấp", {
-        description: error.message || "Vui lòng thử lại sau.",
-        duration: 2000,
-      });
-    }
-  };
-
-  // Mở form chỉnh sửa và lấy dữ liệu nhà cung cấp
-  const handleOpenEdit = async (id: string) => {
-    try {
-      const supplier = await getSupplierById(id); // Lấy dữ liệu mới nhất từ API
-      setSelectedSupplier(supplier);
-      setIsEditOpen(true);
-    } catch (error: any) {
-      toast.error("Lỗi khi lấy thông tin nhà cung cấp", {
-        description: error.message || "Vui lòng thử lại sau.",
-        duration: 2000,
-      });
-    }
-  };
-
-  if (!role) {
-    return (
-      <p className="text-center text-gray-500">
-        Đang kiểm tra quyền truy cập...
-      </p>
-    );
+// Server-side function để lấy danh sách nhà cung cấp
+async function fetchSuppliers(token?: string): Promise<Supplier[]> {
+  try {
+    return await getSuppliers(token);
+  } catch (error: any) {
+    console.error("Lỗi khi lấy danh sách nhà cung cấp:", error.message);
+    return [];
   }
+}
+
+// Server Action để thêm nhà cung cấp
+async function addSupplierAction(formData: FormData) {
+  "use server";
+  const name = formData.get("name")?.toString();
+  const address = formData.get("address")?.toString();
+  const phone = formData.get("phone")?.toString();
+  const email = formData.get("email")?.toString();
+
+  if (!name || name.length < 2) {
+    return { error: "Tên nhà cung cấp phải có ít nhất 2 ký tự" };
+  }
+  if (!address || address.length < 5) {
+    return { error: "Địa chỉ phải có ít nhất 5 ký tự" };
+  }
+  if (!phone || !/^[0-9]{10,11}$/.test(phone)) {
+    return { error: "Số điện thoại phải có 10-11 chữ số" };
+  }
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return { error: "Email không hợp lệ" };
+  }
+
+  try {
+    const token = await getCookieValue("accessToken");
+    const newSupplier = await createSupplier(
+      { name, address, phone, email },
+      token
+    );
+    revalidatePath("/admin/suppliers");
+    return {
+      success: true,
+      message: "Thêm nhà cung cấp thành công",
+      supplier: newSupplier,
+    };
+  } catch (error: any) {
+    if (error.statusCode === 401) {
+      const { clearCookies } = await import("@/lib/cookieUtils");
+      await clearCookies();
+      redirect("/auth/login");
+    }
+    return {
+      error: error.message || "Thêm nhà cung cấp thất bại",
+    };
+  }
+}
+
+// Server Action để sửa nhà cung cấp
+async function editSupplierAction(id: string, formData: FormData) {
+  "use server";
+  const name = formData.get("name")?.toString();
+  const address = formData.get("address")?.toString();
+  const phone = formData.get("phone")?.toString();
+  const email = formData.get("email")?.toString();
+
+  if (!name || name.length < 2) {
+    return { error: "Tên nhà cung cấp phải có ít nhất 2 ký tự" };
+  }
+  if (!address || address.length < 5) {
+    return { error: "Địa chỉ phải có ít nhất 5 ký tự" };
+  }
+  if (!phone || !/^[0-9]{10,11}$/.test(phone)) {
+    return { error: "Số điện thoại phải có 10-11 chữ số" };
+  }
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return { error: "Email không hợp lệ" };
+  }
+
+  try {
+    const token = await getCookieValue("accessToken");
+    const updatedSupplier = await updateSupplier(
+      id,
+      { name, address, phone, email },
+      token
+    );
+    revalidatePath("/admin/suppliers");
+    return {
+      success: true,
+      message: "Cập nhật nhà cung cấp thành công",
+      supplier: updatedSupplier,
+    };
+  } catch (error: any) {
+    if (error.statusCode === 401) {
+      const { clearCookies } = await import("@/lib/cookieUtils");
+      await clearCookies();
+      redirect("/auth/login");
+    }
+    return {
+      error: error.message || "Cập nhật nhà cung cấp thất bại",
+    };
+  }
+}
+
+// Server Action để xóa nhà cung cấp
+async function deleteSupplierAction(id: string) {
+  "use server";
+  try {
+    const token = await getCookieValue("accessToken");
+    await deleteSupplier(id, token);
+    revalidatePath("/admin/suppliers");
+    return { success: true, message: "Xóa nhà cung cấp thành công" };
+  } catch (error: any) {
+    if (error.statusCode === 401) {
+      const { clearCookies } = await import("@/lib/cookieUtils");
+      await clearCookies();
+      redirect("/auth/login");
+    }
+    return {
+      error: error.message || "Xóa nhà cung cấp thất bại",
+    };
+  }
+}
+
+// Server Action để lấy chi tiết nhà cung cấp
+async function getSupplierDetailAction(id: string) {
+  "use server";
+  try {
+    const token = await getCookieValue("accessToken");
+    const supplier = await getSupplierById(id, token);
+    return { success: true, supplier };
+  } catch (error: any) {
+    if (error.statusCode === 401) {
+      const { clearCookies } = await import("@/lib/cookieUtils");
+      await clearCookies();
+      redirect("/auth/login");
+    }
+    return { error: error.message || "Lỗi khi lấy chi tiết nhà cung cấp" };
+  }
+}
+
+export default async function SuppliersPage() {
+  // Lấy role và token trên server
+  const { role, token } = await getAuthInfo();
+
+  // Lấy dữ liệu nhà cung cấp trên server
+  const suppliers = await fetchSuppliers(token);
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
-      <div className="flex flex-col sm:flex-row justify-between items-center mb-4 sm:mb-6">
-        <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-4 sm:mb-0">
-          Quản lý nhà cung cấp
-        </h2>
-        {role === "Admin" && (
-          <Button
-            onClick={() => setIsAddOpen(true)}
-            className="w-full sm:w-auto"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Thêm
-          </Button>
-        )}
-      </div>
-
-      {loading ? (
-        <div className="flex justify-center items-center py-4">
-          <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
-        </div>
-      ) : suppliers.length === 0 ? (
-        <p className="text-center text-gray-500">Không có nhà cung cấp nào.</p>
-      ) : (
-        <>
-          {/* Hiển thị dạng bảng trên màn hình lớn (PC, tablet) */}
-          <div className="hidden md:block overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-xs sm:text-sm">ID</TableHead>
-                  <TableHead className="text-xs sm:text-sm">
-                    Tên nhà cung cấp
-                  </TableHead>
-                  <TableHead className="text-xs sm:text-sm">Địa chỉ</TableHead>
-                  <TableHead className="text-xs sm:text-sm">
-                    Số điện thoại
-                  </TableHead>
-                  <TableHead className="text-xs sm:text-sm">Email</TableHead>
-                  <TableHead className="text-xs sm:text-sm">Ngày tạo</TableHead>
-                  <TableHead className="text-xs sm:text-sm">
-                    Hành động
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {suppliers.map((supplier) => (
-                  <TableRow key={supplier.id}>
-                    <TableCell className="text-xs sm:text-sm">
-                      {supplier.id}
-                    </TableCell>
-                    <TableCell className="text-xs sm:text-sm">
-                      {supplier.name}
-                    </TableCell>
-                    <TableCell className="text-xs sm:text-sm">
-                      {supplier.address}
-                    </TableCell>
-                    <TableCell className="text-xs sm:text-sm">
-                      {supplier.phone}
-                    </TableCell>
-                    <TableCell className="text-xs sm:text-sm">
-                      {supplier.email || "Không có"}
-                    </TableCell>
-                    <TableCell className="text-xs sm:text-sm">
-                      {new Date(supplier.createdAt).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex space-x-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleViewDetail(supplier.id)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        {role === "Admin" && (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleOpenEdit(supplier.id)} // Sử dụng hàm mới
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleDeleteSupplier(supplier.id)}
-                            >
-                              <Trash className="h-4 w-4" />
-                            </Button>
-                          </>
-                        )}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-
-          {/* Hiển thị dạng danh sách trên mobile */}
-          <div className="block md:hidden space-y-4">
-            {suppliers.map((supplier) => (
-              <Card key={supplier.id} className="shadow-sm">
-                <CardHeader>
-                  <CardTitle className="text-sm font-medium">
-                    {supplier.name}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="text-xs space-y-2">
-                  <p>
-                    <strong>ID:</strong> {supplier.id}
-                  </p>
-                  <p>
-                    <strong>Địa chỉ:</strong> {supplier.address}
-                  </p>
-                  <p>
-                    <strong>Số điện thoại:</strong> {supplier.phone}
-                  </p>
-                  <p>
-                    <strong>Email:</strong> {supplier.email || "Không có"}
-                  </p>
-                  <p>
-                    <strong>Ngày tạo:</strong>{" "}
-                    {new Date(supplier.createdAt).toLocaleDateString()}
-                  </p>
-                  <div className="flex space-x-2 pt-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleViewDetail(supplier.id)}
-                    >
-                      <Eye className="h-4 w-4 mr-1" />
-                      Xem
-                    </Button>
-                    {role === "Admin" && (
-                      <>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleOpenEdit(supplier.id)} // Sử dụng hàm mới
-                        >
-                          <Edit className="h-4 w-4 mr-1" />
-                          Sửa
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDeleteSupplier(supplier.id)}
-                        >
-                          <Trash className="h-4 w-4 mr-1" />
-                          Xóa
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </>
-      )}
-
-      {/* Modal Thêm nhà cung cấp */}
-      {role === "Admin" && (
-        <SupplierForm
-          open={isAddOpen}
-          onOpenChange={setIsAddOpen}
-          onSubmit={handleAddSupplier}
-        />
-      )}
-
-      {/* Modal Sửa nhà cung cấp */}
-      {role === "Admin" && (
-        <SupplierForm
-          open={isEditOpen}
-          onOpenChange={setIsEditOpen}
-          onSubmit={handleEditSupplier}
-          initialData={selectedSupplier || undefined}
-        />
-      )}
-
-      {/* Modal Xem chi tiết nhà cung cấp */}
-      <SupplierDetail
-        open={isDetailOpen}
-        onOpenChange={setIsDetailOpen}
-        supplier={selectedSupplier}
+      <ClientModals
+        suppliers={suppliers}
+        role={role || ""}
+        addSupplierAction={addSupplierAction}
+        editSupplierAction={editSupplierAction}
+        deleteSupplierAction={deleteSupplierAction}
+        getSupplierDetailAction={getSupplierDetailAction}
       />
     </div>
   );

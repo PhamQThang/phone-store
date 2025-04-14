@@ -1,4 +1,6 @@
+// components/admin/brands/BrandForm.tsx
 "use client";
+
 import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -20,6 +22,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Brand } from "@/lib/types";
+import { Loader2 } from "lucide-react";
 
 const brandSchema = z.object({
   name: z.string().min(2, "Tên thương hiệu phải có ít nhất 2 ký tự"),
@@ -30,6 +33,7 @@ interface BrandFormProps {
   onOpenChange: (open: boolean) => void;
   onSubmit: (data: { name: string }) => Promise<void>;
   initialData?: Brand;
+  isLoading: boolean;
 }
 
 export function BrandForm({
@@ -37,6 +41,7 @@ export function BrandForm({
   onOpenChange,
   onSubmit,
   initialData,
+  isLoading,
 }: BrandFormProps) {
   const form = useForm<z.infer<typeof brandSchema>>({
     resolver: zodResolver(brandSchema),
@@ -100,11 +105,25 @@ export function BrandForm({
                 variant="outline"
                 onClick={() => onOpenChange(false)}
                 className="w-full sm:w-auto"
+                disabled={isLoading}
               >
                 Hủy
               </Button>
-              <Button type="submit" className="w-full sm:w-auto">
-                {initialData ? "Cập nhật" : "Thêm"}
+              <Button
+                type="submit"
+                className="w-full sm:w-auto"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Đang xử lý...
+                  </>
+                ) : initialData ? (
+                  "Cập nhật"
+                ) : (
+                  "Thêm"
+                )}
               </Button>
             </div>
           </form>
