@@ -5,7 +5,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { PurchaseOrder } from "@/api/admin/purchaseOrdersApi";
+import { PurchaseOrder } from "@/lib/types";
 
 interface PurchaseOrderDetailProps {
   open: boolean;

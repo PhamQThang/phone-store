@@ -1,7 +1,7 @@
-// frontend/components/ui/admin/suppliers/SupplierForm.tsx
-"use client"; // Thêm "use client" vì đây là client component
+// frontend/components/admin/suppliers/SupplierForm.tsx
+"use client";
 
-import { useEffect } from "react"; // Thêm useEffect
+import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -21,7 +21,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Supplier } from "@/api/admin/suppliersApi";
+import { Supplier } from "@/lib/types";
 
 const supplierSchema = z.object({
   name: z.string().min(2, "Tên nhà cung cấp phải có ít nhất 2 ký tự"),

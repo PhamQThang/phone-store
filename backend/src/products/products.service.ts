@@ -112,9 +112,31 @@ export class ProductsService {
     }
   }
 
-  // Lấy danh sách tất cả các sản phẩm
-  async findAll() {
+  // Lấy danh sách tất cả các sản phẩm, hỗ trợ lọc theo brandSlug và modelSlug
+  async findAll(brandSlug?: string, modelSlug?: string) {
+    const where: Prisma.ProductWhereInput = {
+      model: {},
+    };
+
+    // Lọc theo brandSlug
+    if (brandSlug) {
+      where.model.brand = {
+        slug: brandSlug,
+      };
+    }
+
+    // Lọc theo modelSlug
+    if (modelSlug) {
+      where.model.slug = modelSlug;
+    }
+
+    // Nếu không có điều kiện lọc nào, xóa model để không áp dụng bộ lọc rỗng
+    if (!brandSlug && !modelSlug) {
+      delete where.model;
+    }
+
     const products = await this.prisma.product.findMany({
+      where,
       include: {
         model: {
           include: { brand: true },

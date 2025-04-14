@@ -12,8 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { getModels, Model } from "@/api/admin/modelsApi";
-import { ProductFile } from "@/api/admin/productsApi";
+import { getModels } from "@/api/admin/modelsApi";
 import {
   Select,
   SelectContent,
@@ -23,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import { Trash } from "lucide-react";
 import Image from "next/image";
+import { Model, ProductFiles } from "@/lib/types";
 
 interface ProductFormProps {
   open: boolean;
@@ -51,7 +51,7 @@ interface ProductFormProps {
     chip: string;
     operatingSystem: string;
     modelId: string;
-    productFiles: ProductFile[];
+    productFiles: ProductFiles[];
   }>;
 }
 
@@ -72,7 +72,7 @@ export function ProductForm({
   const [modelId, setModelId] = useState("");
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
-  const [currentFiles, setCurrentFiles] = useState<ProductFile[]>([]);
+  const [currentFiles, setCurrentFiles] = useState<ProductFiles[]>([]);
   const [filesToDelete, setFilesToDelete] = useState<string[]>([]);
   const [models, setModels] = useState<Model[]>([]);
   const [loading, setLoading] = useState(false);

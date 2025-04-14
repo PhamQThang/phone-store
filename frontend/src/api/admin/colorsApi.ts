@@ -1,13 +1,6 @@
 // frontend/api/admin/colorsApi.ts
+import { Color } from "@/lib/types";
 import axiosInstance from "../axiosConfig";
-
-export interface Color {
-  id: string;
-  name: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
 interface ColorsResponse {
   message: string;
   data: Color[];

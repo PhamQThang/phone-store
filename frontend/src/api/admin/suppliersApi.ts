@@ -1,15 +1,6 @@
 // frontend/api/admin/suppliersApi.ts
+import { Supplier } from "@/lib/types";
 import axiosInstance from "../axiosConfig";
-
-export interface Supplier {
-  id: string;
-  name: string;
-  address: string;
-  phone: string;
-  email?: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
 
 interface SupplierResponse {
   message: string;
@@ -66,7 +57,7 @@ export const updateSupplier = async (
   return response.data;
 };
 
-export const deleteSupplier = async (id: string): Promise<void> => {
+export const deleteSupplier = async (id: string): Promise<DeleteResponse> => {
   const response: DeleteResponse = await axiosInstance.delete(
     `/suppliers/${id}`
   );

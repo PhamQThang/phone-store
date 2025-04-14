@@ -47,7 +47,6 @@ axiosInstance.interceptors.response.use(
     if (error.response?.status === 401) {
       localStorage.removeItem("accessToken");
       if (!error.config?.url?.includes("/auth/logout")) {
-        // Kích hoạt sự kiện tùy chỉnh để thông báo lỗi 401
         window.dispatchEvent(new Event("unauthorized"));
         if (typeof window !== "undefined") {
           window.location.href = "/auth/login";

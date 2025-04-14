@@ -1,48 +1,6 @@
 // frontend/api/admin/productsApi.ts
+import { Product } from "@/lib/types";
 import axiosInstance from "../axiosConfig";
-import { Model } from "./modelsApi";
-
-// Interface cho File
-export interface File {
-  id: string;
-  url: string;
-  public_id: string;
-  file_type: string;
-  size: number;
-  uploaded_at: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-// Interface cho ProductFile (quan hệ giữa Product và File)
-export interface ProductFile {
-  productId: string;
-  fileId: string;
-  isMain: boolean;
-  createdAt: string;
-  updatedAt: string;
-  file: File;
-}
-
-// Interface cho Product
-export interface Product {
-  id: string;
-  name: string;
-  slug: string;
-  price: number;
-  storage: number;
-  ram: number;
-  screenSize: number;
-  battery: number;
-  chip: string;
-  operatingSystem: string;
-  modelId: string;
-  createdAt: string;
-  updatedAt: string;
-  model: Model;
-  productFiles: ProductFile[];
-}
-
 // Interface cho response khi lấy danh sách sản phẩm
 interface ProductsResponse {
   message: string;
@@ -61,9 +19,18 @@ interface DeleteResponse {
 }
 
 // Lấy danh sách sản phẩm
-export const getProducts = async (): Promise<Product[]> => {
-  const response: ProductsResponse = await axiosInstance.get("/products");
-  return response.data;
+export const getProducts = async (
+  brandSlug?: string,
+  modelSlug?: string
+): Promise<Product[]> => {
+  const query = new URLSearchParams();
+  if (brandSlug) query.append("brandSlug", brandSlug);
+  if (modelSlug) query.append("modelSlug", modelSlug);
+
+  const response: ProductsResponse = await axiosInstance.get(
+    `/products${query.toString() ? `?${query.toString()}` : ""}`
+  );
+  return response.data; // Backend trả về { message, data }
 };
 
 // Lấy chi tiết sản phẩm theo ID
@@ -184,7 +151,7 @@ export const updateProduct = async (
 };
 
 // Xóa sản phẩm
-export const deleteProduct = async (id: string): Promise<void> => {
+export const deleteProduct = async (id: string): Promise<DeleteResponse> => {
   const response: DeleteResponse = await axiosInstance.delete(
     `/products/${id}`
   );
@@ -195,7 +162,7 @@ export const deleteProduct = async (id: string): Promise<void> => {
 export const deleteProductFile = async (
   productId: string,
   fileId: string
-): Promise<void> => {
+): Promise<DeleteResponse> => {
   const response: DeleteResponse = await axiosInstance.delete(
     `/products/${productId}/files/${fileId}`
   );

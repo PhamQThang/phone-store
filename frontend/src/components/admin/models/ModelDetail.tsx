@@ -1,11 +1,11 @@
 // frontend/components/ui/admin/models/ModelDetail.tsx
-import { Model } from "@/api/admin/modelsApi";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Model } from "@/lib/types";
 
 interface ModelDetailProps {
   open: boolean;

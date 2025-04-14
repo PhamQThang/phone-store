@@ -24,14 +24,14 @@ import { Roles } from '../auth/decorators/roles.decorator';
 
 @ApiTags('brands')
 @Controller('brands')
-@UseGuards(JwtAuthGuard) // Yêu cầu đăng nhập
-@ApiBearerAuth('access-token')
 export class BrandsController {
   constructor(private readonly brandsService: BrandsService) {}
 
   @Post()
-  @UseGuards(RoleGuard) // Yêu cầu vai trò
-  @Roles('Admin') // Chỉ Admin được tạo brand
+  @UseGuards(RoleGuard)
+  @Roles('Admin')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Tạo một thương hiệu mới' })
   @ApiResponse({ status: 201, description: 'Tạo thương hiệu thành công' })
   @ApiResponse({ status: 400, description: 'Tên thương hiệu đã tồn tại' })
@@ -70,6 +70,8 @@ export class BrandsController {
   @Patch(':id')
   @UseGuards(RoleGuard)
   @Roles('Admin') // Chỉ Admin được cập nhật brand
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Cập nhật thông tin của một thương hiệu' })
   @ApiResponse({ status: 200, description: 'Cập nhật thương hiệu thành công' })
   @ApiResponse({ status: 404, description: 'Thương hiệu không tồn tại' })
@@ -88,7 +90,9 @@ export class BrandsController {
 
   @Delete(':id')
   @UseGuards(RoleGuard)
-  @Roles('Admin') // Chỉ Admin được xóa brand
+  @Roles('Admin')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Xóa một thương hiệu' })
   @ApiResponse({ status: 200, description: 'Xóa thương hiệu thành công' })
   @ApiResponse({ status: 404, description: 'Thương hiệu không tồn tại' })

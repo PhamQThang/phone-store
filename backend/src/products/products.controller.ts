@@ -10,6 +10,7 @@ import {
   UseGuards,
   UseInterceptors,
   UploadedFiles,
+  Query,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { ProductsService } from './products.service';
@@ -21,6 +22,7 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiConsumes,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RoleGuard } from '../auth/guards/role.guard';
@@ -28,14 +30,14 @@ import { Roles } from '../auth/decorators/roles.decorator';
 
 @ApiTags('products')
 @Controller('products')
-@UseGuards(JwtAuthGuard)
-@ApiBearerAuth('access-token')
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   @Post()
   @UseGuards(RoleGuard)
   @Roles('Admin')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Tạo một sản phẩm mới' })
   @ApiConsumes('multipart/form-data')
   @ApiResponse({ status: 201, description: 'Tạo sản phẩm thành công' })
@@ -46,7 +48,7 @@ export class ProductsController {
     status: 403,
     description: 'Bạn không có quyền thực hiện hành động này',
   })
-  @UseInterceptors(FilesInterceptor('files', 10)) // Giới hạn 10 file
+  @UseInterceptors(FilesInterceptor('files', 10))
   async create(
     @Body() createProductDto: CreateProductDto,
     @UploadedFiles() files: Express.Multer.File[]
@@ -57,13 +59,25 @@ export class ProductsController {
 
   @Get()
   @ApiOperation({ summary: 'Lấy danh sách tất cả các sản phẩm' })
+  @ApiQuery({
+    name: 'brandSlug',
+    required: false,
+    description: 'Slug của thương hiệu',
+  })
+  @ApiQuery({
+    name: 'modelSlug',
+    required: false,
+    description: 'Slug của model',
+  })
   @ApiResponse({
     status: 200,
     description: 'Lấy danh sách sản phẩm thành công',
   })
-  @ApiResponse({ status: 401, description: 'Không được phép' })
-  async findAll() {
-    return this.productsService.findAll();
+  async findAll(
+    @Query('brandSlug') brandSlug?: string,
+    @Query('modelSlug') modelSlug?: string
+  ) {
+    return this.productsService.findAll(brandSlug, modelSlug);
   }
 
   @Get(':id')
@@ -73,7 +87,6 @@ export class ProductsController {
     description: 'Lấy thông tin sản phẩm thành công',
   })
   @ApiResponse({ status: 404, description: 'Sản phẩm không tồn tại' })
-  @ApiResponse({ status: 401, description: 'Không được phép' })
   async findOne(@Param('id') id: string) {
     return this.productsService.findOne(id);
   }
@@ -81,6 +94,8 @@ export class ProductsController {
   @Patch(':id')
   @UseGuards(RoleGuard)
   @Roles('Admin')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Cập nhật thông tin của một sản phẩm' })
   @ApiConsumes('multipart/form-data')
   @ApiResponse({ status: 200, description: 'Cập nhật sản phẩm thành công' })
@@ -107,6 +122,8 @@ export class ProductsController {
   @Delete(':id')
   @UseGuards(RoleGuard)
   @Roles('Admin')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Xóa một sản phẩm' })
   @ApiResponse({ status: 200, description: 'Xóa sản phẩm thành công' })
   @ApiResponse({ status: 404, description: 'Sản phẩm không tồn tại' })

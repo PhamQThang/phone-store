@@ -211,13 +211,10 @@ model OrderDetail {
 model Slide {
   id           String    @id @default(uuid())
   title        String?
-  description  String?
   imageId      String
   link         String?
   isActive     Boolean   @default(true) @map("is_active")
   displayOrder Int       @default(0) @map("display_order")
-  startDate    DateTime? @map("start_date")
-  endDate      DateTime? @map("end_date")
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @default(now()) @updatedAt
   image        File      @relation(fields: [imageId], references: [id])

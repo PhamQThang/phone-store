@@ -29,15 +29,15 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { getSuppliers, Supplier } from "@/api/admin/suppliersApi";
-import { getProducts, Product } from "@/api/admin/productsApi";
-import { getColors, Color } from "@/api/admin/colorsApi";
+import { getSuppliers } from "@/api/admin/suppliersApi";
+import { getProducts } from "@/api/admin/productsApi";
+import { getColors } from "@/api/admin/colorsApi";
 import {
   createPurchaseOrder,
   updatePurchaseOrder,
-  PurchaseOrder,
   PurchaseOrderDetailInput,
 } from "@/api/admin/purchaseOrdersApi";
+import { Color, Product, PurchaseOrder, Supplier } from "@/lib/types";
 
 const purchaseOrderDetailSchema = z.object({
   id: z.string().optional(),
@@ -104,7 +104,7 @@ export function PurchaseOrderForm({
         details: validDetails,
       });
 
-      replace(validDetails); // Đồng bộ useFieldArray với dữ liệu mới
+      replace(validDetails);
 
       setDetailsToDelete([]);
     }
@@ -144,13 +144,6 @@ export function PurchaseOrderForm({
         const newDetails = values.details?.filter((detail) => !detail.id) || [];
         const updatedDetails =
           values.details?.filter((detail) => detail.id) || [];
-
-        console.log("Submitting values:", {
-          status: initialData.status,
-          details: newDetails,
-          detailsToDelete,
-          detailsToUpdate: updatedDetails,
-        }); // Thêm log để kiểm tra
 
         await updatePurchaseOrder(initialData.id, {
           status: initialData.status,

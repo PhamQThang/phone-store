@@ -15,7 +15,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Edit, Trash, Eye, Plus, Loader2 } from "lucide-react";
 import {
-  Brand,
   getBrands,
   createBrand,
   updateBrand,
@@ -26,6 +25,7 @@ import { BrandForm } from "@/components/admin/brands/BrandForm";
 import { BrandDetail } from "@/components/admin/brands/BrandDetail";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { clearLocalStorage } from "@/lib/utils";
+import { Brand } from "@/lib/types";
 
 export default function BrandsPage() {
   const router = useRouter();

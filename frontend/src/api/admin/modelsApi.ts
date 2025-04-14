@@ -1,16 +1,6 @@
 // frontend/api/admin/modelsApi.ts
+import { Model } from "@/lib/types";
 import axiosInstance from "../axiosConfig";
-import { Brand } from "./brandsApi"; // Import Brand từ brandsApi
-
-export interface Model {
-  id: string;
-  name: string;
-  slug: string;
-  brandId: string;
-  createdAt: string;
-  updatedAt: string;
-  brand: Brand;
-}
 
 interface ModelResponse {
   message: string;
@@ -55,7 +45,7 @@ export const updateModel = async (
   return response.data;
 };
 
-export const deleteModel = async (id: string): Promise<void> => {
+export const deleteModel = async (id: string): Promise<DeleteResponse> => {
   const response: DeleteResponse = await axiosInstance.delete(`/models/${id}`);
   return response;
 };

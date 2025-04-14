@@ -1,14 +1,7 @@
 // frontend/api/admin/brandsApi.ts
 
+import { Brand } from "@/lib/types";
 import axiosInstance from "../axiosConfig";
-
-export interface Brand {
-  id: string;
-  slug: string;
-  name: string;
-  createdAt: string;
-  updatedAt: string;
-}
 
 interface BrandResponse {
   message: string;
@@ -49,7 +42,7 @@ export const updateBrand = async (
   );
   return response.data;
 };
-export const deleteBrand = async (id: string): Promise<void> => {
+export const deleteBrand = async (id: string): Promise<DeleteResponse> => {
   const response: DeleteResponse = await axiosInstance.delete(`/brands/${id}`);
   return response;
 };

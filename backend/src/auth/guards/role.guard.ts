@@ -19,11 +19,11 @@ export class RoleGuard implements CanActivate {
     );
 
     if (!requiredRoles) {
-      return true; // Nếu không có yêu cầu vai trò, cho phép truy cập
+      return true;
     }
 
     const request = context.switchToHttp().getRequest();
-    const user = request.user; // Lấy thông tin user từ token (được thêm bởi JwtAuthGuard)
+    const user = request.user;
 
     if (!user || !user.role) {
       throw new ForbiddenException('Không có thông tin vai trò');

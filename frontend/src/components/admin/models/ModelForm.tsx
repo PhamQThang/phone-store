@@ -1,5 +1,5 @@
-// frontend/components/ui/admin/models/ModelForm.tsx
-"use client"; // Thêm "use client" vì đây là client component
+// frontend/components/admin/models/ModelForm.tsx
+"use client";
 
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
@@ -28,9 +28,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Brand, getBrands } from "@/api/admin/brandsApi";
-import { Model } from "@/api/admin/modelsApi";
+import { getBrands } from "@/api/admin/brandsApi";
 import { toast } from "sonner";
+import { Brand, Model } from "@/lib/types";
 
 const modelSchema = z.object({
   name: z.string().min(2, "Tên model phải có ít nhất 2 ký tự"),

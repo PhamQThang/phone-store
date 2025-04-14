@@ -7,7 +7,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Product } from "@/api/admin/productsApi";
+import { Product } from "@/lib/types";
 import Image from "next/image";
 
 interface ProductDetailProps {

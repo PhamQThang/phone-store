@@ -19,7 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Brand } from "@/api/admin/brandsApi";
+import { Brand } from "@/lib/types";
 
 const brandSchema = z.object({
   name: z.string().min(2, "Tên thương hiệu phải có ít nhất 2 ký tự"),

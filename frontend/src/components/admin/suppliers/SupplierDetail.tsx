@@ -1,11 +1,11 @@
 // frontend/components/ui/admin/suppliers/SupplierDetail.tsx
-import { Supplier } from "@/api/admin/suppliersApi";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Supplier } from "@/lib/types";
 
 interface SupplierDetailProps {
   open: boolean;

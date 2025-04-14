@@ -45,6 +45,7 @@ export class BrandsService {
   // Lấy danh sách tất cả các brand
   async findAll() {
     const brands = await this.prisma.brand.findMany({
+      include: { models: true },
       orderBy: { createdAt: 'desc' },
     });
 
@@ -58,7 +59,7 @@ export class BrandsService {
   async findOne(id: string) {
     const brand = await this.prisma.brand.findUnique({
       where: { id },
-      include: { models: true }, // Bao gồm các model liên quan
+      include: { models: true },
     });
 
     if (!brand) {

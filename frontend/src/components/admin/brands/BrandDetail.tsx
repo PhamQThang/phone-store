@@ -1,11 +1,11 @@
 // frontend/components/ui/admin/brands/BrandDetail.tsx
-import { Brand } from "@/api/admin/brandsApi";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Brand } from "@/lib/types";
 
 interface BrandDetailProps {
   open: boolean;

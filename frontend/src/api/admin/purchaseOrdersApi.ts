@@ -1,54 +1,6 @@
 // frontend/api/admin/purchaseOrdersApi.ts
+import { PurchaseOrder } from "@/lib/types";
 import axiosInstance from "../axiosConfig";
-import { Product } from "./productsApi";
-
-export interface PurchaseOrderDetail {
-  id: string;
-  importId: string;
-  productId: string;
-  product: Product;
-  colorId: string;
-  color: {
-    id: string;
-    name: string;
-  };
-  productIdentityId: string | null;
-  productIdentity: {
-    id: string;
-    imei: string;
-    isSold: boolean;
-  } | null;
-  imei?: string;
-  importPrice: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface PurchaseOrder {
-  id: string;
-  supplierId: string;
-  supplier: {
-    id: string;
-    name: string;
-    address: string;
-    phone: string;
-    email?: string;
-  };
-  importDate: string;
-  totalCost: number;
-  status: string;
-  note?: string;
-  createdById?: number;
-  createdBy?: {
-    id: number;
-    firstName: string;
-    lastName: string;
-    email: string;
-  };
-  createdAt: string;
-  updatedAt: string;
-  purchaseOrderDetails: PurchaseOrderDetail[];
-}
 
 interface PurchaseOrderResponse {
   message: string;
@@ -120,7 +72,9 @@ export const updatePurchaseOrder = async (
 };
 
 // Xóa đơn nhập hàng
-export const deletePurchaseOrder = async (id: string): Promise<void> => {
+export const deletePurchaseOrder = async (
+  id: string
+): Promise<DeleteResponse> => {
   const response: DeleteResponse = await axiosInstance.delete(
     `/purchase-orders/${id}`
   );
