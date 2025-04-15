@@ -11,11 +11,7 @@ import {
   PurchaseOrderDetailInput,
 } from "@/api/admin/purchaseOrdersApi";
 import ClientPurchaseOrders from "@/components/admin/purchase-orders/ClientPurchaseOrders";
-
-// Hàm lấy giá trị cookie
-async function getCookieValue(key: string): Promise<string | null> {
-  return cookies().get(key)?.value || null;
-}
+import { getCookieValue } from "@/lib/cookieUtils";
 
 // Server-side function để lấy thông tin role và token
 async function getAuthInfo() {

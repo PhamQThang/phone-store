@@ -7,9 +7,9 @@ interface ColorsResponse {
 }
 
 // Lấy danh sách màu sắc
-export const getColors = async (token: string): Promise<Color[]> => {
+export const getColors = async (token?: string): Promise<Color[]> => {
   const response: ColorsResponse = await axiosInstance.get("/colors", {
-    headers: { Authorization: `Bearer ${token}` },
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
   });
   return response.data;
 };

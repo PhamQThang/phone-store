@@ -1,62 +1,6 @@
 // frontend/api/cart/cartApi.ts
+import { CartItem } from "@/lib/types";
 import axiosInstance from "../axiosConfig";
-
-interface File {
-  id: string;
-  url: string;
-  public_id: string;
-  file_type: string;
-  size?: number;
-  uploaded_at: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface ProductFile {
-  productId: string;
-  fileId: string;
-  isMain: boolean;
-  createdAt: string;
-  updatedAt: string;
-  file: File;
-}
-
-interface Product {
-  id: string;
-  name: string;
-  slug: string;
-  price: number;
-  storage: number;
-  ram: number;
-  screenSize: number;
-  battery: number;
-  chip: string;
-  operatingSystem: string;
-  modelId: string;
-  createdAt: string;
-  updatedAt: string;
-  productFiles: ProductFile[];
-}
-
-interface Color {
-  id: string;
-  name: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface CartItem {
-  id: string;
-  cartId: string;
-  productId: string;
-  colorId: string;
-  quantity: number;
-  createdAt: string;
-  updatedAt: string;
-  product: Product;
-  color: Color;
-}
-
 interface CartResponse {
   message: string;
   data: CartItem[];

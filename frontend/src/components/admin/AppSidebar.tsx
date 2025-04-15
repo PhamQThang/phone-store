@@ -1,5 +1,5 @@
 // components/ui/admin/AppSidebar.tsx
-import { Ban, Package, Users, ShoppingCart } from "lucide-react";
+import { Ban, Package, Users, ShoppingCart, Sliders } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -48,6 +48,18 @@ const items = [
     title: "Quản lý đơn nhập hàng",
     url: "/admin/purchase-orders",
     icon: ShoppingCart,
+    allowedRoles: ["Admin"],
+  },
+  {
+    title: "Quản lý khuyến mãi",
+    url: "/admin/promotions",
+    icon: Sliders,
+    allowedRoles: ["Admin"],
+  },
+  {
+    title: "Quản lý slide",
+    url: "/admin/slides",
+    icon: Sliders,
     allowedRoles: ["Admin"],
   },
   {

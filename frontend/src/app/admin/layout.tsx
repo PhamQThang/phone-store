@@ -1,4 +1,3 @@
-// app/admin/layout.tsx
 import { redirect } from "next/navigation";
 import { logout } from "@/api/auth/authApi";
 import ClientAdminLayout from "@/components/admin/ClientAdminLayout";
@@ -7,9 +6,10 @@ import { getCookieValue, clearCookies } from "@/lib/cookieUtils";
 // Hàm bất đồng bộ để kiểm tra cookies và quyền truy cập
 async function checkAccess() {
   const role = await getCookieValue("role");
+  const accessToken = await getCookieValue("accessToken");
 
-  if (!role || (role !== "Admin" && role !== "Employee")) {
-    await clearCookies(); // Xóa cookies nếu không có quyền
+  if (!accessToken || !role || (role !== "Admin" && role !== "Employee")) {
+    await clearCookies();
     redirect("/auth/login");
   }
 
@@ -25,8 +25,8 @@ async function handleLogoutAction() {
     console.error("Lỗi khi đăng xuất:", error.message);
   }
 
-  await clearCookies(); // Xóa tất cả cookies
-  redirect("/auth/login"); // Redirect đến trang đăng nhập
+  await clearCookies();
+  redirect("/auth/login");
 }
 
 export default async function AdminLayout({

@@ -9,15 +9,14 @@ import {
   deleteProduct,
   getProductById,
 } from "@/api/admin/productsApi";
-import { getModels } from "@/api/admin/modelsApi";
 import ClientModals from "@/components/admin/products/ClientModals";
+import { getModels } from "@/api/admin/modelsApi";
 
 // Server-side function để lấy thông tin role và token
 async function getAuthInfo() {
   const role = await getCookieValue("role");
   const token = await getCookieValue("accessToken");
   if (!token) {
-    // Nếu không có token, chuyển hướng đến trang đăng nhập
     redirect("/auth/login");
   }
   return { role, token };
@@ -28,7 +27,7 @@ async function fetchProducts(token: string): Promise<Product[]> {
   try {
     return await getProducts(undefined, undefined, token);
   } catch (error: any) {
-    if (error.response?.status === 401) {
+    if (error.message.includes("401")) {
       const { clearCookies } = await import("@/lib/cookieUtils");
       await clearCookies();
       redirect("/auth/login");
@@ -43,7 +42,7 @@ async function fetchModels(token: string): Promise<Model[]> {
   try {
     return await getModels(token);
   } catch (error: any) {
-    if (error.response?.status === 401) {
+    if (error.message.includes("401")) {
       const { clearCookies } = await import("@/lib/cookieUtils");
       await clearCookies();
       redirect("/auth/login");
@@ -125,7 +124,7 @@ async function addProductAction(formData: FormData) {
       product: newProduct,
     };
   } catch (error: any) {
-    if (error.response?.status === 401) {
+    if (error.message.includes("401")) {
       const { clearCookies } = await import("@/lib/cookieUtils");
       await clearCookies();
       redirect("/auth/login");
@@ -208,7 +207,7 @@ async function editProductAction(id: string, formData: FormData) {
       product: updatedProduct,
     };
   } catch (error: any) {
-    if (error.response?.status === 401) {
+    if (error.message.includes("401")) {
       const { clearCookies } = await import("@/lib/cookieUtils");
       await clearCookies();
       redirect("/auth/login");
@@ -233,7 +232,7 @@ async function deleteProductAction(id: string) {
     revalidatePath("/admin/products");
     return { success: true, message: "Xóa sản phẩm thành công" };
   } catch (error: any) {
-    if (error.response?.status === 401) {
+    if (error.message.includes("401")) {
       const { clearCookies } = await import("@/lib/cookieUtils");
       await clearCookies();
       redirect("/auth/login");
@@ -257,7 +256,7 @@ async function getProductDetailAction(id: string) {
     const product = await getProductById(id, token);
     return { success: true, product };
   } catch (error: any) {
-    if (error.response?.status === 401) {
+    if (error.message.includes("401")) {
       const { clearCookies } = await import("@/lib/cookieUtils");
       await clearCookies();
       redirect("/auth/login");
