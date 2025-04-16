@@ -113,6 +113,7 @@ export interface Product {
   reviews: ProductReview[];
   promotions: ProductPromotion[];
   cartItems: CartItem[];
+  rating?: number;
 }
 
 // Model: Model

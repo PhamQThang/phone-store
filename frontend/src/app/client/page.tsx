@@ -1,18 +1,11 @@
-// app/client/page.tsx
 "use client";
 
 import { getProducts } from "@/api/admin/productsApi";
 import HomeCarousel from "@/components/client/homes/HomeCarousel";
 import ProductCard from "@/components/client/ProductCard";
+import { Product } from "@/lib/types";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-
-interface Product {
-  id: string;
-  name: string;
-  price: number;
-  productFiles: { file: { url: string } }[];
-}
 
 export default function ClientHomePage() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -50,7 +43,7 @@ export default function ClientHomePage() {
     <div className="container mx-auto px-4 py-10">
       <HomeCarousel />
       <h1 className="text-3xl font-bold mb-8">Sản phẩm nổi bật</h1>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         {products.map((product) => (
           <ProductCard key={product.id} product={product} />
         ))}

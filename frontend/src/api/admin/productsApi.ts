@@ -6,11 +6,11 @@ interface DeleteResponse {
 }
 
 export const getProducts = async (
-  page?: number,
-  limit?: number
+  brandSlug?: string,
+  modelSlug?: string
 ): Promise<Product[]> => {
   const response = await axiosInstance.get("/products", {
-    params: { page, limit },
+    params: { brandSlug, modelSlug },
   });
   return response.data;
 };

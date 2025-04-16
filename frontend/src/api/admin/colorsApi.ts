@@ -1,6 +1,16 @@
 import { Color } from "@/lib/types";
 import axiosInstance from "../axiosConfig";
 
+interface ColorResponse {
+  message: string;
+  data: Color;
+}
+
+interface ColorsResponse {
+  message: string;
+  data: Color[];
+}
+
 interface DeleteResponse {
   message: string;
 }
@@ -15,14 +25,14 @@ export const getColorById = async (id: string): Promise<Color> => {
   return response.data;
 };
 
-export const createColor = async (data: FormData): Promise<Color> => {
+export const createColor = async (data: { name: string }): Promise<Color> => {
   const response = await axiosInstance.post("/colors", data);
   return response.data;
 };
 
 export const updateColor = async (
   id: string,
-  data: FormData
+  data: { name?: string }
 ): Promise<Color> => {
   const response = await axiosInstance.patch(`/colors/${id}`, data);
   return response.data;

@@ -14,41 +14,48 @@ import {
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider"; // Cần cài @radix-ui/react-slider
 import { getBrands } from "@/api/admin/brandsApi";
 import { getProducts } from "@/api/admin/productsApi";
 import { Brand, Product } from "@/lib/types";
 
 export default function ProductsPage() {
-  const [products, setProducts] = useState<Product[]>([]);
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
   const [isPending, startTransition] = useTransition();
   const searchParams = useSearchParams();
   const router = useRouter();
 
   const brandSlug = searchParams.get("brand");
   const modelSlug = searchParams.get("model");
-  const limit = 12; // Số sản phẩm mỗi trang
+
+  const [filterValues, setFilterValues] = useState({
+    minPrice: 0,
+    maxPrice: 50000000,
+    minScreenSize: 4,
+    maxScreenSize: 7,
+    minRam: 4,
+    maxRam: 16,
+    minStorage: 64,
+    maxStorage: 1024,
+  });
 
   const fetchData = async () => {
     startTransition(async () => {
       try {
         const [brandsData, productsData] = await Promise.all([
           getBrands(),
-          getProducts(
-            brandSlug || undefined,
-            modelSlug || undefined,
-            page,
-            limit
-          ),
+          getProducts(brandSlug || undefined, modelSlug || undefined),
         ]);
+
+        console.log("productsData", productsData);
+
         setBrands(brandsData);
-        setProducts(productsData.items);
-        setTotalPages(Math.ceil(productsData.total / limit));
+        setAllProducts(productsData); // Lưu toàn bộ sản phẩm
+        applyFilters(productsData); // Áp dụng lọc ngay sau khi lấy dữ liệu
       } catch (error: any) {
         setError(error.message || "Không thể lấy dữ liệu");
         toast.error("Lỗi", {
@@ -63,15 +70,28 @@ export default function ProductsPage() {
 
   useEffect(() => {
     setIsLoading(true);
-    setPage(1); // Reset page khi thay đổi bộ lọc
     fetchData();
   }, [brandSlug, modelSlug]);
 
-  useEffect(() => {
-    if (page !== 1) {
-      fetchData();
-    }
-  }, [page]);
+  // Hàm áp dụng lọc trên frontend
+  const applyFilters = (products: Product[]) => {
+    const filtered = products.filter((product) => {
+      const priceMatch =
+        product.price >= filterValues.minPrice &&
+        product.price <= filterValues.maxPrice;
+      const screenSizeMatch =
+        product.screenSize >= filterValues.minScreenSize &&
+        product.screenSize <= filterValues.maxScreenSize;
+      const ramMatch =
+        product.ram >= filterValues.minRam &&
+        product.ram <= filterValues.maxRam;
+      const storageMatch =
+        product.storage >= filterValues.minStorage &&
+        product.storage <= filterValues.maxStorage;
+      return priceMatch && screenSizeMatch && ramMatch && storageMatch;
+    });
+    setFilteredProducts(filtered);
+  };
 
   const selectedBrand = brands.find((b) => b.slug === brandSlug);
   const availableModels = selectedBrand ? selectedBrand.models : [];
@@ -96,6 +116,16 @@ export default function ProductsPage() {
       newSearchParams.set("model", value);
     }
     router.push(`/client/products?${newSearchParams.toString()}`);
+  };
+
+  const handleFilterChange = (key: string, value: number[]) => {
+    const newFilterValues = {
+      ...filterValues,
+      [key]: value[1],
+      [`min${key}`]: value[0],
+    };
+    setFilterValues(newFilterValues);
+    applyFilters(allProducts); // Lọc lại với toàn bộ dữ liệu
   };
 
   if (isLoading && !isPending) {
@@ -178,41 +208,95 @@ export default function ProductsPage() {
             </Select>
           </div>
         )}
+
+        {/* Lọc theo giá */}
+        <div className="flex-1 sm:flex-none">
+          <Label htmlFor="price-filter" className="block mb-2">
+            Giá (VNĐ)
+          </Label>
+          <Slider
+            id="price-filter"
+            min={0}
+            max={50000000}
+            step={100000}
+            value={[filterValues.minPrice, filterValues.maxPrice]}
+            onValueChange={(value) => handleFilterChange("Price", value)}
+            className="w-full sm:w-48"
+          />
+          <div className="text-sm text-gray-600">
+            {filterValues.minPrice.toLocaleString()} -{" "}
+            {filterValues.maxPrice.toLocaleString()} VNĐ
+          </div>
+        </div>
+
+        {/* Lọc theo kích thước màn hình */}
+        <div className="flex-1 sm:flex-none">
+          <Label htmlFor="screenSize-filter" className="block mb-2">
+            Kích thước màn hình (inch)
+          </Label>
+          <Slider
+            id="screenSize-filter"
+            min={4}
+            max={7}
+            step={0.1}
+            value={[filterValues.minScreenSize, filterValues.maxScreenSize]}
+            onValueChange={(value) => handleFilterChange("ScreenSize", value)}
+            className="w-full sm:w-48"
+          />
+          <div className="text-sm text-gray-600">
+            {filterValues.minScreenSize} - {filterValues.maxScreenSize} inch
+          </div>
+        </div>
+
+        {/* Lọc theo RAM */}
+        <div className="flex-1 sm:flex-none">
+          <Label htmlFor="ram-filter" className="block mb-2">
+            RAM (GB)
+          </Label>
+          <Slider
+            id="ram-filter"
+            min={4}
+            max={16}
+            step={2}
+            value={[filterValues.minRam, filterValues.maxRam]}
+            onValueChange={(value) => handleFilterChange("Ram", value)}
+            className="w-full sm:w-48"
+          />
+          <div className="text-sm text-gray-600">
+            {filterValues.minRam} - {filterValues.maxRam} GB
+          </div>
+        </div>
+
+        {/* Lọc theo dung lượng lưu trữ */}
+        <div className="flex-1 sm:flex-none">
+          <Label htmlFor="storage-filter" className="block mb-2">
+            Dung lượng (GB)
+          </Label>
+          <Slider
+            id="storage-filter"
+            min={64}
+            max={1024}
+            step={64}
+            value={[filterValues.minStorage, filterValues.maxStorage]}
+            onValueChange={(value) => handleFilterChange("Storage", value)}
+            className="w-full sm:w-48"
+          />
+          <div className="text-sm text-gray-600">
+            {filterValues.minStorage} - {filterValues.maxStorage} GB
+          </div>
+        </div>
       </div>
 
-      {products.length === 0 ? (
+      {filteredProducts.length === 0 ? (
         <p className="text-center text-gray-500">
           Không tìm thấy sản phẩm nào.
         </p>
       ) : (
-        <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {products.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
-          {totalPages > 1 && (
-            <div className="flex justify-center mt-8 gap-2">
-              <Button
-                onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
-                disabled={page === 1 || isPending}
-              >
-                Trước
-              </Button>
-              <span className="self-center">
-                Trang {page} / {totalPages}
-              </span>
-              <Button
-                onClick={() =>
-                  setPage((prev) => Math.min(prev + 1, totalPages))
-                }
-                disabled={page === totalPages || isPending}
-              >
-                Sau
-              </Button>
-            </div>
-          )}
-        </>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {filteredProducts.map((product) => (
+            <ProductCard key={product.id} product={product} />
+          ))}
+        </div>
       )}
     </div>
   );

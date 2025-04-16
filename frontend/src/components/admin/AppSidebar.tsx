@@ -39,6 +39,12 @@ const items = [
     allowedRoles: ["Admin", "Employee"],
   },
   {
+    title: "Quản lý màu",
+    url: "/admin/colors",
+    icon: Package,
+    allowedRoles: ["Admin", "Employee"],
+  },
+  {
     title: "Quản lý nhà cung cấp",
     url: "/admin/suppliers",
     icon: Users,

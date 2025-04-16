@@ -23,7 +23,7 @@ export default function SlidesPage() {
 
   useEffect(() => {
     const authData = getAuthData();
-    if (!authData || authData.role !== "Admin") {
+    if (!authData || !["Admin", "Employee"].includes(authData.role || "")) {
       clearAuthData();
       router.push("/auth/login");
     } else {

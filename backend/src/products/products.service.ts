@@ -144,6 +144,11 @@ export class ProductsService {
         productFiles: {
           include: { file: true },
         },
+        promotions: {
+          include: {
+            promotion: true,
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -166,6 +171,11 @@ export class ProductsService {
           include: { file: true },
         },
         productIdentities: true,
+        promotions: {
+          include: {
+            promotion: true, // Bao gồm thông tin chi tiết của promotion
+          },
+        },
       },
     });
 
@@ -178,7 +188,6 @@ export class ProductsService {
       data: product,
     };
   }
-
   // Cập nhật thông tin của một sản phẩm
   async update(id: string, updateProductDto: UpdateProductDto) {
     const product = await this.prisma.product.findUnique({

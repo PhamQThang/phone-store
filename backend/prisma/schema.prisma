@@ -116,7 +116,7 @@ model Product {
   purchaseOrderDetails PurchaseOrderDetail[]
   reviews              ProductReview[]
   promotions           ProductPromotion[]
-  cartItems            CartItem[] // Thêm quan hệ ngược lại với CartItem
+  cartItems            CartItem[]
 }
 
 model Model {
