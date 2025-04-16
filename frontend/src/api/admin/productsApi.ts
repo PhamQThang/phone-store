@@ -1,57 +1,37 @@
 import { Product } from "@/lib/types";
 import axiosInstance from "../axiosConfig";
 
-interface ProductResponse {
-  message: string;
-  data: Product;
-}
-
-interface ProductsResponse {
-  message: string;
-  data: Product[];
-}
-
 interface DeleteResponse {
   message: string;
 }
 
 export const getProducts = async (
   page?: number,
-  limit?: number,
-  token?: string
+  limit?: number
 ): Promise<Product[]> => {
-  const response: ProductsResponse = await axiosInstance.get("/products", {
+  const response = await axiosInstance.get("/products", {
     params: { page, limit },
-    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
   });
   return response.data;
 };
 
-export const getProductById = async (
-  id: string,
-  token?: string
-): Promise<Product> => {
-  const response: ProductResponse = await axiosInstance.get(`/products/${id}`, {
-    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-  });
+export const getProductById = async (id: string): Promise<Product> => {
+  const response = await axiosInstance.get(`/products/${id}`);
   return response.data;
 };
 
-export const createProduct = async (
-  data: {
-    name: string;
-    price: number;
-    storage: number;
-    ram: number;
-    screenSize: number;
-    battery: number;
-    chip: string;
-    operatingSystem: string;
-    modelId: string;
-    files?: FileList;
-  },
-  token?: string
-): Promise<Product> => {
+export const createProduct = async (data: {
+  name: string;
+  price: number;
+  storage: number;
+  ram: number;
+  screenSize: number;
+  battery: number;
+  chip: string;
+  operatingSystem: string;
+  modelId: string;
+  files?: FileList;
+}): Promise<Product> => {
   const formData = new FormData();
   formData.append("name", data.name);
   formData.append("price", data.price.toString());
@@ -68,18 +48,9 @@ export const createProduct = async (
     });
   }
 
-  const response: ProductResponse = await axiosInstance.post(
-    "/products",
-    formData,
-    {
-      headers: token
-        ? {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data",
-          }
-        : { "Content-Type": "multipart/form-data" },
-    }
-  );
+  const response = await axiosInstance.post("/products", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
   return response.data;
 };
 
@@ -97,8 +68,7 @@ export const updateProduct = async (
     modelId?: string;
     files?: FileList;
     filesToDelete?: string[];
-  },
-  token?: string
+  }
 ): Promise<Product> => {
   const formData = new FormData();
   if (data.name) formData.append("name", data.name);
@@ -123,30 +93,13 @@ export const updateProduct = async (
     });
   }
 
-  const response: ProductResponse = await axiosInstance.patch(
-    `/products/${id}`,
-    formData,
-    {
-      headers: token
-        ? {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data",
-          }
-        : { "Content-Type": "multipart/form-data" },
-    }
-  );
+  const response = await axiosInstance.patch(`/products/${id}`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
   return response.data;
 };
 
-export const deleteProduct = async (
-  id: string,
-  token?: string
-): Promise<DeleteResponse> => {
-  const response: DeleteResponse = await axiosInstance.delete(
-    `/products/${id}`,
-    {
-      headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-    }
-  );
-  return response;
+export const deleteProduct = async (id: string): Promise<DeleteResponse> => {
+  const response = await axiosInstance.delete(`/products/${id}`);
+  return response.data;
 };

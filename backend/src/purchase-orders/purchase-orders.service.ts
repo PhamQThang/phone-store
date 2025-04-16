@@ -479,27 +479,48 @@ export class PurchaseOrdersService {
 
   // Xóa đơn nhập hàng
   async remove(id: string) {
-    const purchaseOrder = await this.prisma.purchaseOrder.findUnique({
-      where: { id },
-      include: { purchaseOrderDetails: true },
-    });
-
-    if (!purchaseOrder) {
-      throw new NotFoundException('Đơn nhập hàng không tồn tại');
-    }
-
-    if (purchaseOrder.status === 'Done') {
-      throw new BadRequestException('Không thể xóa đơn nhập hàng đã hoàn tất');
-    }
-
     try {
-      await this.prisma.purchaseOrder.delete({
-        where: { id },
-      });
+      return await this.prisma.$transaction(async prisma => {
+        // Tìm đơn nhập hàng và bao gồm chi tiết
+        const purchaseOrder = await prisma.purchaseOrder.findUnique({
+          where: { id },
+          include: { purchaseOrderDetails: true },
+        });
 
-      return {
-        message: 'Xóa đơn nhập hàng thành công',
-      };
+        if (!purchaseOrder) {
+          throw new NotFoundException('Đơn nhập hàng không tồn tại');
+        }
+
+        if (purchaseOrder.status === 'Done') {
+          throw new BadRequestException(
+            'Không thể xóa đơn nhập hàng đã hoàn tất'
+          );
+        }
+
+        // Kiểm tra xem có chi tiết nào đã gắn ProductIdentity không
+        const hasProductIdentity = purchaseOrder.purchaseOrderDetails.some(
+          detail => detail.productIdentityId
+        );
+        if (hasProductIdentity) {
+          throw new BadRequestException(
+            'Không thể xóa đơn nhập hàng vì có chi tiết đã gắn ProductIdentity'
+          );
+        }
+
+        // Xóa tất cả PurchaseOrderDetail liên quan
+        await prisma.purchaseOrderDetail.deleteMany({
+          where: { importId: id },
+        });
+
+        // Xóa PurchaseOrder
+        await prisma.purchaseOrder.delete({
+          where: { id },
+        });
+
+        return {
+          message: 'Xóa đơn nhập hàng thành công',
+        };
+      });
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2003') {

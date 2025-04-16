@@ -1,7 +1,7 @@
-// app/admin/brands/page.tsx
-import { redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
-import { getCookieValue } from "@/lib/cookieUtils";
+"use client";
+
+import { useState, useEffect, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Brand } from "@/lib/types";
 import {
   getBrands,
@@ -11,131 +11,125 @@ import {
   getBrandById,
 } from "@/api/admin/brandsApi";
 import ClientModals from "@/components/admin/brands/ClientModals";
+import { getAuthData, clearAuthData } from "@/lib/authUtils";
+import { Loader2 } from "lucide-react";
 
-// Server-side function để lấy thông tin role và token
-async function getAuthInfo() {
-  const role = await getCookieValue("role");
-  const token = await getCookieValue("accessToken");
-  return { role, token };
-}
+export default function BrandsPage() {
+  const router = useRouter();
+  const [brands, setBrands] = useState<Brand[]>([]);
+  const [role, setRole] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isPending, startTransition] = useTransition();
 
-// Server-side function để lấy danh sách thương hiệu
-async function fetchBrands(token?: string): Promise<Brand[]> {
-  try {
-    return await getBrands(token);
-  } catch (error: any) {
-    console.error("Lỗi khi lấy danh sách thương hiệu:", error.message);
-    return [];
-  }
-}
+  // Kiểm tra auth và lấy dữ liệu khi component mount
+  useEffect(() => {
+    const authData = getAuthData();
+    if (!authData || !["Admin", "Employee"].includes(authData.role || "")) {
+      clearAuthData();
+      router.push("/auth/login");
+    } else {
+      setRole(authData.role);
+      let isMounted = true;
 
-// Server Action để thêm thương hiệu
-async function addBrandAction(formData: FormData) {
-  "use server";
-  const name = formData.get("name")?.toString();
-  if (!name || name.length < 2) {
-    return { error: "Tên thương hiệu phải có ít nhất 2 ký tự" };
-  }
+      startTransition(async () => {
+        try {
+          const data = await getBrands();
+          if (isMounted) {
+            setBrands(data);
+          }
+        } catch (error) {
+          console.error("Lỗi khi lấy danh sách thương hiệu:", error);
+        } finally {
+          if (isMounted) {
+            setIsLoading(false);
+          }
+        }
+      });
 
-  try {
-    const token = await getCookieValue("accessToken");
-    const newBrand = await createBrand({ name }, token);
-    revalidatePath("/admin/brands");
-    return {
-      success: true,
-      message: "Thêm thương hiệu thành công",
-      brand: newBrand,
-    };
-  } catch (error: any) {
-    if (error.statusCode === 401) {
-      const { clearCookies } = await import("@/lib/cookieUtils");
-      await clearCookies();
-      redirect("/auth/login");
+      return () => {
+        isMounted = false;
+      };
     }
-    return {
-      error: error.message || "Thêm thương hiệu thất bại",
-    };
-  }
-}
+  }, [router]);
 
-// Server Action để sửa thương hiệu
-async function editBrandAction(id: string, formData: FormData) {
-  "use server";
-  const name = formData.get("name")?.toString();
-  if (!name || name.length < 2) {
-    return { error: "Tên thương hiệu phải có ít nhất 2 ký tự" };
-  }
-
-  try {
-    const token = await getCookieValue("accessToken");
-    const updatedBrand = await updateBrand(id, { name }, token);
-    revalidatePath("/admin/brands");
-    return {
-      success: true,
-      message: "Cập nhật thương hiệu thành công",
-      brand: updatedBrand,
-    };
-  } catch (error: any) {
-    if (error.statusCode === 401) {
-      const { clearCookies } = await import("@/lib/cookieUtils");
-      await clearCookies();
-      redirect("/auth/login");
+  const addBrandAction = async (formData: FormData) => {
+    const name = formData.get("name")?.toString();
+    if (!name || name.length < 2) {
+      return { error: "Tên thương hiệu phải có ít nhất 2 ký tự" };
     }
-    return {
-      error: error.message || "Cập nhật thương hiệu thất bại",
-    };
-  }
-}
 
-// Server Action để xóa thương hiệu
-async function deleteBrandAction(id: string) {
-  "use server";
-  try {
-    const token = await getCookieValue("accessToken");
-    await deleteBrand(id, token);
-    revalidatePath("/admin/brands");
-    return { success: true, message: "Xóa thương hiệu thành công" };
-  } catch (error: any) {
-    if (error.statusCode === 401) {
-      const { clearCookies } = await import("@/lib/cookieUtils");
-      await clearCookies();
-      redirect("/auth/login");
+    try {
+      const newBrand = await createBrand({ name });
+      setBrands((prev) => [...prev, newBrand]);
+      return {
+        success: true,
+        message: "Thêm thương hiệu thành công",
+        brand: newBrand,
+      };
+    } catch (error: any) {
+      return {
+        error: error.message || "Thêm thương hiệu thất bại",
+      };
     }
-    return {
-      error: error.message || "Xóa thương hiệu thất bại",
-    };
-  }
-}
+  };
 
-// Server Action để lấy chi tiết thương hiệu
-async function getBrandDetailAction(id: string) {
-  "use server";
-  try {
-    const token = await getCookieValue("accessToken");
-    const brand = await getBrandById(id, token);
-    return { success: true, brand };
-  } catch (error: any) {
-    if (error.statusCode === 401) {
-      const { clearCookies } = await import("@/lib/cookieUtils");
-      await clearCookies();
-      redirect("/auth/login");
+  const editBrandAction = async (id: string, formData: FormData) => {
+    const name = formData.get("name")?.toString();
+    if (!name || name.length < 2) {
+      return { error: "Tên thương hiệu phải có ít nhất 2 ký tự" };
     }
-    return { error: error.message || "Lỗi khi lấy chi tiết thương hiệu" };
+
+    try {
+      const updatedBrand = await updateBrand(id, { name });
+      setBrands((prev) =>
+        prev.map((brand) => (brand.id === id ? updatedBrand : brand))
+      );
+      return {
+        success: true,
+        message: "Cập nhật thương hiệu thành công",
+        brand: updatedBrand,
+      };
+    } catch (error: any) {
+      return {
+        error: error.message || "Thêm thương hiệu thất bại",
+      };
+    }
+  };
+
+  const deleteBrandAction = async (id: string) => {
+    try {
+      await deleteBrand(id);
+      setBrands((prev) => prev.filter((brand) => brand.id !== id));
+      return { success: true, message: "Xóa thương hiệu thành công" };
+    } catch (error: any) {
+      return {
+        error: error.message || "Xóa thương hiệu thất bại",
+      };
+    }
+  };
+
+  const getBrandDetailAction = async (id: string) => {
+    try {
+      const brand = await getBrandById(id);
+      return { success: true, brand };
+    } catch (error: any) {
+      return { error: error.message || "Lỗi khi lấy chi tiết thương hiệu" };
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
   }
-}
-
-export default async function BrandsPage() {
-  // Lấy role và token trên server
-  const { role, token } = await getAuthInfo();
-
-  // Lấy dữ liệu thương hiệu trên server
-  const brands = await fetchBrands(token);
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <ClientModals
         brands={brands}
-        role={role || ""}
+        role={role!}
         addBrandAction={addBrandAction}
         editBrandAction={editBrandAction}
         deleteBrandAction={deleteBrandAction}

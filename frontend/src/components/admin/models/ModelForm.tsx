@@ -1,4 +1,3 @@
-// components/admin/models/ModelForm.tsx
 "use client";
 
 import { useEffect } from "react";
@@ -61,24 +60,20 @@ export function ModelForm({
     },
   });
 
-  // Reset form khi initialData thay đổi
   useEffect(() => {
-    if (initialData) {
-      form.reset({
-        name: initialData.name || "",
-        brandId: initialData.brandId || "",
-      });
-    } else {
-      form.reset({
-        name: "",
-        brandId: "",
-      });
-    }
+    form.reset({
+      name: initialData?.name || "",
+      brandId: initialData?.brandId || "",
+    });
   }, [initialData, form]);
 
   const handleSubmit = async (values: z.infer<typeof modelSchema>) => {
-    await onSubmit(values);
-    onOpenChange(false);
+    try {
+      await onSubmit(values);
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error submitting form:", error);
+    }
   };
 
   return (

@@ -1,4 +1,3 @@
-// components/client/Header.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -28,26 +27,8 @@ import {
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { toast } from "sonner";
 import Image from "next/image";
-import { getCartItems } from "@/api/cart/cartApi"; // Sử dụng API từ dự án hiện tại
+import { getCartItems } from "@/api/cart/cartApi";
 import { getBrands } from "@/api/admin/brandsApi";
-
-interface Model {
-  id: string;
-  name: string;
-  slug: string;
-  brandId: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface Brand {
-  id: string;
-  name: string;
-  slug: string;
-  createdAt: string;
-  updatedAt: string;
-  models: Model[];
-}
 
 interface Category {
   name: string;
@@ -59,25 +40,24 @@ export default function Header() {
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [fullName, setFullName] = useState<string | null>(null);
+  const [cartCount, setCartCount] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [isProductsOpen, setIsProductsOpen] = useState(false);
   const [openCategory, setOpenCategory] = useState<string | null>(null);
   const [hoverTimeout, setHoverTimeout] = useState<NodeJS.Timeout | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [cartCount, setCartCount] = useState(0);
 
-  // Lấy danh sách thương hiệu và model
   useEffect(() => {
     const fetchBrands = async () => {
       try {
         const brandsData = await getBrands();
         const dynamicCategories = brandsData
-          .filter((brand: Brand) => brand.models.length > 0) // Chỉ lấy brand có model
-          .map((brand: Brand) => ({
+          .filter((brand) => brand.models.length > 0)
+          .map((brand) => ({
             name: brand.name,
             href: `/client/products?brand=${brand.slug}`,
-            products: brand.models.map((model: Model) => ({
+            products: brand.models.map((model) => ({
               name: model.name,
               slug: model.slug,
             })),
@@ -86,6 +66,7 @@ export default function Header() {
       } catch (error: any) {
         toast.error("Lỗi", {
           description: error.message || "Lấy danh sách thương hiệu thất bại",
+          duration: 2000,
         });
       }
     };
@@ -93,7 +74,6 @@ export default function Header() {
     fetchBrands();
   }, []);
 
-  // Kiểm tra trạng thái đăng nhập và lấy thông tin người dùng
   useEffect(() => {
     const fullName = localStorage.getItem("fullName");
     const token = localStorage.getItem("accessToken");
@@ -105,32 +85,40 @@ export default function Header() {
       setFullName(null);
     }
 
-    // Lấy số lượng sản phẩm trong giỏ hàng
-    // const fetchCartCount = async () => {
-    //   const cartId = localStorage.getItem("cartId");
-    //   if (!cartId) return;
+    const fetchCartCount = async () => {
+      const cartId = localStorage.getItem("cartId");
+      if (!cartId) {
+        setCartCount(0);
+        return;
+      }
 
-    //   try {
-    //     const cartItems = await getCartItems(cartId);
-    //     const totalItems = cartItems.reduce(
-    //       (sum: number, item: { quantity: number }) => sum + item.quantity,
-    //       0
-    //     );
-    //     setCartCount(totalItems);
-    //   } catch (error) {
-    //     console.error("Không thể lấy giỏ hàng:", error);
-    //   }
-    // };
+      try {
+        const cartItems = await getCartItems(cartId);
+        const totalItems = cartItems.reduce(
+          (sum: number, item: { quantity: number }) => sum + item.quantity,
+          0
+        );
+        setCartCount(totalItems);
+      } catch (error: any) {
+        console.error("Không thể lấy giỏ hàng:", error);
+        setCartCount(0);
+      }
+    };
 
-    // fetchCartCount();
+    fetchCartCount();
   }, []);
 
   const handleLogout = () => {
     localStorage.clear();
     setIsLoggedIn(false);
     setFullName(null);
+    setCartCount(0);
     toast.success("Đăng xuất thành công!");
     router.push("/client");
+  };
+
+  const handleCartClick = () => {
+    router.push("/client/cart");
   };
 
   const handleSearch = (e: React.FormEvent) => {
@@ -173,7 +161,6 @@ export default function Header() {
     <div className="flex flex-col sticky top-0 z-50 bg-white shadow-sm">
       <div className="container w-full mx-auto p-3">
         <div className="container mx-auto flex items-center justify-between">
-          {/* Logo */}
           <Link href="/client">
             <Image
               src="/images/logo.png"
@@ -183,7 +170,6 @@ export default function Header() {
             />
           </Link>
 
-          {/* Thanh tìm kiếm */}
           <div className="hidden md:flex relative w-full max-w-sm mx-6">
             <form onSubmit={handleSearch} className="relative w-full">
               <Input
@@ -197,9 +183,7 @@ export default function Header() {
             </form>
           </div>
 
-          {/* Menu và các icon */}
           <div className="flex items-center gap-3">
-            {/* Icon tìm kiếm (mobile) */}
             <Sheet>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="md:hidden">
@@ -228,7 +212,6 @@ export default function Header() {
               </SheetContent>
             </Sheet>
 
-            {/* Menu tài khoản */}
             <Popover open={isAccountOpen} onOpenChange={setIsAccountOpen}>
               <PopoverTrigger asChild>
                 <Button
@@ -293,8 +276,7 @@ export default function Header() {
               </PopoverContent>
             </Popover>
 
-            {/* Icon giỏ hàng */}
-            {/* <Button
+            <Button
               variant="ghost"
               size="icon"
               onClick={handleCartClick}
@@ -306,9 +288,8 @@ export default function Header() {
                   {cartCount}
                 </span>
               )}
-            </Button> */}
+            </Button>
 
-            {/* Menu điều hướng (mobile) */}
             <Sheet>
               <SheetTrigger asChild>
                 <Button variant="ghost" size="icon" className="md:hidden">

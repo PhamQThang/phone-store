@@ -144,6 +144,7 @@ export default function ClientModals({
       if (result.success) {
         setSelectedModel(result.model);
         setIsDetailOpen(true);
+        toast.success("Tải chi tiết model thành công");
       } else {
         toast.error("Lỗi khi lấy chi tiết model", {
           description: result.error || "Vui lòng thử lại sau.",
@@ -168,6 +169,7 @@ export default function ClientModals({
       if (result.success) {
         setSelectedModel(result.model);
         setIsEditOpen(true);
+        toast.success("Tải thông tin model thành công");
       } else {
         toast.error("Lỗi khi lấy thông tin model", {
           description: result.error || "Vui lòng thử lại sau.",
@@ -187,8 +189,7 @@ export default function ClientModals({
   const isLoading = isAdding || isEditing || isDeleting || isViewing;
 
   return (
-    <>
-      {/* Header và tìm kiếm */}
+    <div className="relative">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-4">
         <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold">
           Quản lý model
@@ -199,13 +200,15 @@ export default function ClientModals({
             <Input
               placeholder="Tìm kiếm model..."
               value={searchTerm}
-              onChange={(e) => e.target.value}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-9 pr-9 text-sm sm:text-base w-full"
+              disabled={isLoading}
             />
             {searchTerm && (
               <button
                 onClick={() => setSearchTerm("")}
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                disabled={isLoading}
               >
                 <X className="h-4 w-4" />
               </button>
@@ -404,6 +407,6 @@ export default function ClientModals({
         onOpenChange={setIsDetailOpen}
         model={selectedModel}
       />
-    </>
+    </div>
   );
 }

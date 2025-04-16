@@ -11,16 +11,17 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash, Eye, Plus, Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Edit, Trash, Eye, Plus, Search, X } from "lucide-react";
 import { Slide } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SlideForm } from "@/components/admin/slides/SlideForm";
 import { SlideDetail } from "@/components/admin/slides/SlideDetail";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ClientSlidesProps {
   slides: Slide[];
   role: string;
-  token: string;
   addSlideAction: (formData: FormData) => Promise<any>;
   editSlideAction: (id: string, formData: FormData) => Promise<any>;
   deleteSlideAction: (id: string) => Promise<any>;
@@ -28,32 +29,41 @@ interface ClientSlidesProps {
 }
 
 export default function ClientSlides({
-  slides: initialSlides,
+  slides,
   role,
-  token,
   addSlideAction,
   editSlideAction,
   deleteSlideAction,
   getSlideDetailAction,
 }: ClientSlidesProps) {
-  const [slides, setSlides] = useState<Slide[]>(initialSlides);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedSlide, setSelectedSlide] = useState<Slide | null>(null);
-  const [loading, setLoading] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isViewing, setIsViewing] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
-  // Thêm Slide
+  const filteredSlides = slides.filter((slide) =>
+    [
+      slide.title || "",
+      slide.link || "",
+      slide.isActive ? "Hoạt động" : "Không hoạt động",
+    ]
+      .join(" ")
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase())
+  );
+
   const handleAddSlide = async (data: {
     title?: string;
     link?: string;
     isActive: boolean;
     displayOrder: number;
     file: File | null;
+    currentImage?: string;
   }) => {
     setIsAdding(true);
     try {
@@ -63,12 +73,11 @@ export default function ClientSlides({
       formData.append("isActive", data.isActive.toString());
       formData.append("displayOrder", data.displayOrder.toString());
       if (data.file) formData.append("file", data.file);
+      if (data.currentImage) formData.append("currentImage", data.currentImage);
 
       const result = await addSlideAction(formData);
       if (result.success) {
-        setSlides([...slides, result.slide]);
         toast.success(result.message);
-        setIsAddOpen(false);
       } else {
         toast.error("Thêm slide thất bại", {
           description: result.error || "Vui lòng thử lại sau.",
@@ -85,13 +94,13 @@ export default function ClientSlides({
     }
   };
 
-  // Sửa Slide
   const handleEditSlide = async (data: {
     title?: string;
     link?: string;
     isActive: boolean;
     displayOrder: number;
     file: File | null;
+    currentImage?: string;
   }) => {
     if (!selectedSlide) return;
     setIsEditing(true);
@@ -102,16 +111,11 @@ export default function ClientSlides({
       formData.append("isActive", data.isActive.toString());
       formData.append("displayOrder", data.displayOrder.toString());
       if (data.file) formData.append("file", data.file);
+      if (data.currentImage) formData.append("currentImage", data.currentImage);
 
       const result = await editSlideAction(selectedSlide.id, formData);
       if (result.success) {
-        setSlides(
-          slides.map((slide) =>
-            slide.id === result.slide.id ? result.slide : slide
-          )
-        );
         toast.success(result.message);
-        setIsEditOpen(false);
       } else {
         toast.error("Cập nhật slide thất bại", {
           description: result.error || "Vui lòng thử lại sau.",
@@ -128,14 +132,12 @@ export default function ClientSlides({
     }
   };
 
-  // Xóa Slide
   const handleDeleteSlide = async (id: string) => {
     if (confirm("Bạn có chắc chắn muốn xóa slide này?")) {
       setIsDeleting(true);
       try {
         const result = await deleteSlideAction(id);
         if (result.success) {
-          setSlides(slides.filter((slide) => slide.id !== id));
           toast.success(result.message);
         } else {
           toast.error("Xóa slide thất bại", {
@@ -154,7 +156,6 @@ export default function ClientSlides({
     }
   };
 
-  // Xem chi tiết Slide
   const handleViewDetail = async (id: string) => {
     setIsViewing(true);
     try {
@@ -162,6 +163,7 @@ export default function ClientSlides({
       if (result.success) {
         setSelectedSlide(result.slide);
         setIsDetailOpen(true);
+        toast.success("Tải chi tiết slide thành công");
       } else {
         toast.error("Lỗi khi lấy chi tiết slide", {
           description: result.error || "Vui lòng thử lại sau.",
@@ -178,7 +180,6 @@ export default function ClientSlides({
     }
   };
 
-  // Mở form chỉnh sửa và lấy dữ liệu Slide
   const handleOpenEdit = async (id: string) => {
     setIsViewing(true);
     try {
@@ -186,6 +187,7 @@ export default function ClientSlides({
       if (result.success) {
         setSelectedSlide(result.slide);
         setIsEditOpen(true);
+        toast.success("Tải thông tin slide thành công");
       } else {
         toast.error("Lỗi khi lấy thông tin slide", {
           description: result.error || "Vui lòng thử lại sau.",
@@ -202,35 +204,59 @@ export default function ClientSlides({
     }
   };
 
-  const isLoading = loading || isAdding || isEditing || isDeleting || isViewing;
+  const isLoading = isAdding || isEditing || isDeleting || isViewing;
 
   return (
-    <div>
-      <div className="flex flex-col sm:flex-row justify-between items-center mb-4 sm:mb-6">
-        <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-4 sm:mb-0">
+    <div className="relative">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-4">
+        <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold">
           Quản lý Slide
         </h2>
-        {role === "Admin" && (
-          <Button
-            onClick={() => setIsAddOpen(true)}
-            className="w-full sm:w-auto"
-            disabled={isLoading}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Thêm
-          </Button>
-        )}
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="relative flex-1 sm:flex-none sm:w-64">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Tìm kiếm slide..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9 pr-9 text-sm sm:text-base w-full"
+              disabled={isLoading}
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm("")}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                disabled={isLoading}
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          {role === "Admin" && (
+            <Button
+              onClick={() => setIsAddOpen(true)}
+              className="w-full sm:w-auto"
+              disabled={isLoading}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Thêm
+            </Button>
+          )}
+        </div>
       </div>
 
       {isLoading && !isAdding && !isEditing ? (
-        <div className="flex justify-center items-center py-4">
-          <Loader2 className="h-6 w-6 animate-spin text-gray-500" />
+        <div className="space-y-4">
+          {[...Array(3)].map((_, index) => (
+            <Skeleton key={index} className="h-12 w-full rounded-md" />
+          ))}
         </div>
-      ) : slides.length === 0 ? (
-        <p className="text-center text-gray-500">Không có slide nào.</p>
+      ) : filteredSlides.length === 0 ? (
+        <p className="text-center text-gray-500">
+          {searchTerm ? "Không tìm thấy slide nào." : "Không có slide nào."}
+        </p>
       ) : (
         <>
-          {/* Hiển thị dạng bảng trên màn hình lớn (PC, tablet) */}
           <div className="hidden md:block overflow-x-auto">
             <Table>
               <TableHeader>
@@ -251,7 +277,7 @@ export default function ClientSlides({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {slides.map((slide) => (
+                {filteredSlides.map((slide) => (
                   <TableRow key={slide.id}>
                     <TableCell className="text-xs sm:text-sm">
                       {slide.title || "N/A"}
@@ -313,9 +339,8 @@ export default function ClientSlides({
             </Table>
           </div>
 
-          {/* Hiển thị dạng danh sách trên mobile */}
           <div className="block md:hidden space-y-4">
-            {slides.map((slide) => (
+            {filteredSlides.map((slide) => (
               <Card key={slide.id} className="shadow-sm">
                 <CardHeader>
                   <CardTitle className="text-sm font-medium">
@@ -387,30 +412,24 @@ export default function ClientSlides({
         </>
       )}
 
-      {/* Modal Thêm Slide */}
       {role === "Admin" && (
-        <SlideForm
-          open={isAddOpen}
-          onOpenChange={setIsAddOpen}
-          onSubmit={handleAddSlide}
-          isLoading={isAdding}
-          token={token}
-        />
+        <>
+          <SlideForm
+            open={isAddOpen}
+            onOpenChange={setIsAddOpen}
+            onSubmit={handleAddSlide}
+            isLoading={isAdding}
+          />
+          <SlideForm
+            open={isEditOpen}
+            onOpenChange={setIsEditOpen}
+            onSubmit={handleEditSlide}
+            initialData={selectedSlide || undefined}
+            isLoading={isEditing}
+          />
+        </>
       )}
 
-      {/* Modal Sửa Slide */}
-      {role === "Admin" && (
-        <SlideForm
-          open={isEditOpen}
-          onOpenChange={setIsEditOpen}
-          onSubmit={handleEditSlide}
-          initialData={selectedSlide || undefined}
-          isLoading={isEditing}
-          token={token}
-        />
-      )}
-
-      {/* Modal Xem chi tiết Slide */}
       <SlideDetail
         open={isDetailOpen}
         onOpenChange={setIsDetailOpen}

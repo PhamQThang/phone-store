@@ -1,6 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import {
   Dialog,
   DialogContent,
@@ -18,9 +21,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Trash } from "lucide-react";
+import { Trash, Loader2 } from "lucide-react";
 import Image from "next/image";
 import { File as FileType } from "@/lib/types";
+
+const slideSchema = z.object({
+  title: z.string().optional(),
+  link: z.string().optional(),
+  isActive: z.boolean(),
+  displayOrder: z.number().min(0, "Thứ tự hiển thị không được nhỏ hơn 0"),
+  file: z.instanceof(File).nullable().optional(),
+  currentImage: z.string().optional(),
+});
 
 interface SlideFormProps {
   open: boolean;
@@ -31,6 +43,7 @@ interface SlideFormProps {
     isActive: boolean;
     displayOrder: number;
     file: File | null;
+    currentImage?: string;
   }) => Promise<void>;
   initialData?: Partial<{
     id: string;
@@ -41,7 +54,6 @@ interface SlideFormProps {
     image: FileType;
   }>;
   isLoading: boolean;
-  token: string;
 }
 
 export function SlideForm({
@@ -50,60 +62,62 @@ export function SlideForm({
   onSubmit,
   initialData,
   isLoading,
-  token,
 }: SlideFormProps) {
-  const [title, setTitle] = useState("");
-  const [link, setLink] = useState("");
-  const [isActive, setIsActive] = useState(true);
-  const [displayOrder, setDisplayOrder] = useState("");
-  const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
-  const [currentImage, setCurrentImage] = useState<FileType | null>(null);
+  const form = useForm<z.infer<typeof slideSchema>>({
+    resolver: zodResolver(slideSchema),
+    defaultValues: {
+      title: "",
+      link: "",
+      isActive: true,
+      displayOrder: 0,
+      file: null,
+      currentImage: "",
+    },
+  });
 
-  // Cập nhật state khi initialData thay đổi
+  const [preview, setPreview] = useState<string | null>(null);
+
   useEffect(() => {
     if (initialData) {
-      setTitle(initialData.title || "");
-      setLink(initialData.link || "");
-      setIsActive(
-        initialData.isActive !== undefined ? initialData.isActive : true
-      );
-      setDisplayOrder(
-        initialData.displayOrder ? initialData.displayOrder.toString() : ""
-      );
-      setCurrentImage(initialData.image || null);
-      setFile(null);
+      form.reset({
+        title: initialData.title || "",
+        link: initialData.link || "",
+        isActive:
+          initialData.isActive !== undefined ? initialData.isActive : true,
+        displayOrder: initialData.displayOrder || 0,
+        file: null,
+        currentImage: initialData.image?.url || "",
+      });
       setPreview(null);
     } else {
-      setTitle("");
-      setLink("");
-      setIsActive(true);
-      setDisplayOrder("");
-      setFile(null);
+      form.reset({
+        title: "",
+        link: "",
+        isActive: true,
+        displayOrder: 0,
+        file: null,
+        currentImage: "",
+      });
       setPreview(null);
-      setCurrentImage(null);
     }
-  }, [initialData]);
+  }, [initialData, form]);
 
-  // Xử lý khi người dùng chọn file mới
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
-      setFile(selectedFile);
+      form.setValue("file", selectedFile);
       setPreview(URL.createObjectURL(selectedFile));
     }
   };
 
-  // Xử lý xóa file mới đã chọn
   const handleRemoveFile = () => {
-    setFile(null);
+    form.setValue("file", null);
     if (preview) {
       URL.revokeObjectURL(preview);
       setPreview(null);
     }
   };
 
-  // Giải phóng URL preview khi component unmount hoặc form đóng
   useEffect(() => {
     return () => {
       if (preview) {
@@ -112,57 +126,21 @@ export function SlideForm({
     };
   }, [preview]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (values: z.infer<typeof slideSchema>) => {
+    if (!values.file && !values.currentImage && !initialData) {
+      toast.error("File ảnh là bắt buộc khi tạo mới slide");
+      return;
+    }
 
     try {
-      const parsedDisplayOrder = parseInt(displayOrder) || 0;
-
-      const data: {
-        title?: string;
-        link?: string;
-        isActive: boolean;
-        displayOrder: number;
-        file: File | null;
-      } = {
-        isActive,
-        displayOrder: parsedDisplayOrder,
-        file,
-      };
-
-      // Chỉ gửi các trường nếu giá trị thay đổi so với initialData
-      if (initialData) {
-        if (title && title !== initialData.title) {
-          data.title = title;
-        }
-        if (link && link !== initialData.link) {
-          data.link = link;
-        }
-      } else {
-        // Trường hợp thêm mới, gửi tất cả các trường
-        data.title = title || undefined;
-        data.link = link || undefined;
-        if (!file) {
-          throw new Error("File ảnh là bắt buộc khi tạo mới slide");
-        }
-      }
-
-      // Kiểm tra nếu không có thay đổi và không có file mới
-      if (initialData && Object.keys(data).length === 2 && data.file === null) {
-        toast.info("Không có thay đổi để cập nhật");
-        return;
-      }
-
-      await onSubmit(data);
-      onOpenChange(false);
-      // Reset form sau khi submit thành công
-      setTitle("");
-      setLink("");
-      setIsActive(true);
-      setDisplayOrder("");
-      setFile(null);
-      setPreview(null);
-      setCurrentImage(null);
+      await onSubmit({
+        title: values.title || undefined,
+        link: values.link || undefined,
+        isActive: values.isActive,
+        displayOrder: values.displayOrder,
+        file: values.file,
+        currentImage: values.currentImage || undefined,
+      });
     } catch (error: any) {
       toast.error("Lỗi khi lưu slide", {
         description: error.message || "Vui lòng thử lại sau.",
@@ -175,19 +153,26 @@ export function SlideForm({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-full max-w-2xl p-4 sm:p-6 max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{initialData ? "Sửa Slide" : "Thêm Slide"}</DialogTitle>
+          <DialogTitle className="text-lg sm:text-xl">
+            {initialData ? "Sửa Slide" : "Thêm Slide"}
+          </DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
           <div>
             <Label htmlFor="title" className="text-sm sm:text-base">
               Tiêu đề
             </Label>
             <Input
               id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              {...form.register("title")}
               className="mt-1 text-sm sm:text-base"
+              disabled={isLoading}
             />
+            {form.formState.errors.title && (
+              <p className="text-red-500 text-xs sm:text-sm mt-1">
+                {form.formState.errors.title.message}
+              </p>
+            )}
           </div>
           <div>
             <Label htmlFor="link" className="text-sm sm:text-base">
@@ -195,18 +180,26 @@ export function SlideForm({
             </Label>
             <Input
               id="link"
-              value={link}
-              onChange={(e) => setLink(e.target.value)}
+              {...form.register("link")}
               className="mt-1 text-sm sm:text-base"
+              disabled={isLoading}
             />
+            {form.formState.errors.link && (
+              <p className="text-red-500 text-xs sm:text-sm mt-1">
+                {form.formState.errors.link.message}
+              </p>
+            )}
           </div>
           <div>
             <Label htmlFor="isActive" className="text-sm sm:text-base">
               Trạng thái
             </Label>
             <Select
-              value={isActive.toString()}
-              onValueChange={(value) => setIsActive(value === "true")}
+              value={form.watch("isActive").toString()}
+              onValueChange={(value) =>
+                form.setValue("isActive", value === "true")
+              }
+              disabled={isLoading}
             >
               <SelectTrigger className="mt-1">
                 <SelectValue placeholder="Chọn trạng thái" />
@@ -216,6 +209,11 @@ export function SlideForm({
                 <SelectItem value="false">Không hoạt động</SelectItem>
               </SelectContent>
             </Select>
+            {form.formState.errors.isActive && (
+              <p className="text-red-500 text-xs sm:text-sm mt-1">
+                {form.formState.errors.isActive.message}
+              </p>
+            )}
           </div>
           <div>
             <Label htmlFor="displayOrder" className="text-sm sm:text-base">
@@ -224,20 +222,22 @@ export function SlideForm({
             <Input
               id="displayOrder"
               type="number"
-              value={displayOrder}
-              onChange={(e) => setDisplayOrder(e.target.value)}
-              required
+              {...form.register("displayOrder", { valueAsNumber: true })}
               className="mt-1 text-sm sm:text-base"
+              disabled={isLoading}
             />
+            {form.formState.errors.displayOrder && (
+              <p className="text-red-500 text-xs sm:text-sm mt-1">
+                {form.formState.errors.displayOrder.message}
+              </p>
+            )}
           </div>
-
-          {/* Hiển thị hình ảnh hiện tại */}
-          {currentImage && (
+          {form.watch("currentImage") && (
             <div>
               <Label className="text-sm sm:text-base">Hình ảnh hiện tại</Label>
               <div className="relative w-full h-24 mt-2">
                 <Image
-                  src={currentImage.url}
+                  src={form.watch("currentImage")}
                   alt="Slide image"
                   fill
                   className="object-cover rounded"
@@ -245,8 +245,6 @@ export function SlideForm({
               </div>
             </div>
           )}
-
-          {/* Input để chọn file mới */}
           <div>
             <Label htmlFor="file" className="text-sm sm:text-base">
               Hình ảnh Slide
@@ -257,12 +255,15 @@ export function SlideForm({
               onChange={handleFileChange}
               accept="image/*"
               className="mt-1"
-              required={!initialData}
+              disabled={isLoading}
             />
+            {form.formState.errors.file && (
+              <p className="text-red-500 text-xs sm:text-sm mt-1">
+                {form.formState.errors.file.message}
+              </p>
+            )}
           </div>
-
-          {/* Hiển thị preview của file mới đã chọn */}
-          {file && preview && (
+          {preview && (
             <div>
               <Label className="text-sm sm:text-base">
                 Hình ảnh mới đã chọn
@@ -270,7 +271,7 @@ export function SlideForm({
               <div className="relative w-full h-24 mt-2">
                 <Image
                   src={preview}
-                  alt={file.name}
+                  alt="Preview"
                   fill
                   className="object-cover rounded"
                 />
@@ -279,14 +280,16 @@ export function SlideForm({
                   size="sm"
                   className="absolute top-1 right-1"
                   onClick={handleRemoveFile}
+                  disabled={isLoading}
                 >
                   <Trash className="h-4 w-4" />
                 </Button>
               </div>
-              <p className="text-xs truncate mt-1">{file.name}</p>
+              <p className="text-xs truncate mt-1">
+                {form.watch("file")?.name}
+              </p>
             </div>
           )}
-
           <div className="flex justify-end space-x-2">
             <Button
               type="button"
@@ -302,7 +305,16 @@ export function SlideForm({
               className="w-full sm:w-auto"
               disabled={isLoading}
             >
-              {isLoading ? "Đang xử lý..." : initialData ? "Cập nhật" : "Thêm"}
+              {isLoading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Đang xử lý...
+                </>
+              ) : initialData ? (
+                "Cập nhật"
+              ) : (
+                "Thêm"
+              )}
             </Button>
           </div>
         </form>

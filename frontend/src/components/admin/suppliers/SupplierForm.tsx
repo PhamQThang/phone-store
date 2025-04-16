@@ -1,4 +1,3 @@
-// components/admin/suppliers/SupplierForm.tsx
 "use client";
 
 import { useEffect } from "react";
@@ -36,12 +35,7 @@ const supplierSchema = z.object({
 interface SupplierFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (data: {
-    name: string;
-    address: string;
-    phone: string;
-    email?: string;
-  }) => Promise<void>;
+  onSubmit: (formData: FormData) => Promise<void>;
   initialData?: Supplier;
   isLoading: boolean;
 }
@@ -56,14 +50,13 @@ export function SupplierForm({
   const form = useForm<z.infer<typeof supplierSchema>>({
     resolver: zodResolver(supplierSchema),
     defaultValues: {
-      name: initialData?.name || "",
-      address: initialData?.address || "",
-      phone: initialData?.phone || "",
-      email: initialData?.email || "",
+      name: "",
+      address: "",
+      phone: "",
+      email: "",
     },
   });
 
-  // Reset form khi initialData thay đổi
   useEffect(() => {
     if (initialData) {
       form.reset({
@@ -83,12 +76,13 @@ export function SupplierForm({
   }, [initialData, form]);
 
   const handleSubmit = async (values: z.infer<typeof supplierSchema>) => {
-    const data = {
-      ...values,
-      email: values.email || undefined, // Chuyển "" thành undefined để backend xử lý nullable
-    };
-    await onSubmit(data);
-    onOpenChange(false);
+    const formData = new FormData();
+    formData.append("name", values.name);
+    formData.append("address", values.address);
+    formData.append("phone", values.phone);
+    if (values.email) formData.append("email", values.email);
+
+    await onSubmit(formData);
   };
 
   return (
@@ -117,6 +111,7 @@ export function SupplierForm({
                       placeholder="Nhập tên nhà cung cấp"
                       {...field}
                       className="text-sm sm:text-base"
+                      disabled={isLoading}
                     />
                   </FormControl>
                   <FormMessage className="text-xs sm:text-sm" />
@@ -136,6 +131,7 @@ export function SupplierForm({
                       placeholder="Nhập địa chỉ"
                       {...field}
                       className="text-sm sm:text-base"
+                      disabled={isLoading}
                     />
                   </FormControl>
                   <FormMessage className="text-xs sm:text-sm" />
@@ -155,6 +151,7 @@ export function SupplierForm({
                       placeholder="Nhập số điện thoại"
                       {...field}
                       className="text-sm sm:text-base"
+                      disabled={isLoading}
                     />
                   </FormControl>
                   <FormMessage className="text-xs sm:text-sm" />
@@ -174,6 +171,7 @@ export function SupplierForm({
                       placeholder="Nhập email"
                       {...field}
                       className="text-sm sm:text-base"
+                      disabled={isLoading}
                     />
                   </FormControl>
                   <FormMessage className="text-xs sm:text-sm" />

@@ -1,12 +1,12 @@
-// components/admin/ClientAdminLayout.tsx
 "use client";
 
-import { useState } from "react"; // Thêm useState để quản lý trạng thái loading
+import { useState } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/admin/AppSidebar";
 import { Button } from "@/components/ui/button";
 import { LogOut, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { clearClientCookies } from "@/lib/clientCookieUtils";
 
 interface ClientAdminLayoutProps {
   children: React.ReactNode;
@@ -19,12 +19,13 @@ export default function ClientAdminLayout({
   role,
   handleLogoutAction,
 }: ClientAdminLayoutProps) {
-  const [isLoading, setIsLoading] = useState(false); // Thêm trạng thái loading
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleLogout = async () => {
+  const handleLogout = async (formData: FormData) => {
     setIsLoading(true);
     try {
       await handleLogoutAction();
+      clearClientCookies();
       toast.success("Đăng xuất thành công", {
         description: "Bạn đã đăng xuất khỏi hệ thống.",
         duration: 2000,
@@ -50,23 +51,21 @@ export default function ClientAdminLayout({
               <SidebarTrigger />
               <h1 className="text-xl font-semibold ml-4">Khu vực quản trị</h1>
             </div>
-            <Button
-              variant="destructive"
-              onClick={handleLogout}
-              disabled={isLoading}
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Đang xử lý...
-                </>
-              ) : (
-                <>
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Đăng xuất
-                </>
-              )}
-            </Button>
+            <form action={handleLogout}>
+              <Button type="submit" variant="destructive" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Đang xử lý...
+                  </>
+                ) : (
+                  <>
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Đăng xuất
+                  </>
+                )}
+              </Button>
+            </form>
           </header>
 
           <main className="flex-1 p-6 bg-gray-100">{children}</main>

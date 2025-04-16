@@ -61,7 +61,7 @@ interface ProductFormProps {
     filesToDelete?: string[];
   }) => Promise<void>;
   initialData?: Product;
-  models: Model[]; // Nhận models qua props
+  models: Model[];
   isLoading: boolean;
 }
 
@@ -70,7 +70,7 @@ export function ProductForm({
   onOpenChange,
   onSubmit,
   initialData,
-  models, // Nhận models từ props
+  models,
   isLoading,
 }: ProductFormProps) {
   const [files, setFiles] = useState<File[]>([]);
@@ -78,7 +78,6 @@ export function ProductForm({
   const [currentFiles, setCurrentFiles] = useState<ProductFiles[]>([]);
   const [filesToDelete, setFilesToDelete] = useState<string[]>([]);
 
-  // Khởi tạo form với react-hook-form
   const form = useForm<z.infer<typeof productSchema>>({
     resolver: zodResolver(productSchema),
     defaultValues: {
@@ -94,44 +93,24 @@ export function ProductForm({
     },
   });
 
-  // Cập nhật form khi initialData thay đổi
   useEffect(() => {
-    if (initialData) {
-      form.reset({
-        name: initialData.name || "",
-        price: initialData.price || 0,
-        storage: initialData.storage || 0,
-        ram: initialData.ram || 0,
-        screenSize: initialData.screenSize || 0,
-        battery: initialData.battery || 0,
-        chip: initialData.chip || "",
-        operatingSystem: initialData.operatingSystem || "",
-        modelId: initialData.modelId || "",
-      });
-      setCurrentFiles(initialData.productFiles || []);
-      setFilesToDelete([]);
-      setFiles([]);
-      setPreviews([]);
-    } else {
-      form.reset({
-        name: "",
-        price: 0,
-        storage: 0,
-        ram: 0,
-        screenSize: 0,
-        battery: 0,
-        chip: "",
-        operatingSystem: "",
-        modelId: "",
-      });
-      setCurrentFiles([]);
-      setFilesToDelete([]);
-      setFiles([]);
-      setPreviews([]);
-    }
+    form.reset({
+      name: initialData?.name || "",
+      price: initialData?.price || 0,
+      storage: initialData?.storage || 0,
+      ram: initialData?.ram || 0,
+      screenSize: initialData?.screenSize || 0,
+      battery: initialData?.battery || 0,
+      chip: initialData?.chip || "",
+      operatingSystem: initialData?.operatingSystem || "",
+      modelId: initialData?.modelId || "",
+    });
+    setCurrentFiles(initialData?.productFiles || []);
+    setFilesToDelete([]);
+    setFiles([]);
+    setPreviews([]);
   }, [initialData, form]);
 
-  // Xử lý khi người dùng chọn file mới
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = e.target.files;
     if (selectedFiles) {
@@ -142,7 +121,6 @@ export function ProductForm({
     }
   };
 
-  // Xử lý xóa file mới đã chọn
   const handleRemoveFile = (index: number) => {
     setFiles((prevFiles) => prevFiles.filter((_, i) => i !== index));
     setPreviews((prevPreviews) => {
@@ -152,20 +130,17 @@ export function ProductForm({
     });
   };
 
-  // Xử lý xóa file hiện tại
   const handleRemoveCurrentFile = (fileId: string) => {
     setFilesToDelete((prev) => [...prev, fileId]);
     setCurrentFiles((prev) => prev.filter((file) => file.fileId !== fileId));
   };
 
-  // Chuyển danh sách file thành FileList để gửi lên server
   const createFileList = (files: File[]): FileList => {
     const dataTransfer = new DataTransfer();
     files.forEach((file) => dataTransfer.items.add(file));
     return dataTransfer.files;
   };
 
-  // Giải phóng các URL preview khi component unmount hoặc form đóng
   useEffect(() => {
     return () => {
       previews.forEach((preview) => URL.revokeObjectURL(preview));
@@ -173,50 +148,38 @@ export function ProductForm({
   }, [previews]);
 
   const handleSubmit = async (values: z.infer<typeof productSchema>) => {
-    const data: {
-      name?: string;
-      price?: number;
-      storage?: number;
-      ram?: number;
-      screenSize?: number;
-      battery?: number;
-      chip?: string;
-      operatingSystem?: string;
-      modelId?: string;
-      files: FileList | null;
-      filesToDelete?: string[];
-    } = {
-      files: files.length > 0 ? createFileList(files) : null,
-      filesToDelete: filesToDelete.length > 0 ? filesToDelete : undefined,
-    };
+    try {
+      const data: {
+        name?: string;
+        price?: number;
+        storage?: number;
+        ram?: number;
+        screenSize?: number;
+        battery?: number;
+        chip?: string;
+        operatingSystem?: string;
+        modelId?: string;
+        files: FileList | null;
+        filesToDelete?: string[];
+      } = {
+        name: values.name,
+        price: values.price,
+        storage: values.storage,
+        ram: values.ram,
+        screenSize: values.screenSize,
+        battery: values.battery,
+        chip: values.chip,
+        operatingSystem: values.operatingSystem,
+        modelId: values.modelId,
+        files: files.length > 0 ? createFileList(files) : null,
+        filesToDelete: filesToDelete.length > 0 ? filesToDelete : undefined,
+      };
 
-    if (initialData) {
-      if (values.name !== initialData.name) data.name = values.name;
-      if (values.price !== initialData.price) data.price = values.price;
-      if (values.storage !== initialData.storage) data.storage = values.storage;
-      if (values.ram !== initialData.ram) data.ram = values.ram;
-      if (values.screenSize !== initialData.screenSize)
-        data.screenSize = values.screenSize;
-      if (values.battery !== initialData.battery) data.battery = values.battery;
-      if (values.chip !== initialData.chip) data.chip = values.chip;
-      if (values.operatingSystem !== initialData.operatingSystem)
-        data.operatingSystem = values.operatingSystem;
-      if (values.modelId !== initialData.modelId) data.modelId = values.modelId;
-    } else {
-      Object.assign(data, values);
-    }
-
-    if (
-      initialData &&
-      Object.keys(data).length === 2 &&
-      data.files === null &&
-      (!data.filesToDelete || data.filesToDelete.length === 0)
-    ) {
+      await onSubmit(data);
       onOpenChange(false);
-      return;
+    } catch (error) {
+      console.error("Error submitting form:", error);
     }
-
-    await onSubmit(data);
   };
 
   return (
@@ -266,7 +229,7 @@ export function ProductForm({
                         placeholder="Nhập giá sản phẩm"
                         {...field}
                         onChange={(e) =>
-                          field.onChange(parseFloat(e.target.value))
+                          field.onChange(parseFloat(e.target.value) || 0)
                         }
                         className="text-sm sm:text-base"
                       />
@@ -289,7 +252,7 @@ export function ProductForm({
                         placeholder="Nhập dung lượng lưu trữ"
                         {...field}
                         onChange={(e) =>
-                          field.onChange(parseInt(e.target.value))
+                          field.onChange(parseInt(e.target.value) || 0)
                         }
                         className="text-sm sm:text-base"
                       />
@@ -312,7 +275,7 @@ export function ProductForm({
                         placeholder="Nhập dung lượng RAM"
                         {...field}
                         onChange={(e) =>
-                          field.onChange(parseInt(e.target.value))
+                          field.onChange(parseInt(e.target.value) || 0)
                         }
                         className="text-sm sm:text-base"
                       />
@@ -336,7 +299,7 @@ export function ProductForm({
                         placeholder="Nhập kích thước màn hình"
                         {...field}
                         onChange={(e) =>
-                          field.onChange(parseFloat(e.target.value))
+                          field.onChange(parseFloat(e.target.value) || 0)
                         }
                         className="text-sm sm:text-base"
                       />
@@ -359,7 +322,7 @@ export function ProductForm({
                         placeholder="Nhập dung lượng pin"
                         {...field}
                         onChange={(e) =>
-                          field.onChange(parseInt(e.target.value))
+                          field.onChange(parseInt(e.target.value) || 0)
                         }
                         className="text-sm sm:text-base"
                       />
@@ -412,30 +375,31 @@ export function ProductForm({
                     <FormLabel className="text-sm sm:text-base">
                       Model
                     </FormLabel>
-                    <FormControl>
-                      <Select
-                        onValueChange={field.onChange}
-                        value={field.value}
-                      >
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
                         <SelectTrigger className="text-sm sm:text-base">
                           <SelectValue placeholder="Chọn model" />
                         </SelectTrigger>
-                        <SelectContent>
-                          {models.map((model) => (
-                            <SelectItem key={model.id} value={model.id}>
-                              {model.name} ({model.brand.name})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </FormControl>
+                      </FormControl>
+                      <SelectContent>
+                        {models.map((model) => (
+                          <SelectItem
+                            key={model.id}
+                            value={model.id}
+                            className="text-sm sm:text-base"
+                          >
+                            {model.name} (
+                            {model.brand?.name || "Không có thương hiệu"})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage className="text-xs sm:text-sm" />
                   </FormItem>
                 )}
               />
             </div>
 
-            {/* Hiển thị danh sách ảnh hiện tại */}
             {currentFiles.length > 0 && (
               <div>
                 <FormLabel className="text-sm sm:text-base">
@@ -462,6 +426,7 @@ export function ProductForm({
                         onClick={() =>
                           handleRemoveCurrentFile(productFile.fileId)
                         }
+                        disabled={isLoading}
                       >
                         <Trash className="h-4 w-4" />
                       </Button>
@@ -471,7 +436,6 @@ export function ProductForm({
               </div>
             )}
 
-            {/* Input để chọn nhiều ảnh mới */}
             <div>
               <FormLabel className="text-sm sm:text-base">
                 Ảnh sản phẩm
@@ -482,10 +446,10 @@ export function ProductForm({
                 onChange={handleFileChange}
                 accept="image/*"
                 className="mt-1 text-sm sm:text-base"
+                disabled={isLoading}
               />
             </div>
 
-            {/* Hiển thị danh sách file mới đã chọn với preview */}
             {files.length > 0 && (
               <div>
                 <FormLabel className="text-sm sm:text-base">
@@ -508,6 +472,7 @@ export function ProductForm({
                         size="sm"
                         className="absolute top-1 right-1"
                         onClick={() => handleRemoveFile(index)}
+                        disabled={isLoading}
                       >
                         <Trash className="h-4 w-4" />
                       </Button>

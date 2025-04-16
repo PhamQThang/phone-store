@@ -1,4 +1,4 @@
-// api/axiosConfig.ts
+// lib/axiosConfig.ts
 import axios, { AxiosInstance, AxiosError } from "axios";
 
 interface ApiError {
@@ -15,10 +15,21 @@ const axiosInstance: AxiosInstance = axios.create({
   timeout: 30000,
 });
 
-axiosInstance.interceptors.response.use(
-  (response) => {
-    return response.data;
+axiosInstance.interceptors.request.use(
+  (config) => {
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem("accessToken");
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    }
+    return config;
   },
+  (error) => Promise.reject(error)
+);
+
+axiosInstance.interceptors.response.use(
+  (response) => response.data,
   (error: AxiosError<ApiError>) => {
     const errorResponse: ApiError = {
       statusCode: error.response?.status,
@@ -26,6 +37,14 @@ axiosInstance.interceptors.response.use(
         error.response?.data?.message || error.message || "Đã có lỗi xảy ra",
       error: error.response?.data?.error || error.name,
     };
+
+    if (error.response?.status === 401) {
+      // Xử lý khi token hết hạn
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("accessToken");
+        window.location.href = "/auth/login";
+      }
+    }
 
     return Promise.reject(errorResponse);
   }

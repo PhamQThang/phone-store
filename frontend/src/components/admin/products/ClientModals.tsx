@@ -17,6 +17,7 @@ import { Product, Model } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ProductForm } from "@/components/admin/products/ProductForm";
 import { ProductDetail } from "@/components/admin/products/ProductDetail";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ClientModalsProps {
   products: Product[];
@@ -49,7 +50,12 @@ export default function ClientModals({
 
   // Lọc danh sách sản phẩm dựa trên từ khóa tìm kiếm
   const filteredProducts = products.filter((product) =>
-    [product.name, product.slug]
+    [
+      product.name,
+      product.slug,
+      product.model.name,
+      product.model.brand?.name || "",
+    ]
       .join(" ")
       .toLowerCase()
       .includes(searchTerm.toLowerCase())
@@ -97,7 +103,6 @@ export default function ClientModals({
       const result = await addProductAction(formData);
       if (result.success) {
         toast.success(result.message);
-        setIsAddOpen(false); // Tự động đóng form sau khi thêm thành công
       } else {
         toast.error("Thêm sản phẩm thất bại", {
           description: result.error || "Vui lòng thử lại sau.",
@@ -157,7 +162,6 @@ export default function ClientModals({
       const result = await editProductAction(selectedProduct.id, formData);
       if (result.success) {
         toast.success(result.message);
-        setIsEditOpen(false); // Tự động đóng form sau khi sửa thành công
       } else {
         toast.error("Cập nhật sản phẩm thất bại", {
           description: result.error || "Vui lòng thử lại sau.",
@@ -207,6 +211,7 @@ export default function ClientModals({
       if (result.success) {
         setSelectedProduct(result.product);
         setIsDetailOpen(true);
+        toast.success("Tải chi tiết sản phẩm thành công");
       } else {
         toast.error("Lỗi khi lấy chi tiết sản phẩm", {
           description: result.error || "Vui lòng thử lại sau.",
@@ -231,6 +236,7 @@ export default function ClientModals({
       if (result.success) {
         setSelectedProduct(result.product);
         setIsEditOpen(true);
+        toast.success("Tải thông tin sản phẩm thành công");
       } else {
         toast.error("Lỗi khi lấy thông tin sản phẩm", {
           description: result.error || "Vui lòng thử lại sau.",
@@ -250,8 +256,7 @@ export default function ClientModals({
   const isLoading = isAdding || isEditing || isDeleting || isViewing;
 
   return (
-    <>
-      {/* Header và tìm kiếm */}
+    <div className="relative">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-4">
         <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold">
           Quản lý sản phẩm
@@ -264,11 +269,13 @@ export default function ClientModals({
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-9 pr-9 text-sm sm:text-base w-full"
+              disabled={isLoading}
             />
             {searchTerm && (
               <button
                 onClick={() => setSearchTerm("")}
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                disabled={isLoading}
               >
                 <X className="h-4 w-4" />
               </button>
@@ -287,7 +294,13 @@ export default function ClientModals({
         </div>
       </div>
 
-      {filteredProducts.length === 0 ? (
+      {isLoading && !isAdding && !isEditing ? (
+        <div className="space-y-4">
+          {[...Array(3)].map((_, index) => (
+            <Skeleton key={index} className="h-12 w-full rounded-md" />
+          ))}
+        </div>
+      ) : filteredProducts.length === 0 ? (
         <p className="text-center text-gray-500">
           {searchTerm
             ? "Không tìm thấy sản phẩm nào."
@@ -306,6 +319,9 @@ export default function ClientModals({
                   </TableHead>
                   <TableHead className="text-xs sm:text-sm">Giá</TableHead>
                   <TableHead className="text-xs sm:text-sm">Model</TableHead>
+                  <TableHead className="text-xs sm:text-sm">
+                    Thương hiệu
+                  </TableHead>
                   <TableHead className="text-xs sm:text-sm">Ngày tạo</TableHead>
                   <TableHead className="text-xs sm:text-sm">
                     Hành động
@@ -326,6 +342,9 @@ export default function ClientModals({
                     </TableCell>
                     <TableCell className="text-xs sm:text-sm">
                       {product.model.name}
+                    </TableCell>
+                    <TableCell className="text-xs sm:text-sm">
+                      {product.model.brand?.name || "Không có thương hiệu"}
                     </TableCell>
                     <TableCell className="text-xs sm:text-sm">
                       {new Date(product.createdAt).toLocaleDateString()}
@@ -386,6 +405,10 @@ export default function ClientModals({
                   </p>
                   <p>
                     <strong>Model:</strong> {product.model.name}
+                  </p>
+                  <p>
+                    <strong>Thương hiệu:</strong>{" "}
+                    {product.model.brand?.name || "Không có thương hiệu"}
                   </p>
                   <p>
                     <strong>Ngày tạo:</strong>{" "}
@@ -460,6 +483,6 @@ export default function ClientModals({
         onOpenChange={setIsDetailOpen}
         product={selectedProduct}
       />
-    </>
+    </div>
   );
 }
