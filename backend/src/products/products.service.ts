@@ -1,4 +1,3 @@
-// backend/src/products/products.service.ts
 import {
   Injectable,
   NotFoundException,
@@ -188,6 +187,61 @@ export class ProductsService {
       data: product,
     };
   }
+
+  // Lấy danh sách các sản phẩm tương tự (dựa trên giá gần giống)
+  async findSimilar(id: string) {
+    const product = await this.prisma.product.findUnique({
+      where: { id },
+      include: {
+        model: {
+          include: { brand: true },
+        },
+      },
+    });
+
+    if (!product) {
+      throw new NotFoundException('Sản phẩm không tồn tại');
+    }
+
+    const brandId = product.model.brandId;
+    const priceRange = 0.2; // ±20% giá
+    const minPrice = product.price * (1 - priceRange);
+    const maxPrice = product.price * (1 + priceRange);
+
+    const similarProducts = await this.prisma.product.findMany({
+      where: {
+        id: { not: id }, // Loại bỏ chính sản phẩm hiện tại
+        model: {
+          brandId: brandId, // Cùng thương hiệu
+        },
+        price: {
+          gte: minPrice,
+          lte: maxPrice,
+        },
+      },
+      include: {
+        model: {
+          include: { brand: true },
+        },
+        productFiles: {
+          include: { file: true },
+        },
+        promotions: {
+          include: {
+            promotion: true,
+          },
+        },
+      },
+      take: 4, // Giới hạn tối đa 4 sản phẩm tương tự
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return {
+      message: 'Lấy danh sách sản phẩm tương tự thành công',
+      data: similarProducts,
+    };
+  }
+
   // Cập nhật thông tin của một sản phẩm
   async update(id: string, updateProductDto: UpdateProductDto) {
     const product = await this.prisma.product.findUnique({

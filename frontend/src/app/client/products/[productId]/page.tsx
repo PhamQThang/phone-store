@@ -20,12 +20,14 @@ import {
   CarouselItem,
   CarouselApi,
 } from "@/components/ui/carousel";
-import { getProductById } from "@/api/admin/productsApi";
+import { getProductById, getSimilarProducts } from "@/api/admin/productsApi";
 import { getColors } from "@/api/admin/colorsApi";
 import { Color, Product, ProductIdentity } from "@/lib/types";
+import ProductCard from "@/components/client/ProductCard";
 
 export default function ProductDetailPage() {
   const [product, setProduct] = useState<Product | null>(null);
+  const [similarProducts, setSimilarProducts] = useState<Product[]>([]);
   const [colors, setColors] = useState<Color[]>([]);
   const [selectedColorId, setSelectedColorId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -37,13 +39,17 @@ export default function ProductDetailPage() {
 
   const fetchData = useCallback(async () => {
     try {
-      const [productData, colorsData] = await Promise.all([
+      const [productData, colorsData, similarProductsData] = await Promise.all([
         getProductById(productId as string),
         getColors(),
+        getSimilarProducts(productId as string),
       ]);
+
+      console.log("similarProductsData", similarProductsData);
 
       setProduct(productData);
       setColors(colorsData);
+      setSimilarProducts(similarProductsData);
 
       const firstAvailableColor = productData.productIdentities.find(
         (pi: ProductIdentity) => !pi.isSold
@@ -243,6 +249,22 @@ export default function ProductDetailPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Section sản phẩm tương tự */}
+      <div className="mt-10">
+        <h2 className="text-2xl font-semibold mb-4">Sản phẩm tương tự</h2>
+        {similarProducts.length === 0 ? (
+          <p className="text-center text-gray-500">
+            Không có sản phẩm tương tự.
+          </p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {similarProducts.map((similarProduct) => (
+              <ProductCard key={similarProduct.id} product={similarProduct} />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

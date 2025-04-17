@@ -20,6 +20,11 @@ export const getProductById = async (id: string): Promise<Product> => {
   return response.data;
 };
 
+export const getSimilarProducts = async (id: string): Promise<Product[]> => {
+  const response = await axiosInstance.get(`/products/${id}/similar`);
+  return response.data;
+};
+
 export const createProduct = async (data: {
   name: string;
   price: number;
