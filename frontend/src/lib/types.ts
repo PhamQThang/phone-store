@@ -102,6 +102,7 @@ export interface Product {
   battery: number;
   chip: string;
   operatingSystem: string;
+  discountedPrice?: number;
   modelId: string;
   createdAt: string;
   updatedAt: string;

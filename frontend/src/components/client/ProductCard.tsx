@@ -10,9 +10,7 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
-  console.log("ProductCard render", product);
-
-  // Kiểm tra khuyến mãi áp dụng
+  // Kiểm tra xem có khuyến mãi đang áp dụng không
   const activePromotion = product.promotions?.find(({ promotion }) => {
     const now = new Date();
     const startDate = new Date(promotion.startDate);
@@ -20,10 +18,9 @@ export default function ProductCard({ product }: ProductCardProps) {
     return promotion.isActive && startDate <= now && now <= endDate;
   });
 
-  // Tính giá sau giảm (giảm tiền cố định)
   const originalPrice = product.price;
-  const discount = activePromotion?.promotion.discount || 0;
-  const discountedPrice = Math.max(0, originalPrice - discount);
+  const discountedPrice = product.discountedPrice ?? originalPrice; // Sử dụng discountedPrice từ backend
+  const discount = activePromotion ? originalPrice - discountedPrice : 0;
 
   const generateRandomRating = () => {
     return (Math.random() * 1.5 + 3.5).toFixed(1); // Phạm vi 3.5 - 5.0

@@ -16,6 +16,57 @@ export class ProductsService {
     private readonly cloudinaryService: CloudinaryService
   ) {}
 
+  // Hàm tính giá sau khi giảm dựa trên khuyến mãi
+  public async calculateDiscountedPrice(
+    price: number,
+    productId?: string
+  ): Promise<number> {
+    if (!productId) {
+      return price; // Khi tạo mới, chưa có khuyến mãi nên trả về giá gốc
+    }
+
+    // Lấy danh sách khuyến mãi liên quan đến sản phẩm
+    const promotions = await this.prisma.productPromotion.findMany({
+      where: { productId },
+      include: {
+        promotion: true,
+      },
+    });
+
+    const now = new Date();
+    const activePromotion = promotions.find(({ promotion }) => {
+      const startDate = new Date(promotion.startDate);
+      const endDate = new Date(promotion.endDate);
+      return promotion.isActive && startDate <= now && now <= endDate;
+    });
+
+    if (activePromotion) {
+      const discount = activePromotion.promotion.discount || 0;
+      return Math.max(0, price - discount); // Đảm bảo giá không âm
+    }
+    return price; // Nếu không có khuyến mãi, trả về giá gốc
+  }
+
+  // Đồng bộ giá giảm cho một sản phẩm cụ thể
+  async syncDiscountedPriceForProduct(productId: string) {
+    const product = await this.prisma.product.findUnique({
+      where: { id: productId },
+    });
+
+    if (!product) {
+      throw new NotFoundException('Sản phẩm không tồn tại');
+    }
+
+    const discountedPrice = await this.calculateDiscountedPrice(
+      product.price,
+      productId
+    );
+    await this.prisma.product.update({
+      where: { id: productId },
+      data: { discountedPrice },
+    });
+  }
+
   // Tạo một sản phẩm mới
   async create(createProductDto: CreateProductDto) {
     const {
@@ -43,12 +94,16 @@ export class ProductsService {
       const slug =
         name.toLowerCase().replace(/\s+/g, '-') + '-' + storage + 'gb';
 
+      // Khi tạo mới, chưa có khuyến mãi nên discountedPrice = price
+      const discountedPrice = price;
+
       // Tạo sản phẩm với các thuộc tính mới
       const product = await this.prisma.product.create({
         data: {
           name,
           slug,
           price,
+          discountedPrice, // Lưu giá sau khi giảm (bằng giá gốc ban đầu)
           storage,
           ram,
           screenSize,
@@ -94,6 +149,7 @@ export class ProductsService {
         include: {
           model: { include: { brand: true } },
           productFiles: { include: { file: true } },
+          promotions: { include: { promotion: true } },
         },
       });
 
@@ -172,7 +228,7 @@ export class ProductsService {
         productIdentities: true,
         promotions: {
           include: {
-            promotion: true, // Bao gồm thông tin chi tiết của promotion
+            promotion: true,
           },
         },
       },
@@ -303,6 +359,10 @@ export class ProductsService {
           ? name.toLowerCase().replace(/\s+/g, '-') + '-' + storage + 'gb'
           : undefined;
 
+      // Tính giá sau khi giảm (dùng giá mới nếu có, nếu không dùng giá cũ)
+      const newPrice = price !== undefined ? price : product.price;
+      const discountedPrice = await this.calculateDiscountedPrice(newPrice, id);
+
       // Cập nhật sản phẩm với các thuộc tính mới
       const updatedProduct = await this.prisma.product.update({
         where: { id },
@@ -310,6 +370,7 @@ export class ProductsService {
           name: name || undefined,
           slug: slug || undefined,
           price: price || undefined,
+          discountedPrice, // Cập nhật giá sau khi giảm
           storage: storage || undefined,
           ram: ram || undefined,
           screenSize: screenSize || undefined,
@@ -387,6 +448,7 @@ export class ProductsService {
         include: {
           model: { include: { brand: true } },
           productFiles: { include: { file: true } },
+          promotions: { include: { promotion: true } },
         },
       });
 

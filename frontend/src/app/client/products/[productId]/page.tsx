@@ -137,6 +137,17 @@ export default function ProductDetailPage() {
     isMain: pf.isMain,
   }));
 
+  // Kiểm tra xem có khuyến mãi áp dụng không
+  const activePromotion = product.promotions?.find(({ promotion }) => {
+    const now = new Date();
+    const startDate = new Date(promotion.startDate);
+    const endDate = new Date(promotion.endDate);
+    return promotion.isActive && startDate <= now && now <= endDate;
+  });
+
+  const originalPrice = product.price;
+  const discountedPrice = product.discountedPrice ?? originalPrice;
+
   return (
     <div className="container mx-auto px-4 py-10">
       <Card>
@@ -191,9 +202,20 @@ export default function ProductDetailPage() {
 
             {/* Thông tin sản phẩm */}
             <div>
-              <p className="text-2xl font-semibold text-primary mb-4">
-                {product.price.toLocaleString("vi-VN")} VNĐ
-              </p>
+              {activePromotion ? (
+                <div className="flex items-center gap-4 mb-4">
+                  <p className="text-2xl font-semibold text-red-600">
+                    {discountedPrice.toLocaleString("vi-VN")} VNĐ
+                  </p>
+                  <p className="text-xl text-gray-500 line-through">
+                    {originalPrice.toLocaleString("vi-VN")} VNĐ
+                  </p>
+                </div>
+              ) : (
+                <p className="text-2xl font-semibold text-primary mb-4">
+                  {originalPrice.toLocaleString("vi-VN")} VNĐ
+                </p>
+              )}
               <div className="space-y-2">
                 <p>
                   <span className="font-semibold">Dung lượng:</span>{" "}

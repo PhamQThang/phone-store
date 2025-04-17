@@ -85,27 +85,27 @@ export default function Header() {
       setFullName(null);
     }
 
-    const fetchCartCount = async () => {
-      const cartId = localStorage.getItem("cartId");
-      if (!cartId) {
-        setCartCount(0);
-        return;
-      }
+    // const fetchCartCount = async () => {
+    //   const cartId = localStorage.getItem("cartId");
+    //   if (!cartId) {
+    //     setCartCount(0);
+    //     return;
+    //   }
 
-      try {
-        const cartItems = await getCartItems(cartId);
-        const totalItems = cartItems.reduce(
-          (sum: number, item: { quantity: number }) => sum + item.quantity,
-          0
-        );
-        setCartCount(totalItems);
-      } catch (error: any) {
-        console.error("Không thể lấy giỏ hàng:", error);
-        setCartCount(0);
-      }
-    };
+    //   try {
+    //     const cartItems = await getCartItems(cartId);
+    //     const totalItems = cartItems.reduce(
+    //       (sum: number, item: { quantity: number }) => sum + item.quantity,
+    //       0
+    //     );
+    //     setCartCount(totalItems);
+    //   } catch (error: any) {
+    //     console.error("Không thể lấy giỏ hàng:", error);
+    //     setCartCount(0);
+    //   }
+    // };
 
-    fetchCartCount();
+    // fetchCartCount();
   }, []);
 
   const handleLogout = () => {
@@ -117,9 +117,9 @@ export default function Header() {
     router.push("/client");
   };
 
-  const handleCartClick = () => {
-    router.push("/client/cart");
-  };
+  // const handleCartClick = () => {
+  //   router.push("/client/cart");
+  // };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -275,7 +275,7 @@ export default function Header() {
                 )}
               </PopoverContent>
             </Popover>
-
+            {/* 
             <Button
               variant="ghost"
               size="icon"
@@ -288,7 +288,7 @@ export default function Header() {
                   {cartCount}
                 </span>
               )}
-            </Button>
+            </Button> */}
 
             <Sheet>
               <SheetTrigger asChild>

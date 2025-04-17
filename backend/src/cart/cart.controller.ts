@@ -26,8 +26,6 @@ import {
 
 @ApiTags('cart')
 @Controller('cart')
-@UseGuards(JwtAuthGuard)
-@ApiBearerAuth('access-token')
 export class CartController {
   constructor(private readonly cartService: CartService) {}
 
@@ -45,6 +43,8 @@ export class CartController {
   }
 
   @Post()
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Thêm sản phẩm vào giỏ hàng' })
   @ApiQuery({ name: 'cartId', required: true, description: 'ID của giỏ hàng' })
   @ApiResponse({
@@ -65,6 +65,8 @@ export class CartController {
   }
 
   @Patch(':id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Cập nhật số lượng sản phẩm trong giỏ hàng' })
   @ApiQuery({ name: 'cartId', required: true, description: 'ID của giỏ hàng' })
   @ApiResponse({
@@ -90,6 +92,8 @@ export class CartController {
   }
 
   @Delete(':id')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Xóa sản phẩm khỏi giỏ hàng' })
   @ApiQuery({ name: 'cartId', required: true, description: 'ID của giỏ hàng' })
