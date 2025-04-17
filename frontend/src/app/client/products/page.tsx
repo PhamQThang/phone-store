@@ -1,12 +1,9 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useRouter, useParams } from "next/navigation";
-import { addToCart } from "@/api/cart/cartApi";
+import { useState, useEffect, useTransition } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import ProductCard from "@/components/client/ProductCard";
 import { toast } from "sonner";
-import Image from "next/image";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -14,269 +11,319 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselApi,
-} from "@/components/ui/carousel";
-import { getProductById, getSimilarProducts } from "@/api/admin/productsApi";
-import { getColors } from "@/api/admin/colorsApi";
-import { Color, Product, ProductIdentity } from "@/lib/types";
-import ProductCard from "@/components/client/ProductCard";
+import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Slider } from "@/components/ui/slider";
+import { getBrands } from "@/api/admin/brandsApi";
+import { getProducts } from "@/api/admin/productsApi";
+import { Brand, Product } from "@/lib/types";
 
-export default function ProductDetailPage() {
-  const [product, setProduct] = useState<Product | null>(null);
-  const [similarProducts, setSimilarProducts] = useState<Product[]>([]);
-  const [colors, setColors] = useState<Color[]>([]);
-  const [selectedColorId, setSelectedColorId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+export default function ProductsPage() {
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [api, setApi] = useState<CarouselApi>();
-  const [current, setCurrent] = useState(0);
+  const [isPending, startTransition] = useTransition();
+  const searchParams = useSearchParams();
   const router = useRouter();
-  const { productId } = useParams();
 
-  const fetchData = useCallback(async () => {
-    try {
-      const [productData, colorsData, similarProductsData] = await Promise.all([
-        getProductById(productId as string),
-        getColors(),
-        getSimilarProducts(productId as string),
-      ]);
+  const brandSlug = searchParams.get("brand");
+  const modelSlug = searchParams.get("model");
 
-      setProduct(productData);
-      setColors(colorsData);
-      setSimilarProducts(similarProductsData);
+  const [filterValues, setFilterValues] = useState({
+    minPrice: 0,
+    maxPrice: 50000000,
+    minScreenSize: 0,
+    maxScreenSize: 20,
+    minRam: 0,
+    maxRam: 32,
+    minStorage: 0,
+    maxStorage: 2048,
+  });
 
-      const firstAvailableColor = productData.productIdentities.find(
-        (pi: ProductIdentity) => !pi.isSold
-      )?.colorId;
-      setSelectedColorId(firstAvailableColor || null);
-    } catch (error: any) {
-      setError(error.message || "Không thể lấy thông tin sản phẩm");
-      toast.error("Lỗi", {
-        description: error.message || "Không thể lấy thông tin sản phẩm",
-        duration: 2000,
-      });
-    } finally {
-      setLoading(false);
-    }
-  }, [productId]);
+  const fetchData = async () => {
+    startTransition(async () => {
+      try {
+        const [brandsData, productsData] = await Promise.all([
+          getBrands(),
+          getProducts(brandSlug || undefined, modelSlug || undefined),
+        ]);
 
-  useEffect(() => {
-    if (productId) {
-      fetchData();
-    }
-  }, [fetchData, productId]);
-
-  useEffect(() => {
-    if (!api) return;
-
-    setCurrent(api.selectedScrollSnap() + 1);
-
-    api.on("select", () => {
-      setCurrent(api.selectedScrollSnap() + 1);
+        console.log("productsData", productsData);
+        setBrands(brandsData);
+        setAllProducts(productsData);
+        applyFilters(productsData);
+      } catch (error: any) {
+        setError(error.message || "Không thể lấy dữ liệu");
+        toast.error("Lỗi", {
+          description: error.message || "Không thể lấy dữ liệu",
+          duration: 2000,
+        });
+      } finally {
+        setIsLoading(false);
+      }
     });
-  }, [api]);
-
-  const handleAddToCart = async () => {
-    const cartId = localStorage.getItem("cartId");
-    if (!cartId) {
-      toast.error("Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng");
-      router.push("/auth/login");
-      return;
-    }
-
-    if (!selectedColorId) {
-      toast.error("Vui lòng chọn màu sắc trước khi thêm vào giỏ hàng");
-      return;
-    }
-
-    try {
-      await addToCart(cartId, {
-        productId: product!.id,
-        colorId: selectedColorId,
-        quantity: 1,
-      });
-      toast.success("Đã thêm vào giỏ hàng", {
-        duration: 2000,
-      });
-    } catch (error: any) {
-      toast.error("Lỗi", {
-        description: error.message || "Không thể thêm vào giỏ hàng",
-        duration: 2000,
-      });
-    }
   };
 
-  if (loading) {
-    return <div className="text-center mt-10">Đang tải...</div>;
+  useEffect(() => {
+    setIsLoading(true);
+    fetchData();
+  }, [brandSlug, modelSlug]);
+
+  const applyFilters = (products: Product[]) => {
+    if (!Array.isArray(products)) {
+      console.error("Dữ liệu đầu vào không phải là mảng:", products);
+      setFilteredProducts([]);
+      return;
+    }
+
+    console.log("Applying filters with values:", filterValues);
+    console.log("Products before filtering:", products);
+
+    const filtered = products.filter((product) => {
+      const price = product.price || 0;
+      const screenSize = product.screenSize || 0;
+      const ram = product.ram || 0;
+      const storage = product.storage || 0;
+
+      console.log(`Product ${product.id}:`, {
+        price,
+        screenSize,
+        ram,
+        storage,
+      });
+
+      const priceMatch =
+        price >= filterValues.minPrice && price <= filterValues.maxPrice;
+      const screenSizeMatch =
+        screenSize >= filterValues.minScreenSize &&
+        screenSize <= filterValues.maxScreenSize;
+      const ramMatch = ram >= filterValues.minRam && ram <= filterValues.maxRam;
+      const storageMatch =
+        storage >= filterValues.minStorage &&
+        storage <= filterValues.maxStorage;
+
+      console.log(`Product ${product.id} matches:`, {
+        priceMatch,
+        screenSizeMatch,
+        ramMatch,
+        storageMatch,
+      });
+
+      return priceMatch && screenSizeMatch && ramMatch && storageMatch;
+    });
+
+    console.log("Filtered products:", filtered);
+    setFilteredProducts(filtered);
+  };
+
+  const selectedBrand = brands.find((b) => b.slug === brandSlug);
+  const availableModels = selectedBrand ? selectedBrand.models : [];
+
+  const handleBrandChange = (value: string) => {
+    const newSearchParams = new URLSearchParams(searchParams.toString());
+    if (value === "all") {
+      newSearchParams.delete("brand");
+      newSearchParams.delete("model");
+    } else {
+      newSearchParams.set("brand", value);
+      newSearchParams.delete("model");
+    }
+    router.push(`/client/products?${newSearchParams.toString()}`);
+  };
+
+  const handleModelChange = (value: string) => {
+    const newSearchParams = new URLSearchParams(searchParams.toString());
+    if (value === "all") {
+      newSearchParams.delete("model");
+    } else {
+      newSearchParams.set("model", value);
+    }
+    router.push(`/client/products?${newSearchParams.toString()}`);
+  };
+
+  const handleFilterChange = (key: string, value: number[]) => {
+    const newFilterValues = {
+      ...filterValues,
+      [key]: value[1],
+      [`min${key}`]: value[0],
+    };
+    setFilterValues(newFilterValues);
+    applyFilters(allProducts);
+  };
+
+  if (isLoading && !isPending) {
+    return (
+      <div className="container mx-auto px-4 py-10">
+        <Skeleton className="h-10 w-64 mb-8" />
+        <div className="flex space-x-4 mb-6">
+          <Skeleton className="h-10 w-48" />
+          <Skeleton className="h-10 w-48" />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {[...Array(8)].map((_, index) => (
+            <Skeleton key={index} className="h-96 w-full rounded-md" />
+          ))}
+        </div>
+      </div>
+    );
   }
 
   if (error) {
-    return <div className="text-center mt-10 text-red-600">{error}</div>;
+    return (
+      <div className="container mx-auto px-4 py-10">
+        <Alert variant="destructive">
+          <AlertTitle>Lỗi</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      </div>
+    );
   }
-
-  if (!product) {
-    return <div className="text-center mt-10">Sản phẩm không tồn tại</div>;
-  }
-
-  const availableColors = product.productIdentities
-    .filter((pi) => !pi.isSold)
-    .map((pi) => {
-      const color = colors.find((c) => c.id === pi.colorId);
-      return color || null;
-    })
-    .filter((color) => color !== null) as Color[];
-
-  const productImages = product.productFiles.map((pf) => ({
-    url: pf.file.url,
-    isMain: pf.isMain,
-  }));
-
-  // Kiểm tra xem sản phẩm có khuyến mãi không
-  const hasDiscount = product.discountedPrice < product.price;
 
   return (
     <div className="container mx-auto px-4 py-10">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-3xl">{product.name}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Phần hình ảnh sản phẩm với Carousel */}
-            <div>
-              {/* Carousel chính */}
-              <Carousel setApi={setApi} className="w-full">
-                <CarouselContent>
-                  {productImages.map((image, index) => (
-                    <CarouselItem key={index}>
-                      <div className="relative w-full h-96">
-                        <Image
-                          src={image.url}
-                          alt={`${product.name} - Image ${index + 1}`}
-                          fill
-                          className="object-contain rounded-md"
-                          priority={index === 0}
-                        />
-                      </div>
-                    </CarouselItem>
-                  ))}
-                </CarouselContent>
-              </Carousel>
+      <h1 className="text-3xl font-bold mb-8">Danh sách sản phẩm</h1>
 
-              {/* Danh sách ảnh nhỏ để chọn */}
-              <div className="flex space-x-4 mt-4 overflow-x-auto py-2">
-                {productImages.map((image, index) => (
-                  <button
-                    key={index}
-                    onClick={() => api?.scrollTo(index)}
-                    className={`relative w-20 h-20 flex-shrink-0 rounded-md overflow-hidden border-2 ${
-                      current === index + 1
-                        ? "border-primary"
-                        : "border-transparent"
-                    }`}
-                  >
-                    <Image
-                      src={image.url}
-                      alt={`Thumbnail ${index + 1}`}
-                      fill
-                      className="object-cover"
-                    />
-                  </button>
+      <div className="flex flex-col sm:flex-row sm:items-end gap-4 mb-6">
+        <div className="flex-1 sm:flex-none">
+          <Label htmlFor="brand-filter" className="block mb-2">
+            Thương hiệu
+          </Label>
+          <Select
+            onValueChange={handleBrandChange}
+            value={brandSlug || "all"}
+            disabled={isPending}
+          >
+            <SelectTrigger id="brand-filter" className="w-full sm:w-48">
+              <SelectValue placeholder="Chọn thương hiệu" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Tất cả thương hiệu</SelectItem>
+              {brands.map((brand) => (
+                <SelectItem key={brand.id} value={brand.slug}>
+                  {brand.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {brandSlug && availableModels.length > 0 && (
+          <div className="flex-1 sm:flex-none">
+            <Label htmlFor="model-filter" className="block mb-2">
+              Dòng sản phẩm
+            </Label>
+            <Select
+              onValueChange={handleModelChange}
+              value={modelSlug || "all"}
+              disabled={isPending}
+            >
+              <SelectTrigger id="model-filter" className="w-full sm:w-48">
+                <SelectValue placeholder="Chọn dòng sản phẩm" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả dòng sản phẩm</SelectItem>
+                {availableModels.map((model) => (
+                  <SelectItem key={model.id} value={model.slug}>
+                    {model.name}
+                  </SelectItem>
                 ))}
-              </div>
-            </div>
-
-            {/* Thông tin sản phẩm */}
-            <div>
-              {hasDiscount ? (
-                <div className="flex items-center gap-2 mb-4">
-                  <p className="text-2xl font-semibold text-red-600">
-                    {product.discountedPrice.toLocaleString("vi-VN")} VNĐ
-                  </p>
-                  <p className="text-lg text-gray-500 line-through">
-                    {product.price.toLocaleString("vi-VN")} VNĐ
-                  </p>
-                </div>
-              ) : (
-                <p className="text-2xl font-semibold text-primary mb-4">
-                  {product.price.toLocaleString("vi-VN")} VNĐ
-                </p>
-              )}
-              <div className="space-y-2">
-                <p>
-                  <span className="font-semibold">Dung lượng:</span>{" "}
-                  {product.storage} GB
-                </p>
-                <p>
-                  <span className="font-semibold">RAM:</span> {product.ram} GB
-                </p>
-                <p>
-                  <span className="font-semibold">Kích thước màn hình:</span>{" "}
-                  {product.screenSize} inch
-                </p>
-                <p>
-                  <span className="font-semibold">Pin:</span> {product.battery}{" "}
-                  mAh
-                </p>
-                <p>
-                  <span className="font-semibold">Chip:</span> {product.chip}
-                </p>
-                <p>
-                  <span className="font-semibold">Hệ điều hành:</span>{" "}
-                  {product.operatingSystem}
-                </p>
-                {availableColors.length > 0 ? (
-                  <div>
-                    <span className="font-semibold">Màu sắc:</span>
-                    <Select
-                      onValueChange={(value) => setSelectedColorId(value)}
-                      value={selectedColorId || ""}
-                    >
-                      <SelectTrigger className="w-[200px] mt-2">
-                        <SelectValue placeholder="Chọn màu sắc" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableColors.map((color) => (
-                          <SelectItem key={color.id} value={color.id}>
-                            {color.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                ) : (
-                  <p className="text-red-600">Sản phẩm đã hết hàng</p>
-                )}
-              </div>
-              {availableColors.length > 0 && (
-                <Button onClick={handleAddToCart} className="mt-6 w-full">
-                  Thêm vào giỏ hàng
-                </Button>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Section sản phẩm tương tự */}
-      <div className="mt-10">
-        <h2 className="text-2xl font-semibold mb-4">Sản phẩm tương tự</h2>
-        {similarProducts.length === 0 ? (
-          <p className="text-center text-gray-500">
-            Không có sản phẩm tương tự.
-          </p>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {similarProducts.map((similarProduct) => (
-              <ProductCard key={similarProduct.id} product={similarProduct} />
-            ))}
+              </SelectContent>
+            </Select>
           </div>
         )}
+
+        {/* Lọc theo giá */}
+        <div className="flex-1 sm:flex-none">
+          <Label htmlFor="price-filter" className="block mb-2">
+            Giá (VNĐ)
+          </Label>
+          <Slider
+            id="price-filter"
+            min={0}
+            max={50000000}
+            step={100000}
+            value={[filterValues.minPrice, filterValues.maxPrice]}
+            onValueChange={(value) => handleFilterChange("Price", value)}
+            className="w-full sm:w-48"
+          />
+          <div className="text-sm text-gray-600">
+            {filterValues.minPrice.toLocaleString()} -{" "}
+            {filterValues.maxPrice.toLocaleString()} VNĐ
+          </div>
+        </div>
+
+        {/* Lọc theo kích thước màn hình */}
+        <div className="flex-1 sm:flex-none">
+          <Label htmlFor="screenSize-filter" className="block mb-2">
+            Kích thước màn hình (inch)
+          </Label>
+          <Slider
+            id="screenSize-filter"
+            min={4}
+            max={7}
+            step={0.1}
+            value={[filterValues.minScreenSize, filterValues.maxScreenSize]}
+            onValueChange={(value) => handleFilterChange("ScreenSize", value)}
+            className="w-full sm:w-48"
+          />
+          <div className="text-sm text-gray-600">
+            {filterValues.minScreenSize} - {filterValues.maxScreenSize} inch
+          </div>
+        </div>
+
+        {/* Lọc theo RAM */}
+        <div className="flex-1 sm:flex-none">
+          <Label htmlFor="ram-filter" className="block mb-2">
+            RAM (GB)
+          </Label>
+          <Slider
+            id="ram-filter"
+            min={4}
+            max={16}
+            step={2}
+            value={[filterValues.minRam, filterValues.maxRam]}
+            onValueChange={(value) => handleFilterChange("Ram", value)}
+            className="w-full sm:w-48"
+          />
+          <div className="text-sm text-gray-600">
+            {filterValues.minRam} - {filterValues.maxRam} GB
+          </div>
+        </div>
+
+        {/* Lọc theo dung lượng lưu trữ */}
+        <div className="flex-1 sm:flex-none">
+          <Label htmlFor="storage-filter" className="block mb-2">
+            Dung lượng (GB)
+          </Label>
+          <Slider
+            id="storage-filter"
+            min={64}
+            max={1024}
+            step={64}
+            value={[filterValues.minStorage, filterValues.maxStorage]}
+            onValueChange={(value) => handleFilterChange("Storage", value)}
+            className="w-full sm:w-48"
+          />
+          <div className="text-sm text-gray-600">
+            {filterValues.minStorage} - {filterValues.maxStorage} GB
+          </div>
+        </div>
       </div>
+
+      {filteredProducts.length === 0 ? (
+        <p className="text-center text-gray-500">
+          Không tìm thấy sản phẩm nào.
+        </p>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {filteredProducts.map((product) => (
+            <ProductCard key={product.id} product={product} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

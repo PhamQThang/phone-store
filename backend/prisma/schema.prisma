@@ -18,6 +18,8 @@ model User {
   updatedAt      DateTime        @default(now()) @updatedAt
   address        String?
   phoneNumber    String?
+  isActive       Boolean?        @default(true)
+  deletedAt      DateTime?       @db.Timestamp(6)
   cart           Cart?           @relation("UserCart")
   orders         Order[]
   returns        ProductReturn[]

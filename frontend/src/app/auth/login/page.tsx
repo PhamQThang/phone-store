@@ -1,4 +1,3 @@
-// app/auth/login/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -73,8 +72,8 @@ export default function LoginPage() {
       });
 
       const role = response.user.role;
-      if (!role) {
-        throw new Error("Không nhận được vai trò từ server.");
+      if (!["Customer", "Employee", "Admin"].includes(role)) {
+        throw new Error("Vai trò không hợp lệ từ server.");
       }
 
       toast.success("Đăng nhập thành công", {
@@ -94,11 +93,16 @@ export default function LoginPage() {
         router.push("/admin/dashboard");
       }
     } catch (error: any) {
-      const errorMessage = error.message || "Đăng nhập thất bại.";
+      const errorMessage =
+        error.response?.data?.message === "Tài khoản của bạn đã bị vô hiệu hóa"
+          ? "Tài khoản của bạn đã bị vô hiệu hóa. Vui lòng liên hệ quản trị viên."
+          : error.response?.data?.message === "Email hoặc mật khẩu không đúng"
+          ? "Email hoặc mật khẩu không đúng. Vui lòng thử lại."
+          : "Đăng nhập thất bại. Vui lòng thử lại sau.";
       setError(errorMessage);
       toast.error("Đăng nhập thất bại", {
         description: errorMessage,
-        duration: 2000,
+        duration: 3000,
       });
     } finally {
       setLoading(false);
@@ -132,6 +136,7 @@ export default function LoginPage() {
                         <Input
                           placeholder="email@example.com"
                           className="pl-10"
+                          disabled={loading}
                           {...field}
                         />
                       </div>
@@ -153,6 +158,7 @@ export default function LoginPage() {
                           type="password"
                           placeholder="********"
                           className="pl-10"
+                          disabled={loading}
                           {...field}
                         />
                       </div>

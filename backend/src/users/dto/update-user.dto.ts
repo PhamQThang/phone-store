@@ -1,5 +1,4 @@
-// src/users/dto/update-user.dto.ts
-import { IsOptional, IsString } from 'class-validator';
+import { IsOptional, IsString, MinLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class UpdateUserDto {
@@ -38,4 +37,14 @@ export class UpdateUserDto {
   @IsOptional()
   @IsString({ message: 'Số điện thoại phải là chuỗi' })
   phoneNumber?: string;
+
+  @ApiProperty({
+    description: 'Mật khẩu mới của người dùng (ít nhất 5 ký tự)',
+    example: 'newpassword123',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  @MinLength(5, { message: 'Mật khẩu phải có ít nhất 5 ký tự' })
+  password?: string;
 }

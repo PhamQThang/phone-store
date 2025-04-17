@@ -1,4 +1,3 @@
-// src/auth/auth.service.ts
 import {
   Injectable,
   BadRequestException,
@@ -81,6 +80,11 @@ export class AuthService {
     });
     if (!user) {
       throw new UnauthorizedException('Email hoặc mật khẩu không đúng');
+    }
+
+    // Kiểm tra trạng thái isActive
+    if (!user.isActive) {
+      throw new UnauthorizedException('Tài khoản của bạn đã bị vô hiệu hóa');
     }
 
     const isPasswordValid = await bcrypt.compare(dto.password, user.password);

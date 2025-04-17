@@ -14,6 +14,8 @@ export interface User {
   purchaseOrders: PurchaseOrder[];
   role: Role;
   cart?: Cart | null;
+  isActive: boolean;
+  deletedAt?: string;
   reviews: ProductReview[];
   warranties: Warranty[];
   returns: ProductReturn[];

@@ -1,4 +1,3 @@
-// backend/src/auth/auth.controller.ts
 import {
   Controller,
   Post,
@@ -76,6 +75,10 @@ export class AuthController {
     },
   })
   @ApiResponse({ status: 401, description: 'Email hoặc mật khẩu không đúng' })
+  @ApiResponse({
+    status: 401,
+    description: 'Tài khoản của bạn đã bị vô hiệu hóa',
+  })
   async login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
   }

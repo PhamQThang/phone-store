@@ -18,7 +18,6 @@ export default function ClientHomePage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Sử dụng Promise.all để gọi cả 2 API cùng lúc
         const [productsData, slidesData] = await Promise.all([
           getProducts(),
           getSlides(),
@@ -26,7 +25,6 @@ export default function ClientHomePage() {
 
         setProducts(productsData);
 
-        // Lọc các Slide có isActive = true và sắp xếp theo displayOrder
         const activeSlides = slidesData
           .filter((slide) => slide.isActive)
           .sort((a, b) => a.displayOrder - b.displayOrder);
@@ -69,7 +67,7 @@ export default function ClientHomePage() {
   return (
     <div className="container mx-auto px-4 py-10">
       <HomeCarousel slides={slides} />
-      <h1 className="text-3xl font-bold mb-8">Sản phẩm nổi bật</h1>
+      <h1 className="text-3xl font-bold mb-8">Tất cả sản phẩm</h1>
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
         {products.map((product) => (
           <ProductCard key={product.id} product={product} />
