@@ -84,12 +84,9 @@ export default function ProductCard({ product }: ProductCardProps) {
             </p>
           )}
         </div>
-        {activePromotion && (
-          <p className="text-xs text-gray-500 mt-1">
-            Không phí chuyển đổi khi trả góp 0% qua thẻ tín dụng kỳ hạn 3-6
-            tháng
-          </p>
-        )}
+        <p className="text-xs text-gray-500 mt-1">
+          Không phí chuyển đổi khi trả góp 0% qua thẻ tín dụng kỳ hạn 3-6 tháng
+        </p>
         <div className="flex items-center justify-center mt-2">
           {Array(fullStars)
             .fill(0)

@@ -35,12 +35,12 @@ export default function ProductsPage() {
   const [filterValues, setFilterValues] = useState({
     minPrice: 0,
     maxPrice: 50000000,
-    minScreenSize: 4,
-    maxScreenSize: 7,
-    minRam: 4,
-    maxRam: 16,
-    minStorage: 64,
-    maxStorage: 1024,
+    minScreenSize: 0,
+    maxScreenSize: 20,
+    minRam: 0,
+    maxRam: 32,
+    minStorage: 0,
+    maxStorage: 2048,
   });
 
   const fetchData = async () => {
@@ -51,8 +51,7 @@ export default function ProductsPage() {
           getProducts(brandSlug || undefined, modelSlug || undefined),
         ]);
 
-        console.log("productsData", productsData);
-
+        console.log("productsData", productsData); // Kiểm tra cấu trúc dữ liệu
         setBrands(brandsData);
         setAllProducts(productsData); // Lưu toàn bộ sản phẩm
         applyFilters(productsData); // Áp dụng lọc ngay sau khi lấy dữ liệu
@@ -73,23 +72,50 @@ export default function ProductsPage() {
     fetchData();
   }, [brandSlug, modelSlug]);
 
-  // Hàm áp dụng lọc trên frontend
   const applyFilters = (products: Product[]) => {
+    if (!Array.isArray(products)) {
+      console.error("Dữ liệu đầu vào không phải là mảng:", products);
+      setFilteredProducts([]);
+      return;
+    }
+
+    console.log("Applying filters with values:", filterValues);
+    console.log("Products before filtering:", products);
+
     const filtered = products.filter((product) => {
+      const price = product.price || 0;
+      const screenSize = product.screenSize || 0;
+      const ram = product.ram || 0;
+      const storage = product.storage || 0;
+
+      console.log(`Product ${product.id}:`, {
+        price,
+        screenSize,
+        ram,
+        storage,
+      });
+
       const priceMatch =
-        product.price >= filterValues.minPrice &&
-        product.price <= filterValues.maxPrice;
+        price >= filterValues.minPrice && price <= filterValues.maxPrice;
       const screenSizeMatch =
-        product.screenSize >= filterValues.minScreenSize &&
-        product.screenSize <= filterValues.maxScreenSize;
-      const ramMatch =
-        product.ram >= filterValues.minRam &&
-        product.ram <= filterValues.maxRam;
+        screenSize >= filterValues.minScreenSize &&
+        screenSize <= filterValues.maxScreenSize;
+      const ramMatch = ram >= filterValues.minRam && ram <= filterValues.maxRam;
       const storageMatch =
-        product.storage >= filterValues.minStorage &&
-        product.storage <= filterValues.maxStorage;
+        storage >= filterValues.minStorage &&
+        storage <= filterValues.maxStorage;
+
+      console.log(`Product ${product.id} matches:`, {
+        priceMatch,
+        screenSizeMatch,
+        ramMatch,
+        storageMatch,
+      });
+
       return priceMatch && screenSizeMatch && ramMatch && storageMatch;
     });
+
+    console.log("Filtered products:", filtered);
     setFilteredProducts(filtered);
   };
 
