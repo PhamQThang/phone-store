@@ -1,6 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -14,8 +13,6 @@ interface PromotionDetailProps {
   onOpenChange: (open: boolean) => void;
   promotion: Promotion | null;
   products: Product[];
-  role: string;
-  checkPromotionStatusAction: (id: string) => Promise<any>;
 }
 
 export function PromotionDetail({
@@ -32,40 +29,45 @@ export function PromotionDetail({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-full max-w-3xl p-4 sm:p-6 max-h-[80vh] overflow-y-auto">
+      <DialogContent className="w-full max-w-md p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle className="text-lg sm:text-xl">
             Chi tiết khuyến mãi
           </DialogTitle>
         </DialogHeader>
-        <div className="space-y-4">
+        <div className="space-y-3 text-sm sm:text-base">
           <div>
-            <p className="text-sm sm:text-base">
-              <strong>ID:</strong> {promotion.id}
-            </p>
-            <p className="text-sm sm:text-base">
-              <strong>Mã khuyến mãi:</strong> {promotion.code}
-            </p>
-            <p className="text-sm sm:text-base">
-              <strong>Mô tả:</strong> {promotion.description || "-"}
-            </p>
-            <p className="text-sm sm:text-base">
-              <strong>Giảm giá:</strong> {promotion.discount}%
-            </p>
-            <p className="text-sm sm:text-base">
-              <strong>Ngày bắt đầu:</strong>{" "}
-              {new Date(promotion.startDate).toLocaleString()}
-            </p>
-            <p className="text-sm sm:text-base">
-              <strong>Ngày kết thúc:</strong>{" "}
-              {new Date(promotion.endDate).toLocaleString()}
-            </p>
-            <p className="text-sm sm:text-base">
-              <strong>Trạng thái:</strong>{" "}
-              {promotion.isActive ? "Hoạt động" : "Không hoạt động"}
-            </p>
+            <strong>ID:</strong> {promotion.id}
           </div>
-
+          <div>
+            <strong>Mã khuyến mãi:</strong> {promotion.code}
+          </div>
+          <div>
+            <strong>Mô tả:</strong> {promotion.description || "-"}
+          </div>
+          <div>
+            <strong>Giảm giá:</strong> {promotion.discount} VNĐ
+          </div>
+          <div>
+            <strong>Ngày bắt đầu:</strong>{" "}
+            {new Date(promotion.startDate).toLocaleString()}
+          </div>
+          <div>
+            <strong>Ngày kết thúc:</strong>{" "}
+            {new Date(promotion.endDate).toLocaleString()}
+          </div>
+          <div>
+            <strong>Trạng thái:</strong>{" "}
+            {promotion.isActive ? "Hoạt động" : "Không hoạt động"}
+          </div>
+          <div>
+            <strong>Ngày tạo:</strong>{" "}
+            {new Date(promotion.createdAt).toLocaleString()}
+          </div>
+          <div>
+            <strong>Ngày cập nhật:</strong>{" "}
+            {new Date(promotion.updatedAt).toLocaleString()}
+          </div>
           <div>
             <h3 className="text-sm sm:text-base font-medium">
               Sản phẩm áp dụng
@@ -88,17 +90,6 @@ export function PromotionDetail({
                 Chưa có sản phẩm nào được liên kết.
               </p>
             )}
-          </div>
-
-          <div className="flex justify-end">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              className="w-full sm:w-auto"
-            >
-              Đóng
-            </Button>
           </div>
         </div>
       </DialogContent>

@@ -1,4 +1,3 @@
-// backend/src/products/products.controller.ts
 import {
   Controller,
   Get,
@@ -89,6 +88,17 @@ export class ProductsController {
   @ApiResponse({ status: 404, description: 'Sản phẩm không tồn tại' })
   async findOne(@Param('id') id: string) {
     return this.productsService.findOne(id);
+  }
+
+  @Get(':id/similar')
+  @ApiOperation({ summary: 'Lấy danh sách các sản phẩm tương tự' })
+  @ApiResponse({
+    status: 200,
+    description: 'Lấy danh sách sản phẩm tương tự thành công',
+  })
+  @ApiResponse({ status: 404, description: 'Sản phẩm không tồn tại' })
+  async findSimilar(@Param('id') id: string) {
+    return this.productsService.findSimilar(id);
   }
 
   @Patch(':id')

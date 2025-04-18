@@ -14,6 +14,8 @@ export interface User {
   purchaseOrders: PurchaseOrder[];
   role: Role;
   cart?: Cart | null;
+  isActive: boolean;
+  deletedAt?: string;
   reviews: ProductReview[];
   warranties: Warranty[];
   returns: ProductReturn[];
@@ -102,6 +104,7 @@ export interface Product {
   battery: number;
   chip: string;
   operatingSystem: string;
+  discountedPrice?: number;
   modelId: string;
   createdAt: string;
   updatedAt: string;
@@ -113,6 +116,7 @@ export interface Product {
   reviews: ProductReview[];
   promotions: ProductPromotion[];
   cartItems: CartItem[];
+  rating?: number;
 }
 
 // Model: Model

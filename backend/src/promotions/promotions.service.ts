@@ -4,6 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { ProductsService } from '../products/products.service'; // Inject ProductsService
 import { CreatePromotionDto } from './dto/create-promotion.dto';
 import { UpdatePromotionDto } from './dto/update-promotion.dto';
 import { AddProductToPromotionDto } from './dto/add-product-to-promotion.dto';
@@ -11,7 +12,10 @@ import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class PromotionsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly productsService: ProductsService // Inject ProductsService
+  ) {}
 
   async create(createPromotionDto: CreatePromotionDto) {
     try {
@@ -92,6 +96,13 @@ export class PromotionsService {
   async update(id: string, updatePromotionDto: UpdatePromotionDto) {
     const promotion = await this.prisma.promotion.findUnique({
       where: { id },
+      include: {
+        products: {
+          include: {
+            product: true,
+          },
+        },
+      },
     });
 
     if (!promotion) {
@@ -127,6 +138,14 @@ export class PromotionsService {
         },
       });
 
+      // Đồng bộ giá giảm cho tất cả sản phẩm liên quan
+      const productIds = updatedPromotion.products.map(p => p.productId);
+      await Promise.all(
+        productIds.map(productId =>
+          this.productsService.syncDiscountedPriceForProduct(productId)
+        )
+      );
+
       return {
         message: 'Cập nhật khuyến mãi thành công',
         data: updatedPromotion,
@@ -144,6 +163,13 @@ export class PromotionsService {
   async remove(id: string) {
     const promotion = await this.prisma.promotion.findUnique({
       where: { id },
+      include: {
+        products: {
+          include: {
+            product: true,
+          },
+        },
+      },
     });
 
     if (!promotion) {
@@ -151,13 +177,25 @@ export class PromotionsService {
     }
 
     try {
+      // Lấy danh sách sản phẩm liên quan để đồng bộ giá sau khi xóa
+      const productIds = promotion.products.map(p => p.productId);
+
+      // Xóa các liên kết trong ProductPromotion
       await this.prisma.productPromotion.deleteMany({
         where: { promotionId: id },
       });
 
+      // Xóa khuyến mãi
       await this.prisma.promotion.delete({
         where: { id },
       });
+
+      // Đồng bộ giá giảm cho các sản phẩm bị ảnh hưởng
+      await Promise.all(
+        productIds.map(productId =>
+          this.productsService.syncDiscountedPriceForProduct(productId)
+        )
+      );
 
       return {
         message: 'Xóa khuyến mãi thành công',
@@ -218,6 +256,9 @@ export class PromotionsService {
       },
     });
 
+    // Đồng bộ giá giảm cho sản phẩm vừa thêm
+    await this.productsService.syncDiscountedPriceForProduct(productId);
+
     return {
       message: 'Thêm sản phẩm vào khuyến mãi thành công',
       data: productPromotion,
@@ -253,6 +294,9 @@ export class PromotionsService {
         },
       },
     });
+
+    // Đồng bộ giá giảm cho sản phẩm vừa xóa
+    await this.productsService.syncDiscountedPriceForProduct(productId);
 
     return {
       message: 'Xóa sản phẩm khỏi khuyến mãi thành công',

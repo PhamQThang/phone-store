@@ -1,7 +1,6 @@
 // components/HomeCarousel.tsx
 "use client";
 
-import { useState, useEffect } from "react";
 import Image from "next/image";
 import {
   Carousel,
@@ -12,42 +11,19 @@ import {
   CarouselApi,
 } from "@/components/ui/carousel";
 import { Button } from "@/components/ui/button";
-import { getSlides } from "@/api/admin/slidesApi";
 import { Slide } from "@/lib/types";
-import { toast } from "sonner";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 
-export default function HomeCarousel() {
+interface HomeCarouselProps {
+  slides: Slide[];
+}
+
+export default function HomeCarousel({ slides }: HomeCarouselProps) {
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
   const [count, setCount] = useState(0);
-  const [slides, setSlides] = useState<Slide[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  // Lấy dữ liệu Slide từ API
-  useEffect(() => {
-    const fetchSlides = async () => {
-      setLoading(true);
-      try {
-        const data = await getSlides();
-        // Lọc các Slide có isActive = true và sắp xếp theo displayOrder
-        const activeSlides = data
-          .filter((slide) => slide.isActive)
-          .sort((a, b) => a.displayOrder - b.displayOrder);
-        setSlides(activeSlides);
-      } catch (error: any) {
-        toast.error("Lỗi khi lấy danh sách slide", {
-          description: error.message || "Vui lòng thử lại sau.",
-          duration: 2000,
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchSlides();
-  }, []);
-
-  // Xử lý logic của Carousel
   useEffect(() => {
     if (!api) return;
 
@@ -64,14 +40,6 @@ export default function HomeCarousel() {
 
     return () => clearInterval(interval);
   }, [api]);
-
-  if (loading) {
-    return (
-      <div className="w-full container mx-auto py-3 px-3 text-center">
-        <p>Đang tải slide...</p>
-      </div>
-    );
-  }
 
   if (slides.length === 0) {
     return (
@@ -93,7 +61,7 @@ export default function HomeCarousel() {
         <CarouselContent>
           {slides.map((slide, index) => (
             <CarouselItem key={index}>
-              <a
+              <Link
                 href={slide.link || "#"}
                 target="_blank"
                 rel="noopener noreferrer"
@@ -106,7 +74,7 @@ export default function HomeCarousel() {
                   style={{ objectFit: "cover" }}
                   className=""
                 />
-              </a>
+              </Link>
             </CarouselItem>
           ))}
         </CarouselContent>

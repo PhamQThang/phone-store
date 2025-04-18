@@ -6,8 +6,8 @@ interface RegisterDto {
   password: string;
   firstName: string;
   lastName: string;
-  address: string; // Thêm address
-  phoneNumber: string; // Thêm phoneNumber
+  address: string;
+  phoneNumber: string;
   roleId: number;
 }
 
@@ -43,12 +43,6 @@ export const login = async (data: LoginDto): Promise<AuthResponse> => {
   const response = await axiosInstance.post("/auth/login", data);
   return response;
 };
-
-export const logout = async (): Promise<LogoutResponse> => {
-  const token = localStorage.getItem("accessToken");
-  if (!token) {
-    throw new Error("Không tìm thấy token");
-  }
-  const response = await axiosInstance.post("/auth/logout", { token });
-  return response;
+export const logout = async (): Promise<void> => {
+  await axiosInstance.post("/auth/logout");
 };

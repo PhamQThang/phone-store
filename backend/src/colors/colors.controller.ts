@@ -24,14 +24,14 @@ import { Roles } from '../auth/decorators/roles.decorator';
 
 @ApiTags('colors')
 @Controller('colors')
-@UseGuards(JwtAuthGuard) // Yêu cầu đăng nhập
-@ApiBearerAuth('access-token')
 export class ColorsController {
   constructor(private readonly colorsService: ColorsService) {}
 
   @Post()
   @UseGuards(RoleGuard) // Yêu cầu vai trò
   @Roles('Admin') // Chỉ Admin được tạo color
+  @UseGuards(JwtAuthGuard) // Yêu cầu đăng nhập
+  @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Tạo một màu mới' })
   @ApiResponse({ status: 201, description: 'Tạo màu thành công' })
   @ApiResponse({ status: 400, description: 'Tên màu đã tồn tại' })
@@ -64,6 +64,8 @@ export class ColorsController {
   @Patch(':id')
   @UseGuards(RoleGuard)
   @Roles('Admin') // Chỉ Admin được cập nhật color
+  @UseGuards(JwtAuthGuard) // Yêu cầu đăng nhập
+  @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Cập nhật thông tin của một màu' })
   @ApiResponse({ status: 200, description: 'Cập nhật màu thành công' })
   @ApiResponse({ status: 404, description: 'Màu không tồn tại' })
@@ -83,6 +85,8 @@ export class ColorsController {
   @Delete(':id')
   @UseGuards(RoleGuard)
   @Roles('Admin') // Chỉ Admin được xóa color
+  @UseGuards(JwtAuthGuard) // Yêu cầu đăng nhập
+  @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Xóa một màu' })
   @ApiResponse({ status: 200, description: 'Xóa màu thành công' })
   @ApiResponse({ status: 404, description: 'Màu không tồn tại' })

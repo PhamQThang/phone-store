@@ -51,20 +51,18 @@ export function BrandForm({
   });
 
   useEffect(() => {
-    if (initialData) {
-      form.reset({
-        name: initialData.name || "",
-      });
-    } else {
-      form.reset({
-        name: "",
-      });
-    }
+    form.reset({
+      name: initialData?.name || "",
+    });
   }, [initialData, form]);
 
   const handleSubmit = async (values: z.infer<typeof brandSchema>) => {
-    await onSubmit(values);
-    onOpenChange(false);
+    try {
+      await onSubmit(values);
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error submitting form:", error);
+    }
   };
 
   return (

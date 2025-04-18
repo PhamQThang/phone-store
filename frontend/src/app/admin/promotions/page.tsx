@@ -1,7 +1,8 @@
-import { redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
-import { getCookieValue } from "@/lib/cookieUtils";
-import { Promotion } from "@/lib/types";
+"use client";
+
+import { useState, useEffect, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { Promotion, Product } from "@/lib/types";
 import {
   getPromotions,
   createPromotion,
@@ -11,349 +12,254 @@ import {
   addProductToPromotion,
   removeProductFromPromotion,
 } from "@/api/admin/promotionsApi";
-import ClientModals from "@/components/admin/promotions/ClientModals";
 import { getProducts } from "@/api/admin/productsApi";
+import ClientModals from "@/components/admin/promotions/ClientModals";
+import { Loader2 } from "lucide-react";
+import { getAuthData, clearAuthData } from "@/lib/authUtils";
 
-// Server-side function để lấy thông tin role và token
-async function getAuthInfo() {
-  const role = await getCookieValue("role");
-  const token = await getCookieValue("accessToken");
-  if (!token) {
-    redirect("/auth/login");
-  }
-  return { role, token };
-}
+export default function PromotionsPage() {
+  const router = useRouter();
+  const [promotions, setPromotions] = useState<Promotion[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [role, setRole] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isPending, startTransition] = useTransition();
 
-// Server-side function để lấy danh sách khuyến mãi
-async function fetchPromotions(token: string): Promise<Promotion[]> {
-  try {
-    return await getPromotions(token);
-  } catch (error: any) {
-    if (error.response?.status === 401) {
-      const { clearCookies } = await import("@/lib/cookieUtils");
-      await clearCookies();
-      redirect("/auth/login");
+  // Kiểm tra auth và lấy dữ liệu khi component mount
+  useEffect(() => {
+    const authData = getAuthData();
+    if (!authData || !["Admin", "Employee"].includes(authData.role || "")) {
+      clearAuthData();
+      router.push("/auth/login");
+    } else {
+      setRole(authData.role);
+      let isMounted = true;
+
+      startTransition(async () => {
+        try {
+          const [promotionsData, productsData] = await Promise.all([
+            getPromotions(),
+            getProducts(), // Giả định API này không cần token, giống brandsApi.ts
+          ]);
+          if (isMounted) {
+            setPromotions(promotionsData);
+            setProducts(productsData);
+          }
+        } catch (error) {
+          console.error("Lỗi khi lấy dữ liệu:", error);
+        } finally {
+          if (isMounted) {
+            setIsLoading(false);
+          }
+        }
+      });
+
+      return () => {
+        isMounted = false;
+      };
     }
-    console.error("Lỗi khi lấy danh sách khuyến mãi:", error.message);
-    return [];
-  }
-}
+  }, [router]);
 
-// Server-side function để lấy danh sách sản phẩm
-async function fetchProducts(token: string) {
-  try {
-    return await getProducts(undefined, undefined, token);
-  } catch (error: any) {
-    if (error.response?.status === 401) {
-      const { clearCookies } = await import("@/lib/cookieUtils");
-      await clearCookies();
-      redirect("/auth/login");
+  const addPromotionAction = async (formData: FormData) => {
+    const code = formData.get("code")?.toString();
+    const description = formData.get("description")?.toString();
+    const discount = parseInt(formData.get("discount")?.toString() || "0");
+    const startDate = formData.get("startDate")?.toString();
+    const endDate = formData.get("endDate")?.toString();
+    const isActive = formData.get("isActive") === "true";
+    const productIds = formData.getAll("productIds[]") as string[];
+
+    // Validation cơ bản
+    if (!code || code.length < 2) {
+      return { error: "Mã khuyến mãi phải có ít nhất 2 ký tự" };
     }
-    console.error("Lỗi khi lấy danh sách sản phẩm:", error.message);
-    return [];
-  }
-}
-
-// Server Action để thêm khuyến mãi
-async function addPromotionAction(formData: FormData) {
-  "use server";
-  const code = formData.get("code")?.toString();
-  const description = formData.get("description")?.toString();
-  const discount = parseInt(formData.get("discount")?.toString() || "0");
-  const startDate = formData.get("startDate")?.toString();
-  const endDate = formData.get("endDate")?.toString();
-  const isActive = formData.get("isActive") === "true";
-  const productIds = formData.getAll("productIds[]") as string[];
-
-  // Validation cơ bản
-  if (!code || code.length < 2) {
-    return { error: "Mã khuyến mãi phải có ít nhất 2 ký tự" };
-  }
-  if (isNaN(discount) || discount <= 0) {
-    return { error: "Số tiền giảm giá phải là số dương" };
-  }
-  if (!startDate) {
-    return { error: "Vui lòng chọn ngày bắt đầu" };
-  }
-  if (!endDate) {
-    return { error: "Vui lòng chọn ngày kết thúc" };
-  }
-  if (new Date(startDate) >= new Date(endDate)) {
-    return { error: "Ngày bắt đầu phải nhỏ hơn ngày kết thúc" };
-  }
-
-  try {
-    const token = await getCookieValue("accessToken");
-    if (!token) {
-      const { clearCookies } = await import("@/lib/cookieUtils");
-      await clearCookies();
-      redirect("/auth/login");
+    if (isNaN(discount) || discount <= 0) {
+      return { error: "Số tiền giảm giá phải là số dương" };
     }
-    const newPromotion = await createPromotion(
-      {
+    if (!startDate) {
+      return { error: "Vui lòng chọn ngày bắt đầu" };
+    }
+    if (!endDate) {
+      return { error: "Vui lòng chọn ngày kết thúc" };
+    }
+    if (new Date(startDate) >= new Date(endDate)) {
+      return { error: "Ngày bắt đầu phải nhỏ hơn ngày kết thúc" };
+    }
+
+    try {
+      const newPromotion = await createPromotion({
         code,
         description: description || undefined,
         discount,
         startDate,
         endDate,
         isActive,
-      },
-      token
-    );
+      });
 
-    // Thêm sản phẩm vào khuyến mãi
-    for (const productId of productIds) {
-      try {
-        await addProductToPromotion(newPromotion.id, productId, token);
-      } catch (productError: any) {
-        console.error(`Lỗi khi thêm sản phẩm ${productId}:`, productError);
-        throw new Error(
-          `Không thể thêm sản phẩm ${productId}: ${
-            productError.response?.data?.message || productError.message
-          }`
-        );
+      // Thêm sản phẩm vào khuyến mãi
+      for (const productId of productIds) {
+        await addProductToPromotion(newPromotion.id, productId);
       }
+
+      // Lấy lại thông tin khuyến mãi để bao gồm danh sách sản phẩm
+      const updatedPromotion = await getPromotionById(newPromotion.id);
+      setPromotions((prev) => [...prev, updatedPromotion]);
+      return {
+        success: true,
+        message: "Thêm khuyến mãi thành công",
+        promotion: updatedPromotion,
+      };
+    } catch (error: any) {
+      return {
+        error: error.message || "Thêm khuyến mãi thất bại",
+      };
+    }
+  };
+
+  const editPromotionAction = async (id: string, formData: FormData) => {
+    const code = formData.get("code")?.toString();
+    const description = formData.get("description")?.toString();
+    const discount = parseInt(formData.get("discount")?.toString() || "0");
+    const startDate = formData.get("startDate")?.toString();
+    const endDate = formData.get("endDate")?.toString();
+    const isActive = formData.get("isActive") === "true";
+
+    // Validation cơ bản nếu có thay đổi
+    if (code && code.length < 2) {
+      return { error: "Mã khuyến mãi phải có ít nhất 2 ký tự" };
+    }
+    if (discount && (isNaN(discount) || discount <= 0)) {
+      return { error: "Số tiền giảm giá phải là số dương" };
+    }
+    if (startDate && endDate && new Date(startDate) >= new Date(endDate)) {
+      return { error: "Ngày bắt đầu phải nhỏ hơn ngày kết thúc" };
     }
 
-    revalidatePath("/admin/promotions");
-    return {
-      success: true,
-      message: "Thêm khuyến mãi thành công",
-      promotion: newPromotion,
-    };
-  } catch (error: any) {
-    console.error("Lỗi trong addPromotionAction:", error);
-    if (error.response?.status === 401) {
-      const { clearCookies } = await import("@/lib/cookieUtils");
-      await clearCookies();
-      redirect("/auth/login");
-    }
-    return {
-      error:
-        error.message ||
-        error.response?.data?.message ||
-        "Thêm khuyến mãi thất bại. Vui lòng thử lại.",
-    };
-  }
-}
-// Server Action để sửa khuyến mãi
-async function editPromotionAction(id: string, formData: FormData) {
-  "use server";
-  const code = formData.get("code")?.toString();
-  const description = formData.get("description")?.toString();
-  const discount = parseInt(formData.get("discount")?.toString() || "0");
-  const startDate = formData.get("startDate")?.toString();
-  const endDate = formData.get("endDate")?.toString();
-  const isActive = formData.get("isActive") === "true";
-
-  // Validation cơ bản nếu có thay đổi
-  if (code && code.length < 2) {
-    return { error: "Mã khuyến mãi phải có ít nhất 2 ký tự" };
-  }
-  if (discount && (isNaN(discount) || discount <= 0)) {
-    return { error: "Số tiền giảm giá phải là số dương" };
-  }
-  if (startDate && endDate && new Date(startDate) >= new Date(endDate)) {
-    return { error: "Ngày bắt đầu phải nhỏ hơn ngày kết thúc" };
-  }
-
-  try {
-    const token = await getCookieValue("accessToken");
-    if (!token) {
-      const { clearCookies } = await import("@/lib/cookieUtils");
-      await clearCookies();
-      redirect("/auth/login");
-    }
-
-    // Cập nhật thông tin khuyến mãi
-    const updateResult = await updatePromotion(
-      id,
-      {
+    try {
+      const updatedPromotion = await updatePromotion(id, {
         ...(code && { code }),
         ...(description !== undefined && { description }),
         ...(discount && !isNaN(discount) && { discount }),
         ...(startDate && { startDate }),
         ...(endDate && { endDate }),
         isActive: isActive !== undefined ? isActive : undefined,
-      },
-      token
+      });
+
+      setPromotions((prev) =>
+        prev.map((promo) => (promo.id === id ? updatedPromotion : promo))
+      );
+      return {
+        success: true,
+        message: "Cập nhật khuyến mãi thành công",
+        promotion: updatedPromotion,
+      };
+    } catch (error: any) {
+      return {
+        error: error.message || "Cập nhật khuyến mãi thất bại",
+      };
+    }
+  };
+
+  const deletePromotionAction = async (id: string) => {
+    try {
+      await deletePromotion(id);
+      setPromotions((prev) => prev.filter((promo) => promo.id !== id));
+      return { success: true, message: "Xóa khuyến mãi thành công" };
+    } catch (error: any) {
+      return {
+        error: error.message || "Xóa khuyến mãi thất bại",
+      };
+    }
+  };
+
+  const getPromotionDetailAction = async (id: string) => {
+    try {
+      const promotion = await getPromotionById(id);
+      return { success: true, promotion };
+    } catch (error: any) {
+      return { error: error.message || "Lỗi khi lấy chi tiết khuyến mãi" };
+    }
+  };
+
+  const checkPromotionStatusAction = async (id: string) => {
+    try {
+      const promotion = await getPromotionById(id);
+      const currentDate = new Date();
+      const startDate = new Date(promotion.startDate);
+      const endDate = new Date(promotion.endDate);
+      const isActive =
+        promotion.isActive &&
+        currentDate >= startDate &&
+        currentDate <= endDate;
+      return { success: true, isActive };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: "Lỗi khi kiểm tra trạng thái khuyến mãi",
+      };
+    }
+  };
+
+  const addProductToPromotionAction = async (
+    promotionId: string,
+    productId: string
+  ) => {
+    try {
+      const result = await addProductToPromotion(promotionId, productId);
+      const updatedPromotion = await getPromotionById(promotionId);
+      setPromotions((prev) =>
+        prev.map((promo) =>
+          promo.id === promotionId ? updatedPromotion : promo
+        )
+      );
+      return {
+        success: true,
+        message: "Thêm sản phẩm vào khuyến mãi thành công",
+      };
+    } catch (error: any) {
+      return {
+        error: error.message || "Thêm sản phẩm vào khuyến mãi thất bại",
+      };
+    }
+  };
+
+  const removeProductFromPromotionAction = async (
+    promotionId: string,
+    productId: string
+  ) => {
+    try {
+      const result = await removeProductFromPromotion(promotionId, productId);
+      const updatedPromotion = await getPromotionById(promotionId);
+      setPromotions((prev) =>
+        prev.map((promo) =>
+          promo.id === promotionId ? updatedPromotion : promo
+        )
+      );
+      return {
+        success: true,
+        message: "Xóa sản phẩm khỏi khuyến mãi thành công",
+      };
+    } catch (error: any) {
+      return {
+        error: error.message || "Xóa sản phẩm khỏi khuyến mãi thất bại",
+      };
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
     );
-
-    const updatedPromotion = updateResult;
-
-    revalidatePath("/admin/promotions");
-    return {
-      success: true,
-      message: "Cập nhật khuyến mãi thành công",
-      promotion: updatedPromotion,
-    };
-  } catch (error: any) {
-    console.error("Lỗi trong editPromotionAction:", error.message);
-    if (error.response?.status === 401) {
-      const { clearCookies } = await import("@/lib/cookieUtils");
-      await clearCookies();
-      redirect("/auth/login");
-    }
-    return {
-      error:
-        error.message ||
-        error.response?.data?.message ||
-        "Cập nhật khuyến mãi thất bại",
-    };
   }
-}
-
-// Server Action để xóa khuyến mãi
-async function deletePromotionAction(id: string) {
-  "use server";
-  try {
-    const token = await getCookieValue("accessToken");
-    if (!token) {
-      const { clearCookies } = await import("@/lib/cookieUtils");
-      await clearCookies();
-      redirect("/auth/login");
-    }
-    await deletePromotion(id, token);
-    revalidatePath("/admin/promotions");
-    return { success: true, message: "Xóa khuyến mãi thành công" };
-  } catch (error: any) {
-    if (error.response?.status === 401) {
-      const { clearCookies } = await import("@/lib/cookieUtils");
-      await clearCookies();
-      redirect("/auth/login");
-    }
-    return {
-      error: error.response?.data?.message || "Xóa khuyến mãi thất bại",
-    };
-  }
-}
-
-// Server Action để lấy chi tiết khuyến mãi
-async function getPromotionDetailAction(id: string) {
-  "use server";
-  try {
-    const token = await getCookieValue("accessToken");
-    if (!token) {
-      const { clearCookies } = await import("@/lib/cookieUtils");
-      await clearCookies();
-      redirect("/auth/login");
-    }
-    const promotion = await getPromotionById(id, token);
-    return { success: true, promotion };
-  } catch (error: any) {
-    if (error.response?.status === 401) {
-      const { clearCookies } = await import("@/lib/cookieUtils");
-      await clearCookies();
-      redirect("/auth/login");
-    }
-    return {
-      error: error.response?.data?.message || "Lỗi khi lấy chi tiết khuyến mãi",
-    };
-  }
-}
-
-// Server Action để kiểm tra trạng thái khuyến mãi
-async function checkPromotionStatusAction(id: string) {
-  "use server";
-  try {
-    const token = await getCookieValue("accessToken");
-    if (!token) {
-      const { clearCookies } = await import("@/lib/cookieUtils");
-      await clearCookies();
-      redirect("/auth/login");
-    }
-    const promotion = await getPromotionById(id, token);
-    const currentDate = new Date();
-    const startDate = new Date(promotion.startDate);
-    const endDate = new Date(promotion.endDate);
-    const isActive =
-      promotion.isActive && currentDate >= startDate && currentDate <= endDate;
-    return { success: true, isActive };
-  } catch (error: any) {
-    if (error.response?.status === 401) {
-      const { clearCookies } = await import("@/lib/cookieUtils");
-      await clearCookies();
-      redirect("/auth/login");
-    }
-    return { success: false, error: "Lỗi khi kiểm tra trạng thái khuyến mãi" };
-  }
-}
-
-// Server Action để thêm sản phẩm vào khuyến mãi
-async function addProductToPromotionAction(
-  promotionId: string,
-  productId: string
-) {
-  "use server";
-  try {
-    const token = await getCookieValue("accessToken");
-    if (!token) {
-      const { clearCookies } = await import("@/lib/cookieUtils");
-      await clearCookies();
-      redirect("/auth/login");
-    }
-    const result = await addProductToPromotion(promotionId, productId, token);
-    revalidatePath("/admin/promotions");
-    return { success: true, message: result.message };
-  } catch (error: any) {
-    if (error.response?.status === 401) {
-      const { clearCookies } = await import("@/lib/cookieUtils");
-      await clearCookies();
-      redirect("/auth/login");
-    }
-    return {
-      error:
-        error.response?.data?.message ||
-        "Thêm sản phẩm vào khuyến mãi thất bại",
-    };
-  }
-}
-
-// Server Action để xóa sản phẩm khỏi khuyến mãi
-async function removeProductFromPromotionAction(
-  promotionId: string,
-  productId: string
-) {
-  "use server";
-  try {
-    const token = await getCookieValue("accessToken");
-    if (!token) {
-      const { clearCookies } = await import("@/lib/cookieUtils");
-      await clearCookies();
-      redirect("/auth/login");
-    }
-    const result = await removeProductFromPromotion(
-      promotionId,
-      productId,
-      token
-    );
-    revalidatePath("/admin/promotions");
-    return { success: true, message: result.message };
-  } catch (error: any) {
-    if (error.response?.status === 401) {
-      const { clearCookies } = await import("@/lib/cookieUtils");
-      await clearCookies();
-      redirect("/auth/login");
-    }
-    return {
-      error:
-        error.response?.data?.message ||
-        "Xóa sản phẩm khỏi khuyến mãi thất bại",
-    };
-  }
-}
-
-export default async function PromotionsPage() {
-  const { role, token } = await getAuthInfo();
-  const promotions = await fetchPromotions(token);
-  const products = await fetchProducts(token);
 
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <ClientModals
         promotions={promotions}
         products={products}
-        role={role || ""}
+        role={role!}
         addPromotionAction={addPromotionAction}
         editPromotionAction={editPromotionAction}
         deletePromotionAction={deletePromotionAction}

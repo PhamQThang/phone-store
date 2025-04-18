@@ -11,7 +11,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Eye, Plus, Trash, Edit } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Eye, Plus, Trash, Edit, Search, X } from "lucide-react";
 import { PurchaseOrder } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -28,7 +29,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 interface ClientPurchaseOrdersProps {
   purchaseOrders: PurchaseOrder[];
   role: string;
-  token: string;
   addPurchaseOrderAction: (formData: FormData) => Promise<any>;
   editPurchaseOrderAction: (id: string, formData: FormData) => Promise<any>;
   deletePurchaseOrderAction: (id: string) => Promise<any>;
@@ -36,9 +36,8 @@ interface ClientPurchaseOrdersProps {
 }
 
 export default function ClientPurchaseOrders({
-  purchaseOrders: initialPurchaseOrders,
+  purchaseOrders,
   role,
-  token,
   addPurchaseOrderAction,
   editPurchaseOrderAction,
   deletePurchaseOrderAction,
@@ -53,12 +52,27 @@ export default function ClientPurchaseOrders({
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isViewing, setIsViewing] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
-  // Thêm đơn nhập hàng
+  const filteredPurchaseOrders = purchaseOrders.filter((order) =>
+    [
+      order.supplier?.name || "",
+      order.status,
+      order.createdBy
+        ? `${order.createdBy.firstName} ${order.createdBy.lastName}`
+        : "",
+    ]
+      .join(" ")
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase())
+  );
+
   const handleAddPurchaseOrder = async (data: {
     supplierId: string;
     note?: string;
     details: any[];
+    detailsToDelete: string[];
+    detailsToUpdate: any[];
   }) => {
     setIsAdding(true);
     try {
@@ -66,11 +80,12 @@ export default function ClientPurchaseOrders({
       formData.append("supplierId", data.supplierId);
       if (data.note) formData.append("note", data.note);
       formData.append("details", JSON.stringify(data.details));
+      formData.append("detailsToDelete", JSON.stringify(data.detailsToDelete));
+      formData.append("detailsToUpdate", JSON.stringify(data.detailsToUpdate));
 
       const result = await addPurchaseOrderAction(formData);
       if (result.success) {
         toast.success(result.message);
-        setIsAddOpen(false); // Tự động đóng form
       } else {
         toast.error("Thêm đơn nhập hàng thất bại", {
           description: result.error || "Vui lòng thử lại sau.",
@@ -87,7 +102,6 @@ export default function ClientPurchaseOrders({
     }
   };
 
-  // Sửa đơn nhập hàng
   const handleEditPurchaseOrder = async (data: {
     supplierId: string;
     note?: string;
@@ -111,7 +125,6 @@ export default function ClientPurchaseOrders({
       );
       if (result.success) {
         toast.success(result.message);
-        setIsEditOpen(false); // Tự động đóng form
       } else {
         toast.error("Cập nhật đơn nhập hàng thất bại", {
           description: result.error || "Vui lòng thử lại sau.",
@@ -128,7 +141,6 @@ export default function ClientPurchaseOrders({
     }
   };
 
-  // Xóa đơn nhập hàng
   const handleDeletePurchaseOrder = async (id: string) => {
     if (confirm("Bạn có chắc chắn muốn xóa đơn nhập hàng này?")) {
       setIsDeleting(true);
@@ -153,9 +165,7 @@ export default function ClientPurchaseOrders({
     }
   };
 
-  // Cập nhật trạng thái đơn nhập hàng
   const handleUpdateStatus = async (id: string, status: string) => {
-    if (!selectedPurchaseOrder) return;
     setIsEditing(true);
     try {
       const formData = new FormData();
@@ -183,7 +193,6 @@ export default function ClientPurchaseOrders({
     }
   };
 
-  // Xem chi tiết đơn nhập hàng
   const handleViewDetail = async (id: string) => {
     setIsViewing(true);
     try {
@@ -191,6 +200,7 @@ export default function ClientPurchaseOrders({
       if (result.success) {
         setSelectedPurchaseOrder(result.purchaseOrder);
         setIsDetailOpen(true);
+        toast.success("Tải chi tiết đơn nhập hàng thành công");
       } else {
         toast.error("Lỗi khi lấy chi tiết đơn nhập hàng", {
           description: result.error || "Vui lòng thử lại sau.",
@@ -207,7 +217,6 @@ export default function ClientPurchaseOrders({
     }
   };
 
-  // Mở form chỉnh sửa và lấy dữ liệu đơn nhập hàng
   const handleOpenEdit = async (id: string) => {
     setIsViewing(true);
     try {
@@ -217,11 +226,11 @@ export default function ClientPurchaseOrders({
           toast.error(
             "Chỉ có thể chỉnh sửa đơn nhập hàng ở trạng thái Pending"
           );
-          setIsViewing(false);
           return;
         }
         setSelectedPurchaseOrder(result.purchaseOrder);
         setIsEditOpen(true);
+        toast.success("Tải thông tin đơn nhập hàng thành công");
       } else {
         toast.error("Lỗi khi lấy thông tin đơn nhập hàng", {
           description: result.error || "Vui lòng thử lại sau.",
@@ -241,22 +250,42 @@ export default function ClientPurchaseOrders({
   const isLoading = isAdding || isEditing || isDeleting || isViewing;
 
   return (
-    <>
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-center mb-4 sm:mb-6 gap-4">
+    <div className="relative">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-4">
         <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold">
           Quản lý nhập hàng
         </h2>
-        {(role === "Admin" || role === "Employee") && (
-          <Button
-            onClick={() => setIsAddOpen(true)}
-            className="w-full sm:w-auto"
-            disabled={isLoading}
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Thêm
-          </Button>
-        )}
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <div className="relative flex-1 sm:flex-none sm:w-64">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Tìm kiếm đơn nhập hàng..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9 pr-9 text-sm sm:text-base w-full"
+              disabled={isLoading}
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm("")}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                disabled={isLoading}
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+          {(role === "Admin" || role === "Employee") && (
+            <Button
+              onClick={() => setIsAddOpen(true)}
+              className="w-full sm:w-auto"
+              disabled={isLoading}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Thêm
+            </Button>
+          )}
+        </div>
       </div>
 
       {isLoading && !isAdding && !isEditing ? (
@@ -265,11 +294,14 @@ export default function ClientPurchaseOrders({
             <Skeleton key={index} className="h-12 w-full rounded-md" />
           ))}
         </div>
-      ) : initialPurchaseOrders.length === 0 ? (
-        <p className="text-center text-gray-500">Không có đơn nhập hàng nào.</p>
+      ) : filteredPurchaseOrders.length === 0 ? (
+        <p className="text-center text-gray-500">
+          {searchTerm
+            ? "Không tìm thấy đơn nhập hàng nào."
+            : "Không có đơn nhập hàng nào."}
+        </p>
       ) : (
         <>
-          {/* Hiển thị dạng bảng trên màn hình lớn (PC, tablet) */}
           <div className="hidden md:block overflow-x-auto">
             <Table>
               <TableHeader>
@@ -296,7 +328,7 @@ export default function ClientPurchaseOrders({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {initialPurchaseOrders.map((order) => (
+                {filteredPurchaseOrders.map((order) => (
                   <TableRow key={order.id}>
                     <TableCell className="text-xs sm:text-sm">
                       {order.id}
@@ -317,7 +349,7 @@ export default function ClientPurchaseOrders({
                           onValueChange={(value) =>
                             handleUpdateStatus(order.id, value)
                           }
-                          disabled={isLoading || order.status === "Done"} // Vô hiệu hóa nếu trạng thái là Done
+                          disabled={isLoading || order.status === "Done"}
                         >
                           <SelectTrigger className="w-[120px]">
                             <SelectValue placeholder="Chọn trạng thái" />
@@ -379,9 +411,8 @@ export default function ClientPurchaseOrders({
             </Table>
           </div>
 
-          {/* Hiển thị dạng danh sách trên mobile */}
           <div className="block md:hidden space-y-4">
-            {initialPurchaseOrders.map((order) => (
+            {filteredPurchaseOrders.map((order) => (
               <Card key={order.id} className="shadow-sm">
                 <CardHeader>
                   <CardTitle className="text-sm font-medium">
@@ -409,7 +440,7 @@ export default function ClientPurchaseOrders({
                         onValueChange={(value) =>
                           handleUpdateStatus(order.id, value)
                         }
-                        disabled={isLoading || order.status === "Done"} // Vô hiệu hóa nếu trạng thái là Done
+                        disabled={isLoading || order.status === "Done"}
                       >
                         <SelectTrigger className="w-[120px]">
                           <SelectValue placeholder="Chọn trạng thái" />
@@ -472,7 +503,6 @@ export default function ClientPurchaseOrders({
         </>
       )}
 
-      {/* Modal Thêm đơn nhập hàng */}
       {(role === "Admin" || role === "Employee") && (
         <>
           <PurchaseOrderForm
@@ -480,7 +510,6 @@ export default function ClientPurchaseOrders({
             onOpenChange={setIsAddOpen}
             onSubmit={handleAddPurchaseOrder}
             isLoading={isAdding}
-            token={token}
           />
           <PurchaseOrderForm
             open={isEditOpen}
@@ -488,17 +517,15 @@ export default function ClientPurchaseOrders({
             onSubmit={handleEditPurchaseOrder}
             initialData={selectedPurchaseOrder || undefined}
             isLoading={isEditing}
-            token={token}
           />
         </>
       )}
 
-      {/* Modal Xem chi tiết đơn nhập hàng */}
       <PurchaseOrderDetail
         open={isDetailOpen}
         onOpenChange={setIsDetailOpen}
         purchaseOrder={selectedPurchaseOrder}
       />
-    </>
+    </div>
   );
 }

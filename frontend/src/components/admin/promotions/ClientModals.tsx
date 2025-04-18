@@ -17,6 +17,7 @@ import { Promotion, Product } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PromotionForm } from "@/components/admin/promotions/PromotionForm";
 import { PromotionDetail } from "@/components/admin/promotions/PromotionDetail";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ClientModalsProps {
   promotions: Promotion[];
@@ -79,7 +80,6 @@ export default function ClientModals({
   }) => {
     setIsAdding(true);
     try {
-      console.log("Dữ liệu gửi lên:", data); // Thêm log để kiểm tra
       const formData = new FormData();
       if (data.code) formData.append("code", data.code);
       if (data.description) formData.append("description", data.description);
@@ -94,18 +94,16 @@ export default function ClientModals({
       const result = await addPromotionAction(formData);
       if (result.success) {
         toast.success(result.message);
-        setIsAddOpen(false);
       } else {
         toast.error("Thêm khuyến mãi thất bại", {
-          description:
-            result.error || "Vui lòng kiểm tra lại thông tin nhập vào.",
-          duration: 3000,
+          description: result.error || "Vui lòng thử lại sau.",
+          duration: 2000,
         });
       }
     } catch (error: any) {
       toast.error("Thêm khuyến mãi thất bại", {
-        description: error.message || "Đã có lỗi xảy ra, vui lòng thử lại sau.",
-        duration: 3000,
+        description: error.message || "Vui lòng thử lại sau.",
+        duration: 2000,
       });
     } finally {
       setIsAdding(false);
@@ -137,7 +135,6 @@ export default function ClientModals({
       const result = await editPromotionAction(selectedPromotion.id, formData);
       if (result.success) {
         toast.success(result.message);
-        setIsEditOpen(false);
       } else {
         toast.error("Cập nhật khuyến mãi thất bại", {
           description: result.error || "Vui lòng thử lại sau.",
@@ -185,6 +182,7 @@ export default function ClientModals({
       if (result.success) {
         setSelectedPromotion(result.promotion);
         setIsDetailOpen(true);
+        toast.success("Tải chi tiết khuyến mãi thành công");
       } else {
         toast.error("Lỗi khi lấy chi tiết khuyến mãi", {
           description: result.error || "Vui lòng thử lại sau.",
@@ -208,6 +206,7 @@ export default function ClientModals({
       if (result.success) {
         setSelectedPromotion(result.promotion);
         setIsEditOpen(true);
+        toast.success("Tải thông tin khuyến mãi thành công");
       } else {
         toast.error("Lỗi khi lấy thông tin khuyến mãi", {
           description: result.error || "Vui lòng thử lại sau.",
@@ -227,7 +226,7 @@ export default function ClientModals({
   const isLoading = isAdding || isEditing || isDeleting || isViewing;
 
   return (
-    <>
+    <div className="relative">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-4">
         <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold">
           Quản lý khuyến mãi
@@ -240,11 +239,13 @@ export default function ClientModals({
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-9 pr-9 text-sm sm:text-base w-full"
+              disabled={isLoading}
             />
             {searchTerm && (
               <button
                 onClick={() => setSearchTerm("")}
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                disabled={isLoading}
               >
                 <X className="h-4 w-4" />
               </button>
@@ -263,7 +264,13 @@ export default function ClientModals({
         </div>
       </div>
 
-      {filteredPromotions.length === 0 ? (
+      {isLoading && !isAdding && !isEditing ? (
+        <div className="space-y-4">
+          {[...Array(3)].map((_, index) => (
+            <Skeleton key={index} className="h-12 w-full rounded-md" />
+          ))}
+        </div>
+      ) : filteredPromotions.length === 0 ? (
         <p className="text-center text-gray-500">
           {searchTerm
             ? "Không tìm thấy khuyến mãi nào."
@@ -453,6 +460,6 @@ export default function ClientModals({
         role={role}
         checkPromotionStatusAction={checkPromotionStatusAction}
       />
-    </>
+    </div>
   );
 }

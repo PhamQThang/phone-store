@@ -18,7 +18,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SupplierForm } from "@/components/admin/suppliers/SupplierForm";
 import { SupplierDetail } from "@/components/admin/suppliers/SupplierDetail";
 import { Skeleton } from "@/components/ui/skeleton";
-interface ClientModalsProps {
+
+interface ClientSuppliersProps {
   suppliers: Supplier[];
   role: string;
   addSupplierAction: (formData: FormData) => Promise<any>;
@@ -27,14 +28,14 @@ interface ClientModalsProps {
   getSupplierDetailAction: (id: string) => Promise<any>;
 }
 
-export default function ClientModals({
+export default function ClientSuppliers({
   suppliers,
   role,
   addSupplierAction,
   editSupplierAction,
   deleteSupplierAction,
   getSupplierDetailAction,
-}: ClientModalsProps) {
+}: ClientSuppliersProps) {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
@@ -47,7 +48,6 @@ export default function ClientModals({
   const [isViewing, setIsViewing] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Lọc danh sách nhà cung cấp dựa trên từ khóa tìm kiếm
   const filteredSuppliers = suppliers.filter((supplier) =>
     [supplier.name, supplier.address, supplier.phone, supplier.email || ""]
       .join(" ")
@@ -55,21 +55,9 @@ export default function ClientModals({
       .includes(searchTerm.toLowerCase())
   );
 
-  // Thêm nhà cung cấp
-  const handleAddSupplier = async (data: {
-    name: string;
-    address: string;
-    phone: string;
-    email?: string;
-  }) => {
+  const handleAddSupplier = async (formData: FormData) => {
     setIsAdding(true);
     try {
-      const formData = new FormData();
-      formData.append("name", data.name);
-      formData.append("address", data.address);
-      formData.append("phone", data.phone);
-      if (data.email) formData.append("email", data.email);
-
       const result = await addSupplierAction(formData);
       if (result.success) {
         toast.success(result.message);
@@ -89,22 +77,10 @@ export default function ClientModals({
     }
   };
 
-  // Sửa nhà cung cấp
-  const handleEditSupplier = async (data: {
-    name: string;
-    address: string;
-    phone: string;
-    email?: string;
-  }) => {
+  const handleEditSupplier = async (formData: FormData) => {
     if (!selectedSupplier) return;
     setIsEditing(true);
     try {
-      const formData = new FormData();
-      formData.append("name", data.name);
-      formData.append("address", data.address);
-      formData.append("phone", data.phone);
-      if (data.email) formData.append("email", data.email);
-
       const result = await editSupplierAction(selectedSupplier.id, formData);
       if (result.success) {
         toast.success(result.message);
@@ -124,7 +100,6 @@ export default function ClientModals({
     }
   };
 
-  // Xóa nhà cung cấp
   const handleDeleteSupplier = async (id: string) => {
     if (confirm("Bạn có chắc chắn muốn xóa nhà cung cấp này?")) {
       setIsDeleting(true);
@@ -149,7 +124,6 @@ export default function ClientModals({
     }
   };
 
-  // Xem chi tiết nhà cung cấp
   const handleViewDetail = async (id: string) => {
     setIsViewing(true);
     try {
@@ -157,6 +131,7 @@ export default function ClientModals({
       if (result.success) {
         setSelectedSupplier(result.supplier);
         setIsDetailOpen(true);
+        toast.success("Tải chi tiết nhà cung cấp thành công");
       } else {
         toast.error("Lỗi khi lấy chi tiết nhà cung cấp", {
           description: result.error || "Vui lòng thử lại sau.",
@@ -173,7 +148,6 @@ export default function ClientModals({
     }
   };
 
-  // Mở form chỉnh sửa và lấy dữ liệu nhà cung cấp
   const handleOpenEdit = async (id: string) => {
     setIsViewing(true);
     try {
@@ -181,6 +155,7 @@ export default function ClientModals({
       if (result.success) {
         setSelectedSupplier(result.supplier);
         setIsEditOpen(true);
+        toast.success("Tải thông tin nhà cung cấp thành công");
       } else {
         toast.error("Lỗi khi lấy thông tin nhà cung cấp", {
           description: result.error || "Vui lòng thử lại sau.",
@@ -200,8 +175,7 @@ export default function ClientModals({
   const isLoading = isAdding || isEditing || isDeleting || isViewing;
 
   return (
-    <>
-      {/* Header và tìm kiếm */}
+    <div className="relative">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-4">
         <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold">
           Quản lý nhà cung cấp
@@ -212,13 +186,15 @@ export default function ClientModals({
             <Input
               placeholder="Tìm kiếm nhà cung cấp..."
               value={searchTerm}
-              onChange={(e) => e.target.value}
+              onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-9 pr-9 text-sm sm:text-base w-full"
+              disabled={isLoading}
             />
             {searchTerm && (
               <button
                 onClick={() => setSearchTerm("")}
                 className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                disabled={isLoading}
               >
                 <X className="h-4 w-4" />
               </button>
@@ -251,7 +227,6 @@ export default function ClientModals({
         </p>
       ) : (
         <>
-          {/* Hiển thị dạng bảng trên màn hình lớn (PC, tablet) */}
           <div className="hidden md:block overflow-x-auto">
             <Table>
               <TableHeader>
@@ -338,7 +313,6 @@ export default function ClientModals({
             </Table>
           </div>
 
-          {/* Hiển thị dạng danh sách trên mobile */}
           <div className="block md:hidden space-y-4">
             {filteredSuppliers.map((supplier) => (
               <Card key={supplier.id} className="shadow-sm">
@@ -407,33 +381,29 @@ export default function ClientModals({
         </>
       )}
 
-      {/* Modal Thêm nhà cung cấp */}
       {role === "Admin" && (
-        <SupplierForm
-          open={isAddOpen}
-          onOpenChange={setIsAddOpen}
-          onSubmit={handleAddSupplier}
-          isLoading={isAdding}
-        />
+        <>
+          <SupplierForm
+            open={isAddOpen}
+            onOpenChange={setIsAddOpen}
+            onSubmit={handleAddSupplier}
+            isLoading={isAdding}
+          />
+          <SupplierForm
+            open={isEditOpen}
+            onOpenChange={setIsEditOpen}
+            onSubmit={handleEditSupplier}
+            initialData={selectedSupplier || undefined}
+            isLoading={isEditing}
+          />
+        </>
       )}
 
-      {/* Modal Sửa nhà cung cấp */}
-      {role === "Admin" && (
-        <SupplierForm
-          open={isEditOpen}
-          onOpenChange={setIsEditOpen}
-          onSubmit={handleEditSupplier}
-          initialData={selectedSupplier || undefined}
-          isLoading={isEditing}
-        />
-      )}
-
-      {/* Modal Xem chi tiết nhà cung cấp */}
       <SupplierDetail
         open={isDetailOpen}
         onOpenChange={setIsDetailOpen}
         supplier={selectedSupplier}
       />
-    </>
+    </div>
   );
 }

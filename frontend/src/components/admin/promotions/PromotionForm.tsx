@@ -174,11 +174,9 @@ export function PromotionForm({
       );
       if (result.success) {
         toast.success(result.message);
-        // Lấy dữ liệu khuyến mãi mới nhất sau khi thêm sản phẩm
         const updatedPromotion = await getPromotionDetailAction(initialData.id);
         if (updatedPromotion.success) {
           const updatedData = updatedPromotion.promotion;
-          // Cập nhật form với dữ liệu mới nhất
           form.reset({
             code: updatedData.code || "",
             description: updatedData.description || "",
@@ -231,11 +229,9 @@ export function PromotionForm({
       );
       if (result.success) {
         toast.success(result.message);
-        // Lấy dữ liệu khuyến mãi mới nhất sau khi xóa sản phẩm
         const updatedPromotion = await getPromotionDetailAction(initialData.id);
         if (updatedPromotion.success) {
           const updatedData = updatedPromotion.promotion;
-          // Cập nhật form với dữ liệu mới nhất
           form.reset({
             code: updatedData.code || "",
             description: updatedData.description || "",
@@ -270,58 +266,20 @@ export function PromotionForm({
   };
 
   const handleSubmit = async (values: z.infer<typeof promotionSchema>) => {
-    const currentDate = new Date();
-    const startDate = new Date(values.startDate);
-    if (startDate < currentDate && !initialData) {
-      toast.error("Ngày bắt đầu không được nhỏ hơn ngày hiện tại");
-      return;
-    }
-
-    const data: {
-      code?: string;
-      description?: string;
-      discount?: number;
-      startDate?: string;
-      endDate?: string;
-      isActive?: boolean;
-      productIds?: string[];
-    } = {
-      productIds: selectedProducts.map((p) => p.id),
-    };
-
-    if (initialData) {
-      if (values.code !== initialData.code) data.code = values.code;
-      if (values.description !== initialData.description)
-        data.description = values.description;
-      if (values.discount !== initialData.discount)
-        data.discount = values.discount;
-      if (
-        values.startDate !==
-        new Date(initialData.startDate).toISOString().slice(0, 16)
-      )
-        data.startDate = values.startDate;
-      if (
-        values.endDate !==
-        new Date(initialData.endDate).toISOString().slice(0, 16)
-      )
-        data.endDate = values.endDate;
-      if (values.isActive !== initialData.isActive)
-        data.isActive = values.isActive;
-    } else {
-      Object.assign(data, values);
-    }
-
-    if (initialData && Object.keys(data).length === 1 && data.productIds) {
+    try {
+      await onSubmit({
+        ...values,
+        productIds: selectedProducts.map((p) => p.id),
+      });
       onOpenChange(false);
-      return;
+    } catch (error) {
+      console.error("Error submitting form:", error);
     }
-
-    await onSubmit(data);
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-full max-w-3xl p-4 sm:p-6 max-h-[80vh] overflow-y-auto">
+      <DialogContent className="w-full max-w-md p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle className="text-lg sm:text-xl">
             {initialData ? "Sửa khuyến mãi" : "Thêm khuyến mãi"}
@@ -330,7 +288,7 @@ export function PromotionForm({
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(handleSubmit)}
-            className="space-y-6"
+            className="space-y-4"
           >
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <FormField

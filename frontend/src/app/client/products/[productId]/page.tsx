@@ -1,7 +1,6 @@
-// app/client/products/[productId]/page.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { addToCart } from "@/api/cart/cartApi";
 import { toast } from "sonner";
@@ -14,26 +13,44 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"; // Thêm Select để chọn màu
-import { getProductById } from "@/api/admin/productsApi";
+} from "@/components/ui/select";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselApi,
+} from "@/components/ui/carousel";
+import { getProductById, getSimilarProducts } from "@/api/admin/productsApi";
 import { getColors } from "@/api/admin/colorsApi";
 import { Color, Product, ProductIdentity } from "@/lib/types";
+import ProductCard from "@/components/client/ProductCard";
 
 export default function ProductDetailPage() {
   const [product, setProduct] = useState<Product | null>(null);
+  const [similarProducts, setSimilarProducts] = useState<Product[]>([]);
   const [colors, setColors] = useState<Color[]>([]);
   const [selectedColorId, setSelectedColorId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [api, setApi] = useState<CarouselApi>();
+  const [current, setCurrent] = useState(0);
   const router = useRouter();
   const { productId } = useParams();
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const fetchProduct = async () => {
+  const fetchData = useCallback(async () => {
     try {
-      const productData = await getProductById(productId as string);
+      const [productData, colorsData, similarProductsData] = await Promise.all([
+        getProductById(productId as string),
+        getColors(),
+        getSimilarProducts(productId as string),
+      ]);
+
+      console.log("similarProductsData", similarProductsData);
+
       setProduct(productData);
-      // Chọn màu mặc định (màu đầu tiên chưa được bán)
+      setColors(colorsData);
+      setSimilarProducts(similarProductsData);
+
       const firstAvailableColor = productData.productIdentities.find(
         (pi: ProductIdentity) => !pi.isSold
       )?.colorId;
@@ -44,22 +61,27 @@ export default function ProductDetailPage() {
         description: error.message || "Không thể lấy thông tin sản phẩm",
         duration: 2000,
       });
-    }
-  };
-
-  // Lấy danh sách màu sắc
-  const fetchColors = async () => {
-    try {
-      const colorsData = await getColors();
-      setColors(colorsData);
-    } catch (error) {
-      console.error("Không thể lấy danh sách màu sắc:", error);
     } finally {
       setLoading(false);
     }
-  };
+  }, [productId]);
 
-  // Thêm sản phẩm vào giỏ hàng
+  useEffect(() => {
+    if (productId) {
+      fetchData();
+    }
+  }, [fetchData, productId]);
+
+  useEffect(() => {
+    if (!api) return;
+
+    setCurrent(api.selectedScrollSnap() + 1);
+
+    api.on("select", () => {
+      setCurrent(api.selectedScrollSnap() + 1);
+    });
+  }, [api]);
+
   const handleAddToCart = async () => {
     const cartId = localStorage.getItem("cartId");
     if (!cartId) {
@@ -90,13 +112,6 @@ export default function ProductDetailPage() {
     }
   };
 
-  useEffect(() => {
-    if (productId) {
-      fetchProduct();
-      fetchColors();
-    }
-  }, [fetchProduct, productId]);
-
   if (loading) {
     return <div className="text-center mt-10">Đang tải...</div>;
   }
@@ -109,21 +124,29 @@ export default function ProductDetailPage() {
     return <div className="text-center mt-10">Sản phẩm không tồn tại</div>;
   }
 
-  // Lấy danh sách màu sắc có sẵn (chưa được bán)
   const availableColors = product.productIdentities
-    .filter((pi) => !pi.isSold) // Chỉ lấy các màu chưa được bán
+    .filter((pi) => !pi.isSold)
     .map((pi) => {
       const color = colors.find((c) => c.id === pi.colorId);
       return color || null;
     })
     .filter((color) => color !== null) as Color[];
 
-  const mainImage =
-    product.productFiles.find((pf) => pf.isMain)?.file.url ||
-    "/placeholder.png";
-  const otherImages = product.productFiles
-    .filter((pf) => !pf.isMain)
-    .map((pf) => pf.file.url);
+  const productImages = product.productFiles.map((pf) => ({
+    url: pf.file.url,
+    isMain: pf.isMain,
+  }));
+
+  // Kiểm tra xem có khuyến mãi áp dụng không
+  const activePromotion = product.promotions?.find(({ promotion }) => {
+    const now = new Date();
+    const startDate = new Date(promotion.startDate);
+    const endDate = new Date(promotion.endDate);
+    return promotion.isActive && startDate <= now && now <= endDate;
+  });
+
+  const originalPrice = product.price;
+  const discountedPrice = product.discountedPrice ?? originalPrice;
 
   return (
     <div className="container mx-auto px-4 py-10">
@@ -133,35 +156,66 @@ export default function ProductDetailPage() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Hình ảnh sản phẩm */}
+            {/* Phần hình ảnh sản phẩm với Carousel */}
             <div>
-              <div className="relative w-full h-96">
-                <Image
-                  src={mainImage}
-                  alt={product.name}
-                  fill
-                  className="object-cover rounded-md"
-                />
-              </div>
-              <div className="flex space-x-4 mt-4">
-                {otherImages.map((url, index) => (
-                  <div key={index} className="relative w-24 h-24">
+              {/* Carousel chính */}
+              <Carousel setApi={setApi} className="w-full">
+                <CarouselContent>
+                  {productImages.map((image, index) => (
+                    <CarouselItem key={index}>
+                      <div className="relative w-full h-96">
+                        <Image
+                          src={image.url}
+                          alt={`${product.name} - Image ${index + 1}`}
+                          fill
+                          className="object-contain rounded-md"
+                          priority={index === 0}
+                        />
+                      </div>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+              </Carousel>
+
+              {/* Danh sách ảnh nhỏ để chọn */}
+              <div className="flex space-x-4 mt-4 overflow-x-auto py-2">
+                {productImages.map((image, index) => (
+                  <button
+                    key={index}
+                    onClick={() => api?.scrollTo(index)}
+                    className={`relative w-20 h-20 flex-shrink-0 rounded-md overflow-hidden border-2 ${
+                      current === index + 1
+                        ? "border-primary"
+                        : "border-transparent"
+                    }`}
+                  >
                     <Image
-                      src={url}
-                      alt={`${product.name} - Image ${index + 1}`}
+                      src={image.url}
+                      alt={`Thumbnail ${index + 1}`}
                       fill
-                      className="object-cover rounded-md"
+                      className="object-cover"
                     />
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>
 
             {/* Thông tin sản phẩm */}
             <div>
-              <p className="text-2xl font-semibold text-primary mb-4">
-                {product.price.toLocaleString("vi-VN")} VNĐ
-              </p>
+              {activePromotion ? (
+                <div className="flex items-center gap-4 mb-4">
+                  <p className="text-2xl font-semibold text-red-600">
+                    {discountedPrice.toLocaleString("vi-VN")} VNĐ
+                  </p>
+                  <p className="text-xl text-gray-500 line-through">
+                    {originalPrice.toLocaleString("vi-VN")} VNĐ
+                  </p>
+                </div>
+              ) : (
+                <p className="text-2xl font-semibold text-primary mb-4">
+                  {originalPrice.toLocaleString("vi-VN")} VNĐ
+                </p>
+              )}
               <div className="space-y-2">
                 <p>
                   <span className="font-semibold">Dung lượng:</span>{" "}
@@ -185,7 +239,6 @@ export default function ProductDetailPage() {
                   <span className="font-semibold">Hệ điều hành:</span>{" "}
                   {product.operatingSystem}
                 </p>
-                {/* Hiển thị danh sách màu sắc */}
                 {availableColors.length > 0 ? (
                   <div>
                     <span className="font-semibold">Màu sắc:</span>
@@ -218,6 +271,22 @@ export default function ProductDetailPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Section sản phẩm tương tự */}
+      <div className="mt-10">
+        <h2 className="text-2xl font-semibold mb-4">Sản phẩm tương tự</h2>
+        {similarProducts.length === 0 ? (
+          <p className="text-center text-gray-500">
+            Không có sản phẩm tương tự.
+          </p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {similarProducts.map((similarProduct) => (
+              <ProductCard key={similarProduct.id} product={similarProduct} />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
