@@ -1,8 +1,7 @@
-// app/client/cart/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation"; // Thêm useRouter để điều hướng
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox"; // Thêm Checkbox từ shadcn/ui
 import { Trash2 } from "lucide-react";
 import {
   getCartItems,
@@ -26,12 +26,13 @@ import { CartItem } from "@/lib/types";
 
 export default function CartPage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [selectedItems, setSelectedItems] = useState<string[]>([]); // Lưu trữ ID của các sản phẩm được chọn
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const router = useRouter(); // Thêm router để điều hướng
+  const router = useRouter();
 
   const cartId = localStorage.getItem("cartId");
-  const user = localStorage.getItem("fullName"); // Kiểm tra xem người dùng đã đăng nhập chưa
+  const user = localStorage.getItem("fullName");
 
   // Chuyển hướng đến trang đăng nhập nếu chưa đăng nhập
   useEffect(() => {
@@ -63,8 +64,8 @@ export default function CartPage() {
   const handleAddToCart = async () => {
     try {
       const cartData = {
-        productId: "product-1", // Thay bằng productId thực tế
-        colorId: "color-1", // Thay bằng colorId thực tế
+        productId: "product-1",
+        colorId: "color-1",
         quantity: 1,
       };
       const newItem = await addToCart(cartId!, cartData);
@@ -119,6 +120,9 @@ export default function CartPage() {
       setCartItems((prevItems) =>
         prevItems.filter((item) => item.id !== cartItemId)
       );
+      setSelectedItems((prevSelected) =>
+        prevSelected.filter((id) => id !== cartItemId)
+      ); // Xóa sản phẩm khỏi danh sách được chọn
       toast.success("Xóa sản phẩm thành công", {
         duration: 2000,
       });
@@ -130,6 +134,46 @@ export default function CartPage() {
     }
   };
 
+  // Xử lý chọn/bỏ chọn sản phẩm
+  const handleSelectItem = (cartItemId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedItems((prev) => [...prev, cartItemId]);
+    } else {
+      setSelectedItems((prev) => prev.filter((id) => id !== cartItemId));
+    }
+  };
+
+  // Xử lý chọn/bỏ chọn tất cả sản phẩm
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedItems(cartItems.map((item) => item.id));
+    } else {
+      setSelectedItems([]);
+    }
+  };
+
+  // Tính tổng tiền của các sản phẩm được chọn
+  const selectedTotalAmount = cartItems
+    .filter((item) => selectedItems.includes(item.id))
+    .reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+
+  // Chuyển hướng đến trang thanh toán
+  const handleCheckout = () => {
+    if (selectedItems.length === 0) {
+      toast.error("Vui lòng chọn ít nhất một sản phẩm để thanh toán", {
+        duration: 2000,
+      });
+      return;
+    }
+
+    // Lưu danh sách sản phẩm được chọn và cartId vào localStorage
+    localStorage.setItem("selectedCartItems", JSON.stringify(selectedItems));
+    localStorage.setItem("cartIdForCheckout", cartId!);
+
+    // Chuyển hướng đến trang thanh toán
+    router.push("/client/checkout");
+  };
+
   if (loading) {
     return <div className="text-center mt-10">Đang tải...</div>;
   }
@@ -137,11 +181,6 @@ export default function CartPage() {
   if (error) {
     return <div className="text-center mt-10 text-red-600">{error}</div>;
   }
-
-  const totalAmount = cartItems.reduce(
-    (sum, item) => sum + item.product.price * item.quantity,
-    0
-  );
 
   return (
     <div className="container mx-auto py-10">
@@ -157,6 +196,12 @@ export default function CartPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>
+                      <Checkbox
+                        checked={selectedItems.length === cartItems.length}
+                        onCheckedChange={handleSelectAll}
+                      />
+                    </TableHead>
                     <TableHead>Sản phẩm</TableHead>
                     <TableHead>Màu sắc</TableHead>
                     <TableHead>Đơn giá</TableHead>
@@ -168,6 +213,14 @@ export default function CartPage() {
                 <TableBody>
                   {cartItems.map((item) => (
                     <TableRow key={item.id}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedItems.includes(item.id)}
+                          onCheckedChange={(checked) =>
+                            handleSelectItem(item.id, checked as boolean)
+                          }
+                        />
+                      </TableCell>
                       <TableCell>
                         <div className="flex items-center space-x-4">
                           <img
@@ -221,14 +274,11 @@ export default function CartPage() {
               <div className="mt-6 flex justify-between items-center">
                 <div>
                   <p className="text-lg font-semibold">
-                    Tổng tiền: {totalAmount.toLocaleString("vi-VN")} VNĐ
+                    Tổng tiền (đã chọn):{" "}
+                    {selectedTotalAmount.toLocaleString("vi-VN")} VNĐ
                   </p>
                 </div>
-                <Button
-                  onClick={() => alert("Chức năng thanh toán chưa triển khai")}
-                >
-                  Thanh toán
-                </Button>
+                <Button onClick={handleCheckout}>Thanh toán</Button>
               </div>
             </>
           )}
