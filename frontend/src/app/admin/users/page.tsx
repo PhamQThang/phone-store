@@ -13,6 +13,7 @@ import {
 import ClientModals from "@/components/admin/users/ClientModals";
 import { getAuthData, clearAuthData } from "@/lib/authUtils";
 import { Loader2 } from "lucide-react";
+import { register } from "@/api/auth/authApi";
 
 export default function UsersPage() {
   const router = useRouter();
@@ -53,6 +54,73 @@ export default function UsersPage() {
       };
     }
   }, [router]);
+
+  const createUserAction = async (formData: FormData) => {
+    const email = formData.get("email")?.toString();
+    const password = formData.get("password")?.toString();
+    const firstName = formData.get("firstName")?.toString();
+    const lastName = formData.get("lastName")?.toString();
+    const address = formData.get("address")?.toString();
+    const phoneNumber = formData.get("phoneNumber")?.toString();
+    const roleId = parseInt(formData.get("roleId")?.toString() || "0");
+
+    // Validation
+    if (!email || !email.includes("@")) {
+      return { error: "Email không hợp lệ" };
+    }
+    if (!password || password.length < 5) {
+      return { error: "Mật khẩu phải có ít nhất 5 ký tự" };
+    }
+    if (!firstName || firstName.length < 2) {
+      return { error: "Tên phải có ít nhất 2 ký tự" };
+    }
+    if (!lastName || lastName.length < 2) {
+      return { error: "Họ phải có ít nhất 2 ký tự" };
+    }
+    if (!address) {
+      return { error: "Địa chỉ không được để trống" };
+    }
+    if (!phoneNumber) {
+      return { error: "Số điện thoại không được để trống" };
+    }
+    if (!roleId) {
+      return { error: "Vui lòng chọn vai trò" };
+    }
+
+    try {
+      const response = await register({
+        email,
+        password,
+        firstName,
+        lastName,
+        address,
+        phoneNumber,
+        roleId,
+      });
+      const newUser: User = {
+        id: response.user.id,
+        email: response.user.email,
+        firstName: response.user.firstName,
+        lastName: response.user.lastName,
+        address: response.user.address,
+        phoneNumber: response.user.phoneNumber,
+        role: { id: roleId, name: response.user.role },
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        isActive: true,
+        deletedAt: null,
+      };
+      setUsers((prev) => [...prev, newUser]);
+      return {
+        success: true,
+        message: "Tạo người dùng thành công",
+      };
+    } catch (error: any) {
+      return {
+        error: error.message || "Tạo người dùng thất bại",
+      };
+    }
+  };
 
   const updateUserAction = async (id: number, formData: FormData) => {
     const firstName = formData.get("firstName")?.toString();
@@ -153,6 +221,7 @@ export default function UsersPage() {
       <ClientModals
         users={users}
         role={role!}
+        createUserAction={createUserAction}
         updateUserAction={updateUserAction}
         deleteUserAction={deleteUserAction}
         restoreUserAction={restoreUserAction}

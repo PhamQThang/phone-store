@@ -12,17 +12,24 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Edit, Trash, Eye, Search, X, RotateCcw } from "lucide-react";
+import { Edit, Trash, Eye, Search, X, RotateCcw, Plus } from "lucide-react";
 import { User } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { UserForm } from "@/components/admin/users/UserForm";
+import { UserCreateForm } from "@/components/admin/users/UserCreateForm";
 import { UserDetail } from "@/components/admin/users/UserDetail";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
+interface Role {
+  id: number;
+  name: string;
+}
+
 interface ClientModalsProps {
   users: User[];
   role: string;
+  createUserAction: (formData: FormData) => Promise<any>;
   updateUserAction: (id: number, formData: FormData) => Promise<any>;
   deleteUserAction: (id: number) => Promise<any>;
   restoreUserAction: (id: number) => Promise<any>;
@@ -32,19 +39,28 @@ interface ClientModalsProps {
 export default function ClientModals({
   users,
   role,
+  createUserAction,
   updateUserAction,
   deleteUserAction,
   restoreUserAction,
   getUserDetailAction,
 }: ClientModalsProps) {
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [isEditing, setIsEditing] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isRestoring, setIsRestoring] = useState(false);
   const [isViewing, setIsViewing] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+
+  // Set cứng danh sách roles
+  const roles: Role[] = [
+    { id: 2, name: "Employee" },
+    { id: 3, name: "Customer" },
+  ];
 
   // Lọc danh sách người dùng theo vai trò
   const customers = users.filter((user) => user.role.name === "Customer");
@@ -66,6 +82,47 @@ export default function ClientModals({
       .toLowerCase()
       .includes(searchTerm.toLowerCase())
   );
+
+  // Tạo người dùng mới
+  const handleCreateUser = async (data: {
+    email: string;
+    password: string;
+    firstName: string;
+    lastName: string;
+    address: string;
+    phoneNumber: string;
+    roleId: number;
+  }) => {
+    setIsCreating(true);
+    try {
+      const formData = new FormData();
+      formData.append("email", data.email);
+      formData.append("password", data.password);
+      formData.append("firstName", data.firstName);
+      formData.append("lastName", data.lastName);
+      formData.append("address", data.address);
+      formData.append("phoneNumber", data.phoneNumber);
+      formData.append("roleId", data.roleId.toString());
+
+      const result = await createUserAction(formData);
+      if (result.success) {
+        toast.success(result.message);
+        setIsCreateOpen(false);
+      } else {
+        toast.error("Tạo người dùng thất bại", {
+          description: result.error || "Vui lòng thử lại sau.",
+          duration: 2000,
+        });
+      }
+    } catch (error: any) {
+      toast.error("Tạo người dùng thất bại", {
+        description: error.message || "Vui lòng thử lại sau.",
+        duration: 2000,
+      });
+    } finally {
+      setIsCreating(false);
+    }
+  };
 
   // Sửa người dùng
   const handleEditUser = async (data: {
@@ -204,7 +261,8 @@ export default function ClientModals({
     }
   };
 
-  const isLoading = isEditing || isDeleting || isRestoring || isViewing;
+  const isLoading =
+    isEditing || isCreating || isDeleting || isRestoring || isViewing;
 
   return (
     <div className="relative">
@@ -232,6 +290,16 @@ export default function ClientModals({
               </button>
             )}
           </div>
+          {role === "Admin" && (
+            <Button
+              onClick={() => setIsCreateOpen(true)}
+              className="w-full sm:w-auto"
+              disabled={isLoading}
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Tạo người dùng
+            </Button>
+          )}
         </div>
       </div>
 
@@ -521,7 +589,7 @@ export default function ClientModals({
                                     onClick={() => handleRestoreUser(user.id)}
                                     disabled={isLoading}
                                   >
-                                    <RotateCcw className="h-4 w-4" />
+                                    | <RotateCcw className="h-4 w-4" />
                                   </Button>
                                 )}
                               </>
@@ -615,6 +683,17 @@ export default function ClientModals({
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Modal Tạo người dùng */}
+      {role === "Admin" && (
+        <UserCreateForm
+          open={isCreateOpen}
+          onOpenChange={setIsCreateOpen}
+          onSubmit={handleCreateUser}
+          isLoading={isCreating}
+          roles={roles}
+        />
+      )}
 
       {/* Modal Sửa người dùng */}
       {role === "Admin" && (

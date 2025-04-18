@@ -72,7 +72,7 @@ const items = [
     title: "Quản lý người dùng",
     url: "/admin/users",
     icon: Users,
-    allowedRoles: ["Admin", "Employee"],
+    allowedRoles: ["Admin"],
   },
 ];
 
