@@ -43,14 +43,14 @@ export default function HomeCarousel({ slides }: HomeCarouselProps) {
 
   if (slides.length === 0) {
     return (
-      <div className="w-full container mx-auto py-3 px-3 text-center">
+      <div className="container mx-auto py-3 px-3 text-center">
         <p>Không có slide nào để hiển thị.</p>
       </div>
     );
   }
 
   return (
-    <div className="w-full container mx-auto py-3 px-3">
+    <div className="container mx-auto py-3">
       <Carousel
         setApi={setApi}
         className="w-full"
@@ -65,7 +65,7 @@ export default function HomeCarousel({ slides }: HomeCarouselProps) {
                 href={slide.link || "#"}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="relative w-full h-[200px] sm:h-[300px] md:h-[400px] lg:h-[500px] overflow-hidden block"
+                className="relative !w-full h-[200px] sm:h-[300px] md:h-[400px] lg:h-[600px] overflow-hidden block"
               >
                 <Image
                   src={slide.image.url}
@@ -84,9 +84,10 @@ export default function HomeCarousel({ slides }: HomeCarouselProps) {
       <div className="flex justify-center gap-2 mt-4">
         {Array.from({ length: count }).map((_, index) => (
           <Button
+
             key={index}
             className={`h-3 rounded-full transition-colors duration-200 ${
-              current === index + 1 ? "bg-green-600" : "bg-gray-300"
+              current === index + 1 ? "bg-red-600" : "bg-gray-300"
             }`}
             onClick={() => api?.scrollTo(index)}
           />

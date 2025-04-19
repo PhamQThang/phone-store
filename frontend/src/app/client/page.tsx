@@ -45,16 +45,19 @@ export default function ClientHomePage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto px-4 py-10">
-        <Skeleton className="h-10 w-64 mb-8" />
-        <div className="flex space-x-4 mb-6">
-          <Skeleton className="h-10 w-48" />
-          <Skeleton className="h-10 w-48" />
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {[...Array(8)].map((_, index) => (
-            <Skeleton key={index} className="h-96 w-full rounded-md" />
-          ))}
+      <div className=" mx-auto px-4 py-10">
+
+        <div className=" mx-auto px-4 py-10">
+          <Skeleton className="h-10 w-64 mb-8" />
+          <div className="flex space-x-4 mb-6">
+            <Skeleton className="h-10 w-48" />
+            <Skeleton className="h-10 w-48" />
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {[...Array(8)].map((_, index) => (
+              <Skeleton key={index} className="h-96 w-full rounded-md" />
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -65,14 +68,18 @@ export default function ClientHomePage() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-10">
-      <HomeCarousel slides={slides} />
-      <h1 className="text-3xl font-bold mb-8">Tất cả sản phẩm</h1>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-        {products.map((product) => (
-          <ProductCard key={product.id} product={product} />
-        ))}
+    <div className="w-full mx-auto mb-10">
+      <div className="container mx-auto">
+        <HomeCarousel slides={slides} />
       </div>
-    </div>
+      <div className="container mx-auto px-3 py-3 mt-5 bg-red-500 border-2 rounded-md shadow-md">
+        <h1 className="text-5xl font-bold mt-5 mb-8 uppercase text-white">Tất cả sản phẩm</h1>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-5">
+          {products.map((product) => (
+            <ProductCard key={product.id} product={product} />
+          ))}
+        </div>
+      </div>
+    </div>  
   );
 }
