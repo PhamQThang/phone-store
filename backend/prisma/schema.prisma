@@ -111,7 +111,6 @@ model Product {
   modelId              String
   createdAt            DateTime              @default(now())
   updatedAt            DateTime              @default(now()) @updatedAt
-  discountedPrice      Int?                  @default(0)
   cartItems            CartItem[]
   orderDetails         OrderDetail[]
   model                Model                 @relation(fields: [modelId], references: [id])

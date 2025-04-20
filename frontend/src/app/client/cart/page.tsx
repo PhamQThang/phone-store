@@ -14,7 +14,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox"; // Thêm Checkbox từ shadcn/ui
+import { Checkbox } from "@/components/ui/checkbox";
 import { Trash2 } from "lucide-react";
 import {
   getCartItems,
@@ -26,7 +26,7 @@ import { CartItem } from "@/lib/types";
 
 export default function CartPage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [selectedItems, setSelectedItems] = useState<string[]>([]); // Lưu trữ ID của các sản phẩm được chọn
+  const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -34,7 +34,6 @@ export default function CartPage() {
   const cartId = localStorage.getItem("cartId");
   const user = localStorage.getItem("fullName");
 
-  // Chuyển hướng đến trang đăng nhập nếu chưa đăng nhập
   useEffect(() => {
     if (!cartId || !user) {
       router.push("/auth/login");
@@ -44,11 +43,11 @@ export default function CartPage() {
     fetchCartItems();
   }, [cartId, user, router]);
 
-  // Lấy danh sách sản phẩm trong giỏ hàng
   const fetchCartItems = async () => {
     try {
-      const items = await getCartItems(cartId!);
-      setCartItems(items);
+      const response = await getCartItems(cartId!);
+      console.log("Cart Items Response:", response); // Log dữ liệu để kiểm tra
+      setCartItems(response); // Lấy mảng từ response.data
     } catch (error: any) {
       setError(error.message || "Không thể lấy giỏ hàng");
       toast.error("Lỗi", {
@@ -60,7 +59,6 @@ export default function CartPage() {
     }
   };
 
-  // Thêm sản phẩm vào giỏ hàng (ví dụ)
   const handleAddToCart = async () => {
     try {
       const cartData = {
@@ -81,7 +79,6 @@ export default function CartPage() {
     }
   };
 
-  // Cập nhật số lượng sản phẩm
   const handleUpdateQuantity = async (
     cartItemId: string,
     newQuantity: number
@@ -113,7 +110,6 @@ export default function CartPage() {
     }
   };
 
-  // Xóa sản phẩm khỏi giỏ hàng
   const handleRemoveFromCart = async (cartItemId: string) => {
     try {
       await removeFromCart(cartId!, cartItemId);
@@ -122,7 +118,7 @@ export default function CartPage() {
       );
       setSelectedItems((prevSelected) =>
         prevSelected.filter((id) => id !== cartItemId)
-      ); // Xóa sản phẩm khỏi danh sách được chọn
+      );
       toast.success("Xóa sản phẩm thành công", {
         duration: 2000,
       });
@@ -134,7 +130,6 @@ export default function CartPage() {
     }
   };
 
-  // Xử lý chọn/bỏ chọn sản phẩm
   const handleSelectItem = (cartItemId: string, checked: boolean) => {
     if (checked) {
       setSelectedItems((prev) => [...prev, cartItemId]);
@@ -143,7 +138,6 @@ export default function CartPage() {
     }
   };
 
-  // Xử lý chọn/bỏ chọn tất cả sản phẩm
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
       setSelectedItems(cartItems.map((item) => item.id));
@@ -152,12 +146,16 @@ export default function CartPage() {
     }
   };
 
-  // Tính tổng tiền của các sản phẩm được chọn
+  // Tính tổng tiền của các sản phẩm được chọn (dùng discountedPrice, với fallback)
   const selectedTotalAmount = cartItems
     .filter((item) => selectedItems.includes(item.id))
-    .reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+    .reduce(
+      (sum, item) =>
+        sum +
+        (item.product.discountedPrice ?? item.product.price) * item.quantity,
+      0
+    );
 
-  // Chuyển hướng đến trang thanh toán
   const handleCheckout = () => {
     if (selectedItems.length === 0) {
       toast.error("Vui lòng chọn ít nhất một sản phẩm để thanh toán", {
@@ -166,11 +164,9 @@ export default function CartPage() {
       return;
     }
 
-    // Lưu danh sách sản phẩm được chọn và cartId vào localStorage
     localStorage.setItem("selectedCartItems", JSON.stringify(selectedItems));
     localStorage.setItem("cartIdForCheckout", cartId!);
 
-    // Chuyển hướng đến trang thanh toán
     router.push("/client/checkout");
   };
 
@@ -211,64 +207,81 @@ export default function CartPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {cartItems.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell>
-                        <Checkbox
-                          checked={selectedItems.includes(item.id)}
-                          onCheckedChange={(checked) =>
-                            handleSelectItem(item.id, checked as boolean)
-                          }
-                        />
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center space-x-4">
-                          <img
-                            src={
-                              item.product.productFiles[0]?.file.url ||
-                              "/placeholder.png"
+                  {cartItems.map((item) => {
+                    // Fallback cho discountedPrice: nếu không có thì dùng price
+                    const displayPrice =
+                      item.product.discountedPrice ?? item.product.price;
+
+                    return (
+                      <TableRow key={item.id}>
+                        <TableCell>
+                          <Checkbox
+                            checked={selectedItems.includes(item.id)}
+                            onCheckedChange={(checked) =>
+                              handleSelectItem(item.id, checked as boolean)
                             }
-                            alt={item.product.name}
-                            className="w-16 h-16 object-cover rounded"
                           />
-                          <span>{item.product.name}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>{item.color.name}</TableCell>
-                      <TableCell>
-                        {item.product.price.toLocaleString("vi-VN")} VNĐ
-                      </TableCell>
-                      <TableCell>
-                        <Input
-                          type="number"
-                          value={item.quantity}
-                          onChange={(e) =>
-                            handleUpdateQuantity(
-                              item.id,
-                              parseInt(e.target.value)
-                            )
-                          }
-                          className="w-20"
-                          min={1}
-                        />
-                      </TableCell>
-                      <TableCell>
-                        {(item.product.price * item.quantity).toLocaleString(
-                          "vi-VN"
-                        )}{" "}
-                        VNĐ
-                      </TableCell>
-                      <TableCell>
-                        <Button
-                          variant="destructive"
-                          size="icon"
-                          onClick={() => handleRemoveFromCart(item.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center space-x-4">
+                            <img
+                              src={
+                                item.product.productFiles?.length > 0
+                                  ? item.product.productFiles[0].file.url
+                                  : "/placeholder.png"
+                              }
+                              alt={item.product.name}
+                              className="w-16 h-16 object-cover rounded"
+                            />
+                            <span>{item.product.name}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>{item.color.name}</TableCell>
+                        <TableCell>
+                          {/* Hiển thị giá (dùng displayPrice để tránh lỗi undefined) */}
+                          {displayPrice.toLocaleString("vi-VN")} VNĐ
+                          {/* Hiển thị giá gốc nếu có giảm giá */}
+                          {item.product.discountedPrice != null &&
+                            item.product.discountedPrice <
+                              item.product.price && (
+                              <span className="text-sm text-gray-500 line-through ml-2">
+                                {item.product.price.toLocaleString("vi-VN")} VNĐ
+                              </span>
+                            )}
+                        </TableCell>
+                        <TableCell>
+                          <Input
+                            type="number"
+                            value={item.quantity}
+                            onChange={(e) =>
+                              handleUpdateQuantity(
+                                item.id,
+                                parseInt(e.target.value)
+                              )
+                            }
+                            className="w-20"
+                            min={1}
+                          />
+                        </TableCell>
+                        <TableCell>
+                          {/* Tính thành tiền dựa trên displayPrice */}
+                          {(displayPrice * item.quantity).toLocaleString(
+                            "vi-VN"
+                          )}{" "}
+                          VNĐ
+                        </TableCell>
+                        <TableCell>
+                          <Button
+                            variant="destructive"
+                            size="icon"
+                            onClick={() => handleRemoveFromCart(item.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
               <div className="mt-6 flex justify-between items-center">

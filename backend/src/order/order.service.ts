@@ -6,10 +6,14 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { Prisma } from '@prisma/client';
+import { ProductsService } from '../products/products.service'; // Thêm ProductsService
 
 @Injectable()
 export class OrderService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly productsService: ProductsService // Inject ProductsService
+  ) {}
 
   async createOrder(userId: number, createOrderDto: CreateOrderDto) {
     const { address, paymentMethod, note, cartId, phoneNumber, cartItemIds } =
@@ -71,7 +75,11 @@ export class OrderService {
         );
       }
 
-      const itemPrice = product.discountedPrice || product.price;
+      // Tính giá động tại thời điểm tạo đơn hàng
+      const itemPrice = await this.productsService.calculateDiscountedPrice(
+        product.price,
+        product.id
+      );
       totalAmount += itemPrice * quantity;
 
       for (const identity of availableIdentities) {
@@ -194,7 +202,6 @@ export class OrderService {
       throw new BadRequestException('Bạn chỉ có thể hủy đơn hàng của mình');
     }
 
-    // Chỉ cho phép khách hàng hủy đơn hàng nếu trạng thái là Pending
     if (
       !isAdminOrEmployee &&
       newStatus === 'Canceled' &&
@@ -268,9 +275,35 @@ export class OrderService {
       orderBy: { createdAt: 'desc' },
     });
 
+    // Tính giá động cho các sản phẩm trong đơn hàng
+    const ordersWithDynamicPrices = await Promise.all(
+      orders.map(async order => {
+        const updatedOrderDetails = await Promise.all(
+          order.orderDetails.map(async detail => {
+            const discountedPrice =
+              await this.productsService.calculateDiscountedPrice(
+                detail.price,
+                detail.productId
+              );
+            return {
+              ...detail,
+              product: {
+                ...detail.product,
+                discountedPrice,
+              },
+            };
+          })
+        );
+        return {
+          ...order,
+          orderDetails: updatedOrderDetails,
+        };
+      })
+    );
+
     return {
       message: 'Lấy danh sách đơn hàng thành công',
-      data: orders,
+      data: ordersWithDynamicPrices,
     };
   }
 
@@ -311,9 +344,30 @@ export class OrderService {
       throw new BadRequestException('Bạn không có quyền xem đơn hàng này');
     }
 
+    // Tính giá động cho các sản phẩm trong đơn hàng
+    const updatedOrderDetails = await Promise.all(
+      order.orderDetails.map(async detail => {
+        const discountedPrice =
+          await this.productsService.calculateDiscountedPrice(
+            detail.price,
+            detail.productId
+          );
+        return {
+          ...detail,
+          product: {
+            ...detail.product,
+            discountedPrice,
+          },
+        };
+      })
+    );
+
     return {
       message: 'Lấy chi tiết đơn hàng thành công',
-      data: order,
+      data: {
+        ...order,
+        orderDetails: updatedOrderDetails,
+      },
     };
   }
 }

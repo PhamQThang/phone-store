@@ -14,7 +14,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
 import { getCartItems } from "@/api/cart/cartApi";
 import { CartItem } from "@/lib/types";
 import { createOrder } from "@/api/orderApi";
@@ -31,7 +30,6 @@ export default function CheckoutPage() {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  // Lấy cartId và selectedItems từ localStorage
   const cartId = localStorage.getItem("cartIdForCheckout");
   const selectedItemsFromStorage = localStorage.getItem("selectedCartItems");
   const user = localStorage.getItem("fullName");
@@ -67,13 +65,12 @@ export default function CheckoutPage() {
     fetchCartItems();
   }, [cartId, user, selectedItemsFromStorage, router]);
 
-  // Tính tổng tiền
+  // Tính tổng tiền (dùng discountedPrice)
   const totalAmount = cartItems.reduce(
-    (sum, item) => sum + item.product.price * item.quantity,
+    (sum, item) => sum + item.product.discountedPrice * item.quantity,
     0
   );
 
-  // Xử lý đặt hàng
   const handlePlaceOrder = async () => {
     if (!address) {
       toast.error("Vui lòng nhập địa chỉ giao hàng", { duration: 2000 });
@@ -96,11 +93,9 @@ export default function CheckoutPage() {
         duration: 3000,
       });
 
-      // Xóa thông tin trong localStorage sau khi đặt hàng thành công
       localStorage.removeItem("selectedCartItems");
       localStorage.removeItem("cartIdForCheckout");
 
-      // Chuyển hướng đến trang danh sách đơn hàng
       router.push("/client/orders");
     } catch (error: any) {
       toast.error("Lỗi", {
@@ -213,12 +208,25 @@ export default function CheckoutPage() {
                             <p className="text-sm">Số lượng: {item.quantity}</p>
                           </div>
                         </div>
-                        <p className="font-medium">
-                          {(item.product.price * item.quantity).toLocaleString(
-                            "vi-VN"
-                          )}{" "}
-                          VNĐ
-                        </p>
+                        <div className="text-right">
+                          {/* Hiển thị giá đã giảm (discountedPrice) thay vì giá gốc (price) */}
+                          <p className="font-medium">
+                            {(
+                              item.product.discountedPrice * item.quantity
+                            ).toLocaleString("vi-VN")}{" "}
+                            VNĐ
+                          </p>
+                          {/* Hiển thị giá gốc nếu có giảm giá */}
+                          {item.product.discountedPrice <
+                            item.product.price && (
+                            <p className="text-sm text-gray-500 line-through">
+                              {(
+                                item.product.price * item.quantity
+                              ).toLocaleString("vi-VN")}{" "}
+                              VNĐ
+                            </p>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>

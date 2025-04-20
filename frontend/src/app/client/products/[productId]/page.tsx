@@ -124,10 +124,16 @@ export default function ProductDetailPage() {
     return <div className="text-center mt-10">Sản phẩm không tồn tại</div>;
   }
 
-  const availableColors = product.productIdentities
-    .filter((pi) => !pi.isSold)
-    .map((pi) => {
-      const color = colors.find((c) => c.id === pi.colorId);
+  // Lấy danh sách màu sắc khả dụng và loại bỏ trùng lặp
+  const uniqueColorIds = new Set(
+    product.productIdentities
+      .filter((pi) => !pi.isSold) // Chỉ lấy các sản phẩm chưa bán
+      .map((pi) => pi.colorId)
+  );
+
+  const availableColors = Array.from(uniqueColorIds)
+    .map((colorId) => {
+      const color = colors.find((c) => c.id === colorId);
       return color || null;
     })
     .filter((color) => color !== null) as Color[];

@@ -153,10 +153,7 @@ export function PromotionForm({
       toast.error("Vui lòng chọn một sản phẩm");
       return;
     }
-    if (isPromotionActive) {
-      toast.error("Không thể thêm sản phẩm khi khuyến mãi đang hoạt động");
-      return;
-    }
+    // Bỏ kiểm tra isPromotionActive để cho phép thêm sản phẩm ngay cả khi khuyến mãi đang hoạt động
     if (!initialData) {
       const product = products.find((p) => p.id === selectedProductId);
       if (product) {
@@ -212,10 +209,7 @@ export function PromotionForm({
   };
 
   const handleRemoveProduct = async (productId: string) => {
-    if (isPromotionActive) {
-      toast.error("Không thể xóa sản phẩm khi khuyến mãi đang hoạt động");
-      return;
-    }
+    // Bỏ kiểm tra isPromotionActive để cho phép xóa sản phẩm ngay cả khi khuyến mãi đang hoạt động
     if (!initialData) {
       setSelectedProducts((prev) => prev.filter((p) => p.id !== productId));
       return;
@@ -429,9 +423,7 @@ export function PromotionForm({
                         variant="ghost"
                         size="sm"
                         onClick={() => handleRemoveProduct(product.id)}
-                        disabled={
-                          isLoading || isProductLoading || isPromotionActive
-                        }
+                        disabled={isLoading || isProductLoading} // Bỏ isPromotionActive
                       >
                         <Trash className="h-4 w-4" />
                       </Button>
@@ -454,7 +446,7 @@ export function PromotionForm({
                   <Select
                     value={selectedProductId}
                     onValueChange={setSelectedProductId}
-                    disabled={isPromotionActive || isProductLoading}
+                    disabled={isProductLoading} // Bỏ isPromotionActive
                   >
                     <SelectTrigger className="text-sm sm:text-base">
                       <SelectValue placeholder="Chọn sản phẩm" />
@@ -469,9 +461,7 @@ export function PromotionForm({
                   </Select>
                   <Button
                     onClick={handleAddProduct}
-                    disabled={
-                      isLoading || isProductLoading || isPromotionActive
-                    }
+                    disabled={isLoading || isProductLoading} // Bỏ isPromotionActive
                   >
                     {isProductLoading ? (
                       <>
