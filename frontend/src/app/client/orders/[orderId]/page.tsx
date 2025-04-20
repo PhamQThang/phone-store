@@ -116,10 +116,12 @@ const OrderDetailsPage = ({
     }
 
     try {
-      const updatedOrder = await updateOrderStatus(orderId, {
+      const response = await updateOrderStatus(orderId, {
         status: newStatus,
       });
-      setOrder(updatedOrder);
+      console.log("response", response);
+
+      setOrder(response); // Lấy data từ response
       toast.success("Hủy đơn hàng thành công", { duration: 2000 });
     } catch (error: any) {
       toast.error("Lỗi", {

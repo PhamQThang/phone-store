@@ -6,13 +6,13 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { Prisma } from '@prisma/client';
-import { ProductsService } from '../products/products.service'; // Thêm ProductsService
+import { ProductsService } from '../products/products.service';
 
 @Injectable()
 export class OrderService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly productsService: ProductsService // Inject ProductsService
+    private readonly productsService: ProductsService
   ) {}
 
   async createOrder(userId: number, createOrderDto: CreateOrderDto) {
@@ -51,6 +51,8 @@ export class OrderService {
     let totalAmount = 0;
     const orderDetails: any[] = [];
 
+    const usedProductIdentityIds = new Set<string>();
+
     for (const item of cart.cartItems) {
       const { product, color, quantity } = item;
 
@@ -75,7 +77,6 @@ export class OrderService {
         );
       }
 
-      // Tính giá động tại thời điểm tạo đơn hàng
       const itemPrice = await this.productsService.calculateDiscountedPrice(
         product.price,
         product.id
@@ -83,6 +84,14 @@ export class OrderService {
       totalAmount += itemPrice * quantity;
 
       for (const identity of availableIdentities) {
+        if (usedProductIdentityIds.has(identity.id)) {
+          throw new BadRequestException(
+            `productIdentityId ${identity.id} đã được sử dụng trong đơn hàng này. Dữ liệu trùng lặp trong productIdentity.`
+          );
+        }
+
+        usedProductIdentityIds.add(identity.id);
+
         orderDetails.push({
           productId: product.id,
           colorId: color.id,
@@ -107,6 +116,44 @@ export class OrderService {
 
     try {
       const order = await this.prisma.$transaction(async tx => {
+        const productIdentityIds = orderDetails.map(
+          detail => detail.productIdentityId
+        );
+
+        // Kiểm tra xem productIdentityId đã được sử dụng trong các đơn hàng chưa hủy chưa
+        const existingOrderDetails = await tx.orderDetail.findMany({
+          where: {
+            productIdentityId: { in: productIdentityIds },
+            order: { status: { not: 'Canceled' } },
+          },
+          include: { order: true },
+        });
+
+        if (existingOrderDetails.length > 0) {
+          const usedProductIdentityIds = existingOrderDetails.map(
+            detail => detail.productIdentityId
+          );
+          throw new BadRequestException(
+            `Một số sản phẩm (productIdentityId: ${usedProductIdentityIds.join(
+              ', '
+            )}) đang được sử dụng trong các đơn hàng chưa hủy.`
+          );
+        }
+
+        // Kiểm tra lại trạng thái isSold trong transaction
+        const existingProductIdentities = await tx.productIdentity.findMany({
+          where: {
+            id: { in: productIdentityIds },
+            isSold: false,
+          },
+        });
+
+        if (existingProductIdentities.length !== productIdentityIds.length) {
+          throw new BadRequestException(
+            'Một số sản phẩm đã được bán trong lúc xử lý đơn hàng. Vui lòng thử lại.'
+          );
+        }
+
         const newOrder = await tx.order.create({
           data: {
             userId,
@@ -131,7 +178,7 @@ export class OrderService {
 
         await tx.productIdentity.updateMany({
           where: {
-            id: { in: orderDetails.map(detail => detail.productIdentityId) },
+            id: { in: productIdentityIds },
           },
           data: { isSold: true },
         });
@@ -212,27 +259,105 @@ export class OrderService {
       );
     }
 
+    if (isAdminOrEmployee) {
+      if (['Delivered', 'Canceled'].includes(order.status)) {
+        throw new BadRequestException(
+          `Không thể cập nhật trạng thái đơn hàng đã ở trạng thái ${
+            order.status === 'Delivered' ? 'Đã giao' : 'Đã hủy'
+          }`
+        );
+      }
+
+      const validTransitions: { [key: string]: string[] } = {
+        Pending: ['Confirmed', 'Canceled'],
+        Confirmed: ['Shipping', 'Canceled'],
+        Shipping: ['Delivered', 'Canceled'],
+        Delivered: [],
+        Canceled: [],
+      };
+
+      if (!validTransitions[order.status].includes(newStatus)) {
+        throw new BadRequestException(
+          `Không thể chuyển từ trạng thái ${this.translateStatus(
+            order.status
+          )} sang ${this.translateStatus(newStatus)}`
+        );
+      }
+    }
+
     try {
       const updatedOrder = await this.prisma.$transaction(async tx => {
+        // Xác định trạng thái thanh toán mới
+        let updatedPaymentStatus = order.paymentStatus;
+
+        // Nếu trạng thái mới là "Delivered" và là Admin/Employee, cập nhật paymentStatus
+        if (
+          isAdminOrEmployee &&
+          newStatus === 'Delivered' &&
+          order.paymentMethod === 'COD' &&
+          order.paymentStatus === 'Pending'
+        ) {
+          updatedPaymentStatus = 'Completed';
+        }
+
+        // Cập nhật trạng thái đơn hàng và trạng thái thanh toán trong cùng transaction
         const updated = await tx.order.update({
           where: { id: orderId },
-          data: { status: newStatus as any },
+          data: {
+            status: newStatus as any,
+            paymentStatus: updatedPaymentStatus,
+          },
+          include: {
+            user: { select: { id: true, firstName: true, lastName: true } },
+            orderDetails: {
+              include: {
+                product: true,
+                color: true,
+                productIdentity: true,
+              },
+            },
+          },
         });
 
+        // Nếu trạng thái là "Canceled", cập nhật productIdentity
         if (newStatus === 'Canceled') {
           const productIdentityIds = order.orderDetails.map(
             detail => detail.productIdentityId
           );
 
-          await tx.productIdentity.updateMany({
-            where: { id: { in: productIdentityIds } },
-            data: { isSold: false },
-          });
+          if (productIdentityIds.length > 0) {
+            await tx.productIdentity.updateMany({
+              where: { id: { in: productIdentityIds } },
+              data: { isSold: false },
+            });
+          }
         }
 
-        return updated;
+        // Tính toán discountedPrice cho từng orderDetail
+        const updatedOrderDetails = await Promise.all(
+          updated.orderDetails.map(async detail => {
+            const discountedPrice =
+              await this.productsService.calculateDiscountedPrice(
+                detail.price,
+                detail.productId
+              );
+            return {
+              ...detail,
+              product: {
+                ...detail.product,
+                discountedPrice,
+              },
+            };
+          })
+        );
+
+        return {
+          ...updated,
+          orderDetails: updatedOrderDetails,
+        };
       });
 
+      // Trả về dữ liệu với cấu trúc giống getOrderDetails
       return {
         message: 'Cập nhật trạng thái đơn hàng thành công',
         data: updatedOrder,
@@ -240,11 +365,26 @@ export class OrderService {
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         throw new BadRequestException(
-          'Lỗi khi cập nhật trạng thái đơn hàng: ' + error.message
+          `Lỗi khi cập nhật trạng thái đơn hàng: ${error.message} (Code: ${error.code})`
         );
       }
-      throw error;
+      throw new BadRequestException(
+        `Lỗi không xác định khi cập nhật trạng thái: ${
+          error.message || String(error)
+        }`
+      );
     }
+  }
+
+  private translateStatus(status: string): string {
+    const statusMap: { [key: string]: string } = {
+      Pending: 'Đang chờ',
+      Confirmed: 'Đã xác nhận',
+      Shipping: 'Đang giao',
+      Delivered: 'Đã giao',
+      Canceled: 'Đã hủy',
+    };
+    return statusMap[status] || status;
   }
 
   async getUserOrders(requesterId: number) {
@@ -275,7 +415,6 @@ export class OrderService {
       orderBy: { createdAt: 'desc' },
     });
 
-    // Tính giá động cho các sản phẩm trong đơn hàng
     const ordersWithDynamicPrices = await Promise.all(
       orders.map(async order => {
         const updatedOrderDetails = await Promise.all(
@@ -344,7 +483,6 @@ export class OrderService {
       throw new BadRequestException('Bạn không có quyền xem đơn hàng này');
     }
 
-    // Tính giá động cho các sản phẩm trong đơn hàng
     const updatedOrderDetails = await Promise.all(
       order.orderDetails.map(async detail => {
         const discountedPrice =

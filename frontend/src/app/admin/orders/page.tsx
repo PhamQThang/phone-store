@@ -15,7 +15,6 @@ export default function OrdersPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
 
-  // Kiểm tra auth và lấy dữ liệu khi component mount
   useEffect(() => {
     const authData = getAuthData();
     if (!authData || !["Admin", "Employee"].includes(authData.role || "")) {
@@ -48,7 +47,7 @@ export default function OrdersPage() {
 
   const updateOrderStatusAction = async (id: string, status: string) => {
     try {
-      const updatedOrder = await updateOrderStatus(id, status);
+      const updatedOrder = await updateOrderStatus(id, { status });
       setOrders((prev) =>
         prev.map((order) => (order.id === id ? updatedOrder : order))
       );

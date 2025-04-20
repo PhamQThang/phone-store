@@ -87,7 +87,7 @@ model ProductIdentity {
   isSold              Boolean              @default(false) @map("is_sold")
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @default(now()) @updatedAt
-  orderDetail         OrderDetail?
+  orderDetail         OrderDetail[]
   color               Color                @relation(fields: [colorId], references: [id])
   product             Product              @relation(fields: [productId], references: [id])
   returns             ProductReturn[]
@@ -201,7 +201,7 @@ model OrderDetail {
   orderId           String
   productId         String
   colorId           String
-  productIdentityId String          @unique
+  productIdentityId String
   price             Int
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @default(now()) @updatedAt
@@ -209,6 +209,8 @@ model OrderDetail {
   order             Order           @relation(fields: [orderId], references: [id])
   product           Product         @relation(fields: [productId], references: [id])
   productIdentity   ProductIdentity @relation(fields: [productIdentityId], references: [id])
+
+  @@index([productIdentityId])
 }
 
 model Slide {

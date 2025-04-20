@@ -34,6 +34,26 @@ export class OrderController {
   @ApiResponse({
     status: 201,
     description: 'Tạo đơn hàng thành công',
+    schema: {
+      type: 'object',
+      properties: {
+        message: { type: 'string', example: 'Tạo đơn hàng thành công' },
+        data: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            userId: { type: 'number' },
+            address: { type: 'string' },
+            totalAmount: { type: 'number' },
+            paymentMethod: { type: 'string' },
+            status: { type: 'string' },
+            paymentStatus: { type: 'string' },
+            phoneNumber: { type: 'string' },
+            note: { type: 'string' },
+          },
+        },
+      },
+    },
   })
   @ApiResponse({ status: 400, description: 'Dữ liệu không hợp lệ' })
   @ApiResponse({ status: 401, description: 'Không được phép' })
@@ -71,6 +91,68 @@ export class OrderController {
   @ApiResponse({
     status: 200,
     description: 'Cập nhật trạng thái đơn hàng thành công',
+    schema: {
+      type: 'object',
+      properties: {
+        message: {
+          type: 'string',
+          example: 'Cập nhật trạng thái đơn hàng thành công',
+        },
+        data: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            address: { type: 'string' },
+            totalAmount: { type: 'number' },
+            status: { type: 'string' },
+            createdAt: { type: 'string', format: 'date-time' },
+            phoneNumber: { type: 'string', nullable: true },
+            paymentMethod: { type: 'string' },
+            paymentStatus: { type: 'string' },
+            user: {
+              type: 'object',
+              properties: {
+                id: { type: 'number' },
+                firstName: { type: 'string' },
+                lastName: { type: 'string' },
+              },
+            },
+            orderDetails: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  product: {
+                    type: 'object',
+                    properties: {
+                      id: { type: 'number' },
+                      name: { type: 'string' },
+                      price: { type: 'number' },
+                      discountedPrice: { type: 'number' },
+                    },
+                  },
+                  color: {
+                    type: 'object',
+                    properties: {
+                      id: { type: 'number' },
+                      name: { type: 'string' },
+                    },
+                  },
+                  productIdentity: {
+                    type: 'object',
+                    properties: {
+                      id: { type: 'string' },
+                      isSold: { type: 'boolean' },
+                    },
+                  },
+                  price: { type: 'number' },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   })
   @ApiResponse({
     status: 400,
@@ -97,6 +179,64 @@ export class OrderController {
   @ApiResponse({
     status: 200,
     description: 'Lấy danh sách đơn hàng thành công',
+    schema: {
+      type: 'object',
+      properties: {
+        message: {
+          type: 'string',
+          example: 'Lấy danh sách đơn hàng thành công',
+        },
+        data: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              address: { type: 'string' },
+              totalAmount: { type: 'number' },
+              status: { type: 'string' },
+              createdAt: { type: 'string', format: 'date-time' },
+              phoneNumber: { type: 'string', nullable: true },
+              paymentMethod: { type: 'string' },
+              paymentStatus: { type: 'string' },
+              user: {
+                type: 'object',
+                properties: {
+                  id: { type: 'number' },
+                  firstName: { type: 'string' },
+                  lastName: { type: 'string' },
+                },
+              },
+              orderDetails: {
+                type: 'array',
+                items: {
+                  type: 'object',
+                  properties: {
+                    product: {
+                      type: 'object',
+                      properties: {
+                        id: { type: 'number' },
+                        name: { type: 'string' },
+                        price: { type: 'number' },
+                        discountedPrice: { type: 'number' },
+                      },
+                    },
+                    color: {
+                      type: 'object',
+                      properties: {
+                        id: { type: 'number' },
+                        name: { type: 'string' },
+                      },
+                    },
+                    price: { type: 'number' },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   })
   @ApiResponse({ status: 401, description: 'Không được phép' })
   @ApiResponse({ status: 404, description: 'Người dùng không tồn tại' })
@@ -115,6 +255,68 @@ export class OrderController {
   @ApiResponse({
     status: 200,
     description: 'Lấy chi tiết đơn hàng thành công',
+    schema: {
+      type: 'object',
+      properties: {
+        message: {
+          type: 'string',
+          example: 'Lấy chi tiết đơn hàng thành công',
+        },
+        data: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            address: { type: 'string' },
+            totalAmount: { type: 'number' },
+            status: { type: 'string' },
+            createdAt: { type: 'string', format: 'date-time' },
+            phoneNumber: { type: 'string', nullable: true },
+            paymentMethod: { type: 'string' },
+            paymentStatus: { type: 'string' },
+            user: {
+              type: 'object',
+              properties: {
+                id: { type: 'number' },
+                firstName: { type: 'string' },
+                lastName: { type: 'string' },
+              },
+            },
+            orderDetails: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  product: {
+                    type: 'object',
+                    properties: {
+                      id: { type: 'number' },
+                      name: { type: 'string' },
+                      price: { type: 'number' },
+                      discountedPrice: { type: 'number' },
+                    },
+                  },
+                  color: {
+                    type: 'object',
+                    properties: {
+                      id: { type: 'number' },
+                      name: { type: 'string' },
+                    },
+                  },
+                  productIdentity: {
+                    type: 'object',
+                    properties: {
+                      id: { type: 'string' },
+                      isSold: { type: 'boolean' },
+                    },
+                  },
+                  price: { type: 'number' },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   })
   @ApiResponse({ status: 401, description: 'Không được phép' })
   @ApiResponse({

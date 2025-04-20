@@ -42,7 +42,6 @@ export default function ClientOrders({
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("all");
 
-  // Hàm dịch trạng thái sang tiếng Việt
   const translateStatus = (status: string) => {
     const statusMap: { [key: string]: string } = {
       Pending: "Đang chờ",
@@ -54,7 +53,6 @@ export default function ClientOrders({
     return statusMap[status] || status;
   };
 
-  // Lọc danh sách đơn hàng dựa trên từ khóa tìm kiếm và trạng thái
   const filteredOrders = orders
     .filter((order) =>
       activeTab === "all" ? true : order.status === activeTab
@@ -66,7 +64,6 @@ export default function ClientOrders({
         .includes(searchTerm.toLowerCase())
     );
 
-  // Cập nhật trạng thái đơn hàng
   const handleUpdateOrderStatus = async (data: { status: string }) => {
     if (!selectedOrder) return;
     setIsUpdating(true);
@@ -85,7 +82,10 @@ export default function ClientOrders({
       }
     } catch (error: any) {
       toast.error("Cập nhật trạng thái đơn hàng thất bại", {
-        description: error.message || "Vui lòng thử lại sau.",
+        description:
+          error.response?.data?.message ||
+          error.message ||
+          "Vui lòng thử lại sau.",
         duration: 2000,
       });
     } finally {
@@ -93,7 +93,6 @@ export default function ClientOrders({
     }
   };
 
-  // Xem chi tiết đơn hàng
   const handleViewDetail = async (id: string) => {
     setIsViewing(true);
     try {
@@ -118,7 +117,6 @@ export default function ClientOrders({
     }
   };
 
-  // Mở form chỉnh sửa và lấy dữ liệu đơn hàng
   const handleOpenEdit = async (id: string) => {
     setIsViewing(true);
     try {
@@ -201,7 +199,6 @@ export default function ClientOrders({
         </p>
       ) : (
         <>
-          {/* Hiển thị dạng bảng trên màn hình lớn (PC, tablet) */}
           <div className="hidden md:block overflow-x-auto">
             <Table>
               <TableHeader>
@@ -266,7 +263,6 @@ export default function ClientOrders({
             </Table>
           </div>
 
-          {/* Hiển thị dạng danh sách trên mobile */}
           <div className="block md:hidden space-y-4">
             {filteredOrders.map((order) => (
               <Card key={order.id} className="shadow-sm">
@@ -317,7 +313,6 @@ export default function ClientOrders({
         </>
       )}
 
-      {/* Modal Sửa trạng thái đơn hàng */}
       <OrderForm
         open={isEditOpen}
         onOpenChange={setIsEditOpen}
@@ -326,7 +321,6 @@ export default function ClientOrders({
         isLoading={isUpdating}
       />
 
-      {/* Modal Xem chi tiết đơn hàng */}
       <OrderDetail
         open={isDetailOpen}
         onOpenChange={setIsDetailOpen}
