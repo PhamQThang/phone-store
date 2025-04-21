@@ -6,7 +6,9 @@ import { addToCart } from "@/api/cart/cartApi";
 import { toast } from "sonner";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
+import { ShoppingCart, Star } from "lucide-react"; // Import ShoppingCart and Star icons
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
 import {
   Select,
   SelectContent,
@@ -24,6 +26,7 @@ import { getProductById, getSimilarProducts } from "@/api/admin/productsApi";
 import { getColors } from "@/api/admin/colorsApi";
 import { Color, Product, ProductIdentity } from "@/lib/types";
 import ProductCard from "@/components/client/ProductCard";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 export default function ProductDetailPage() {
   const [product, setProduct] = useState<Product | null>(null);
@@ -124,16 +127,10 @@ export default function ProductDetailPage() {
     return <div className="text-center mt-10">Sản phẩm không tồn tại</div>;
   }
 
-  // Lấy danh sách màu sắc khả dụng và loại bỏ trùng lặp
-  const uniqueColorIds = new Set(
-    product.productIdentities
-      .filter((pi) => !pi.isSold) // Chỉ lấy các sản phẩm chưa bán
-      .map((pi) => pi.colorId)
-  );
-
-  const availableColors = Array.from(uniqueColorIds)
-    .map((colorId) => {
-      const color = colors.find((c) => c.id === colorId);
+  const availableColors = product.productIdentities
+    .filter((pi) => !pi.isSold)
+    .map((pi) => {
+      const color = colors.find((c) => c.id === pi.colorId);
       return color || null;
     })
     .filter((color) => color !== null) as Color[];
@@ -153,57 +150,95 @@ export default function ProductDetailPage() {
 
   const originalPrice = product.price;
   const discountedPrice = product.discountedPrice ?? originalPrice;
+  const generateRandomRating = () => {
+    return (Math.random() * 1.5 + 3.5).toFixed(1); // Phạm vi 3.5 - 5.0
+  };
+  const rating = product.rating || parseFloat(generateRandomRating());
+
+  // Tính số sao đầy và nửa sao
+  const fullStars = Math.floor(rating);
+  const hasHalfStar = rating % 1 >= 0.5;
+  const emptyStars = 5 - Math.ceil(rating);
+  //const description = product.description || "Không có mô tả cho sản phẩm này.";
 
   return (
     <div className="container mx-auto px-4 py-10">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-3xl">{product.name}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <CardHeader className="flex flex-row gap-5 items-center">
+        <CardTitle className="text-3xl">{product.name}</CardTitle>
+        <div className="flex items-center mt-2">
+          {Array(fullStars)
+            .fill(0)
+            .map((_, index) => (
+              <Star
+                key={index}
+                className="w-5 h-5 text-yellow-400 fill-yellow-400"
+              />
+            ))}
+          {hasHalfStar && (
+            <Star
+              key="half"
+              className="w-5 h-5 text-yellow-400 fill-yellow-400"
+              style={{ clipPath: "inset(0 50% 0 0)" }}
+            />
+          )}
+          {Array(emptyStars)
+            .fill(0)
+            .map((_, index) => (
+              <Star
+                key={index + fullStars + (hasHalfStar ? 1 : 0)}
+                className="w-5 h-5 text-gray-300"
+              />
+            ))}
+        </div>
+      </CardHeader>
+      <Card className="border-none shadow-none">
+        <CardContent className="border-none shadow-none">
+          <div className="grid grid-cols-1 md:grid-cols-[7fr_5fr] gap-8 ">
             {/* Phần hình ảnh sản phẩm với Carousel */}
-            <div>
-              {/* Carousel chính */}
-              <Carousel setApi={setApi} className="w-full">
-                <CarouselContent>
-                  {productImages.map((image, index) => (
-                    <CarouselItem key={index}>
-                      <div className="relative w-full h-96">
-                        <Image
-                          src={image.url}
-                          alt={`${product.name} - Image ${index + 1}`}
-                          fill
-                          className="object-contain rounded-md"
-                          priority={index === 0}
-                        />
-                      </div>
-                    </CarouselItem>
-                  ))}
-                </CarouselContent>
-              </Carousel>
+            <div className=" p-5">
+              <div>
+                {/* Carousel chính */}
+                <Carousel setApi={setApi} className="w-full border-2 rounded-md">
+                  <CarouselContent>
+                    {productImages.map((image, index) => (
+                      <CarouselItem key={index}>
+                        <div className="relative w-full h-96">
+                          <Image
+                            src={image.url}
+                            alt={`${product.name} - Image ${index + 1}`}
+                            fill
+                            className="object-contain rounded-md"
+                            priority={index === 0}
+                          />
+                        </div>
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                </Carousel>
 
-              {/* Danh sách ảnh nhỏ để chọn */}
-              <div className="flex space-x-4 mt-4 overflow-x-auto py-2">
-                {productImages.map((image, index) => (
-                  <button
-                    key={index}
-                    onClick={() => api?.scrollTo(index)}
-                    className={`relative w-20 h-20 flex-shrink-0 rounded-md overflow-hidden border-2 ${
-                      current === index + 1
-                        ? "border-primary"
-                        : "border-transparent"
-                    }`}
-                  >
-                    <Image
-                      src={image.url}
-                      alt={`Thumbnail ${index + 1}`}
-                      fill
-                      className="object-cover"
-                    />
-                  </button>
-                ))}
+                {/* Danh sách ảnh nhỏ để chọn */}
+                <div className="flex space-x-4 mt-4 overflow-x-auto py-2">
+                  {productImages.map((image, index) => (
+                    <Button
+                      key={index}
+                      onClick={() => api?.scrollTo(index)}
+                      className={`relative w-20 h-20 flex-shrink-0 rounded-md overflow-hidden border-2 border-gray-200 ${current === index + 1
+                        ? "border-red-500"
+                        : ""
+                        }`}
+                    >
+                      <Image
+                        src={image.url}
+                        alt={`Thumbnail ${index + 1}`}
+                        fill
+                        className="object-cover"
+                      />
+                    </Button>
+                  ))}
+
+                </div>
               </div>
+
             </div>
 
             {/* Thông tin sản phẩm */}
@@ -218,63 +253,94 @@ export default function ProductDetailPage() {
                   </p>
                 </div>
               ) : (
-                <p className="text-2xl font-semibold text-primary mb-4">
+                <p className="text-2xl font-semibold mb-4 text-red-600">
                   {originalPrice.toLocaleString("vi-VN")} VNĐ
                 </p>
               )}
-              <div className="space-y-2">
-                <p>
-                  <span className="font-semibold">Dung lượng:</span>{" "}
-                  {product.storage} GB
-                </p>
-                <p>
-                  <span className="font-semibold">RAM:</span> {product.ram} GB
-                </p>
-                <p>
-                  <span className="font-semibold">Kích thước màn hình:</span>{" "}
-                  {product.screenSize} inch
-                </p>
-                <p>
-                  <span className="font-semibold">Pin:</span> {product.battery}{" "}
-                  mAh
-                </p>
-                <p>
-                  <span className="font-semibold">Chip:</span> {product.chip}
-                </p>
-                <p>
-                  <span className="font-semibold">Hệ điều hành:</span>{" "}
-                  {product.operatingSystem}
-                </p>
                 {availableColors.length > 0 ? (
-                  <div>
-                    <span className="font-semibold">Màu sắc:</span>
-                    <Select
-                      onValueChange={(value) => setSelectedColorId(value)}
-                      value={selectedColorId || ""}
+                <div>
+                  <span className="font-semibold">Màu sắc:</span>
+                  <div className="flex flex-wrap gap-4 mt-2">
+                  {availableColors.map((color) => (
+                    <button
+                    key={color.id}
+                    onClick={() => setSelectedColorId(color.id)}
+                    className={`px-4 py-2 border rounded-md ${selectedColorId === color.id
+                      ? "border-red-500 text-red-500"
+                      : "border-gray-300 text-gray-700"
+                      } hover:border-red-500 hover:text-red-500 transition duration-300`}
                     >
-                      <SelectTrigger className="w-[200px] mt-2">
-                        <SelectValue placeholder="Chọn màu sắc" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableColors.map((color) => (
-                          <SelectItem key={color.id} value={color.id}>
-                            {color.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    {color.name}
+                    </button>
+                  ))}
                   </div>
+                </div>
                 ) : (
-                  <p className="text-red-600">Sản phẩm đã hết hàng</p>
+                <p className="text-red-600">Sản phẩm đã hết hàng</p>
                 )}
+
+              <div className="mt-4 rounded-md border-1 border-red-300">
+                <div className="px-3 py-1 bg-red-100 rounded-t-md">
+                  <h3 className="text-lg font-semibold mb-2 text-red-600">Khuyến mãi</h3>
+                </div>
+                <ul className=" pl-8 py-2 list-disc text-gray-700">
+                  <li>Đặc quyền trợ giá lên đến 4 triệu khi thu cũ đổi iPhone</li>
+                  <li>Trả góp 0% lãi suất, tối đa 12 tháng, trả trước từ 10% qua CTTC hoặc 0đ qua thẻ tín dụng</li>
+                  <li>Tặng voucher 500.000đ mua Gia dụng (áp dụng 1 số sản phẩm nhất định)</li>
+                  <li>
+                    Tặng Sim / Esim Viettel 5G có 8GB data/ngày kèm TV360 4K & 30GB Mybox - miễn phí 1 tháng sử dụng
+                    (Chỉ áp dụng tại cửa hàng)
+                  </li>
+                </ul>
+
               </div>
+
               {availableColors.length > 0 && (
-                <Button onClick={handleAddToCart} className="mt-6 w-full">
+                <Button onClick={handleAddToCart} className="mt-6 w-full flex items-center justify-center gap-2 bg-white border-1 border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition duration-300">
+                  <ShoppingCart className="w-5 h-5" /> {/* Icon giỏ hàng */}
                   Thêm vào giỏ hàng
                 </Button>
               )}
+
+
+            </div>
+            <div>
+              {/* <p className="text-gray-700">{product.description}</p> */}
+              <p>Mô tả sản phẩm</p>
+            </div>
+            <div className="my-5">
+              <h3 className="text-lg font-semibold mb-3 text-center">THÔNG SỐ KỸ THUẬT</h3>
+              <Table>
+                <TableBody>
+                  <TableRow>
+                    <TableCell className="font-semibold">Dung lượng</TableCell>
+                    <TableCell>{product.storage} GB</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell className="font-semibold">RAM</TableCell>
+                    <TableCell>{product.ram} GB</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell className="font-semibold">Kích thước màn hình</TableCell>
+                    <TableCell>{product.screenSize} inch</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell className="font-semibold">Pin</TableCell>
+                    <TableCell>{product.battery} mAh</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell className="font-semibold">Chip</TableCell>
+                    <TableCell>{product.chip}</TableCell>
+                  </TableRow>
+                  <TableRow>
+                    <TableCell className="font-semibold">Hệ điều hành</TableCell>
+                    <TableCell>{product.operatingSystem}</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
             </div>
           </div>
+
         </CardContent>
       </Card>
 

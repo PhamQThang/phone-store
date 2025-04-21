@@ -175,7 +175,7 @@ export default function Header() {
               <Input
                 type="text"
                 placeholder="Tìm kiếm..."
-                className="pl-10 pr-4 py-2 text-sm rounded-full border-gray-200 focus:border-blue-400 focus:ring-blue-400"
+                className="pl-10 pr-4 py-2 text-sm rounded-full border-gray-200 focus:border-red-400 focus:ring-red-400"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -202,7 +202,7 @@ export default function Header() {
                     <Input
                       type="text"
                       placeholder="Tìm kiếm sản phẩm..."
-                      className="pl-10 pr-4 py-2 text-sm rounded-full border-gray-200 focus:border-blue-400 focus:ring-blue-400"
+                      className="pl-10 pr-4 py-2 text-sm rounded-full border-gray-200 focus:border-red-400 focus:ring-red-400"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -240,14 +240,14 @@ export default function Header() {
                     <Link href="/client/profile">
                       <Button
                         variant="ghost"
-                        className="w-full justify-start text-sm text-gray-700 hover:bg-blue-50"
+                        className="w-full justify-start text-sm text-gray-700 hover:bg-red-50"
                       >
                         Thông tin cá nhân
                       </Button>
                     </Link>
                     <Button
                       variant="ghost"
-                      className="w-full justify-start text-sm text-gray-700 hover:bg-blue-50"
+                      className="w-full justify-start text-sm text-gray-700 hover:bg-red-50"
                       onClick={handleLogout}
                     >
                       Đăng xuất
@@ -258,7 +258,7 @@ export default function Header() {
                     <Link href="/auth/login">
                       <Button
                         variant="ghost"
-                        className="w-full justify-start text-sm text-gray-700 hover:bg-blue-50"
+                        className="w-full justify-start text-sm text-gray-700 hover:bg-red-50"
                       >
                         Đăng nhập
                       </Button>
@@ -266,7 +266,7 @@ export default function Header() {
                     <Link href="/auth/register">
                       <Button
                         variant="ghost"
-                        className="w-full justify-start text-sm text-gray-700 hover:bg-blue-50"
+                        className="w-full justify-start text-sm text-gray-700 hover:bg-red-50"
                       >
                         Đăng ký
                       </Button>
@@ -309,7 +309,7 @@ export default function Header() {
                   {navItems.map((item) =>
                     item.hasDropdown ? (
                       <div key={item.name} className="relative">
-                        <span className="block py-2 px-4 text-gray-800 font-bold text-lg">
+                        <span className="block py-2 px-4 text-white font-bold text-lg">
                           {item.name}
                         </span>
                         {categories.map((category) => (
@@ -317,13 +317,13 @@ export default function Header() {
                             <div className="flex items-center justify-between">
                               <Link
                                 href={category.href}
-                                className="block py-2 px-4 text-gray-700 font-semibold text-base hover:bg-blue-50 hover:text-blue-600 rounded-lg flex-1 transition-colors duration-200"
+                                className="block py-2 px-4 text-white font-semibold text-base hover:bg-red-50 hover:text-red-600 rounded-lg flex-1 transition-colors duration-200"
                               >
                                 {category.name}
                               </Link>
                               <Button
                                 onClick={() => toggleCategory(category.name)}
-                                className="p-2 bg-blue-50 hover:bg-blue-50 rounded-lg transition-colors duration-200"
+                                className="p-2 bg-red-50 hover:bg-red-50 rounded-lg transition-colors duration-200"
                               >
                                 <ChevronRight
                                   className={`h-5 w-5 text-gray-500 transition-transform duration-200 ${
@@ -340,7 +340,7 @@ export default function Header() {
                                   <Link
                                     key={product.name}
                                     href={`${category.href}&model=${product.slug}`}
-                                    className="block py-1.5 px-4 text-gray-600 text-sm hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors duration-200"
+                                    className="block py-1.5 px-4 text-white text-sm hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors duration-200"
                                   >
                                     {product.name}
                                   </Link>
@@ -354,7 +354,7 @@ export default function Header() {
                       <Link
                         key={item.name}
                         href={item.href}
-                        className="block py-2 px-4 text-gray-700 font-medium text-base hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors duration-200"
+                        className="block py-2 px-4 text-gray-700 font-medium text-base hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors duration-200"
                       >
                         {item.name}
                       </Link>
@@ -367,7 +367,7 @@ export default function Header() {
         </div>
       </div>
 
-      <div className="hidden md:flex bg-cyan-300 items-center justify-center text-base font-semibold relative">
+      <div className="hidden md:flex bg-red-500 items-center justify-center text-base font-semibold relative gap-5">
         {navItems.map((item) =>
           item.hasDropdown ? (
             <div
@@ -376,7 +376,7 @@ export default function Header() {
               onMouseEnter={handleMouseEnter}
               onMouseLeave={handleMouseLeave}
             >
-              <span className="cursor-pointer font-bold text-gray-800 hover:bg-black hover:text-white transition-colors duration-200 flex items-center p-3">
+              <span className="cursor-pointer text-xl font-bold text-white transition-colors duration-200 flex items-center px-3 py-1 hover:bg-red-400 rounded-lg">
                 {item.name}
               </span>
               {isProductsOpen && (
@@ -386,7 +386,7 @@ export default function Header() {
                       <div key={category.name} className="flex flex-col gap-2">
                         <Link
                           href={category.href}
-                          className="font-bold text-lg text-gray-800 hover:text-blue-600 border-b border-gray-200 pb-2 mb-2 transition-colors duration-200"
+                          className="font-bold text-lg text-red-400 hover:text-red-600 border-b border-gray-200 pb-2 mb-2 transition-colors duration-200"
                         >
                           {category.name}
                         </Link>
@@ -394,7 +394,7 @@ export default function Header() {
                           <Link
                             key={product.name}
                             href={`${category.href}&model=${product.slug}`}
-                            className="text-gray-600 text-sm hover:text-blue-600 hover:bg-blue-50 rounded-md px-2 py-1 transition-colors duration-200"
+                            className="text-gray-600 text-sm hover:text-red-600 hover:bg-red-50 rounded-md px-2 py-1 transition-colors duration-200"
                           >
                             {product.name}
                           </Link>
@@ -409,7 +409,7 @@ export default function Header() {
             <Link
               key={item.name}
               href={item.href}
-              className="text-gray-800 font-bold hover:bg-black hover:text-white transition-colors duration-200 py-3 px-6"
+              className="text-white font-bold text-xl transition-colors duration-200 px-3 py-1 my-2 hover:bg-red-400 rounded-lg active:rounded-lg"
             >
               {item.name}
             </Link>

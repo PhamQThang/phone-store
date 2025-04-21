@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import Image from "next/image";
 import Link from "next/link";
@@ -38,11 +39,11 @@ export default function ProductCard({ product }: ProductCardProps) {
   const storage = product.storage || 256; // GB
 
   return (
-    <Card className="w-full h-auto bg-white shadow-lg rounded-lg overflow-hidden border-none">
+    <Card className="w-full bg-white shadow-lg rounded-lg overflow-hidden border-none group gap-3 py-3">
       <Link href={`/client/products/${product.id}`}>
-        <div className="relative p-2">
+        <div className="relative">
           {activePromotion && (
-            <div className="absolute top-2 left-2 bg-red-600 text-white text-xs font-semibold px-2 py-1 rounded-tl-lg rounded-br-lg flex items-center">
+            <div className="absolute z-99 top-2 left-2 bg-red-600 text-white text-xs font-semibold px-2 py-1 rounded-tl-lg rounded-br-lg flex items-center">
               Giảm {discount.toLocaleString("vi-VN")}VNĐ
               <span className="ml-1 text-yellow-300">✨</span>
             </div>
@@ -53,22 +54,22 @@ export default function ProductCard({ product }: ProductCardProps) {
             width={0}
             height={0}
             sizes="100vw"
-            className="w-full h-auto object-contain max-h-60"
+            className="w-full h-auto object-contain max-h-70 transition-transform duration-300 ease-in-out group-hover:scale-110"
             priority
           />
         </div>
       </Link>
-      <CardContent className="p-2 text-center">
-        <h3 className="text-lg font-semibold text-gray-900 truncate">
-          {product.name}
-        </h3>
-        <p className="text-sm text-gray-600 mt-2">
+      <CardContent className="px-3">
+        <p className="text-sm text-gray-600 mb-2 text-center">
           {screenSize} inches | {ram} GB | {storage} GB
         </p>
+        <h3 className="text-xl font-bold text-gray-900 ">
+          {product.name}
+        </h3>
         <div className="mt-2">
           {activePromotion ? (
             <div className="flex items-center justify-center gap-2">
-              <p className="text-xl font-bold text-red-600">
+              <p className="text-xl font-bold !text-red-600">
                 {discountedPrice.toLocaleString("vi-VN")}đ
               </p>
               <p className="text-md text-gray-500 line-through">
@@ -76,18 +77,18 @@ export default function ProductCard({ product }: ProductCardProps) {
               </p>
             </div>
           ) : (
-            <p className="text-xl font-bold text-gray-900">
+            <p className="text-xl font-bold text-red-600">
               {originalPrice.toLocaleString("vi-VN")}đ
             </p>
           )}
         </div>
-        <p className="text-xs text-gray-500 mt-1">
+        <p className="text-xs text-black mt-1 bg-gray-50 p-3 border-2 rounded-md">
           Không phí chuyển đổi khi trả góp 0% qua thẻ tín dụng kỳ hạn 3-6 tháng
         </p>
-        <div className="flex items-center justify-center mt-2">
+        <div className="flex items-center mt-2">
           {Array(fullStars)
             .fill(0)
-            .map((_, index) => (
+            .map((_, index) => ( 
               <Star
                 key={index}
                 className="w-4 h-4 text-yellow-400 fill-yellow-400"
@@ -110,14 +111,14 @@ export default function ProductCard({ product }: ProductCardProps) {
             ))}
         </div>
       </CardContent>
-      <CardFooter className="p-2">
+      {/* <CardFooter className="p-2">
         <Button
           asChild
           className="w-full bg-black text-white hover:bg-gray-800 text-sm py-1"
         >
           <Link href={`/client/products/${product.id}`}>Xem chi tiết</Link>
         </Button>
-      </CardFooter>
+      </CardFooter> */}
     </Card>
   );
 }

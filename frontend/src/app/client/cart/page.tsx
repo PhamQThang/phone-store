@@ -179,127 +179,110 @@ export default function CartPage() {
   }
 
   return (
-    <div className="container mx-auto py-10">
+    <div className="max-w-3xl mx-auto pt-10">
+        <p className="text-2xl font-bold !px-0">Giỏ hàng của bạn</p>
+      <div className="flex items-center gap-3 flex-row border-b py-3">
+        <Checkbox
+          checked={selectedItems.length === cartItems.length}
+          onCheckedChange={(checked) => handleSelectAll(checked as boolean)}
+        />
+        <p className="font-medium">Chọn tất cả</p>
+      </div>
       <Card>
-        <CardHeader>
-          <CardTitle>Giỏ hàng của bạn</CardTitle>
-        </CardHeader>
+
         <CardContent>
           {cartItems.length === 0 ? (
             <p className="text-center">Giỏ hàng của bạn đang trống.</p>
           ) : (
             <>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>
-                      <Checkbox
-                        checked={selectedItems.length === cartItems.length}
-                        onCheckedChange={handleSelectAll}
-                      />
-                    </TableHead>
-                    <TableHead>Sản phẩm</TableHead>
-                    <TableHead>Màu sắc</TableHead>
-                    <TableHead>Đơn giá</TableHead>
-                    <TableHead>Số lượng</TableHead>
-                    <TableHead>Thành tiền</TableHead>
-                    <TableHead>Hành động</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {cartItems.map((item) => {
-                    // Fallback cho discountedPrice: nếu không có thì dùng price
-                    const displayPrice =
-                      item.product.discountedPrice ?? item.product.price;
 
-                    return (
-                      <TableRow key={item.id}>
-                        <TableCell>
-                          <Checkbox
-                            checked={selectedItems.includes(item.id)}
-                            onCheckedChange={(checked) =>
-                              handleSelectItem(item.id, checked as boolean)
-                            }
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center space-x-4">
-                            <img
-                              src={
-                                item.product.productFiles?.length > 0
-                                  ? item.product.productFiles[0].file.url
-                                  : "/placeholder.png"
-                              }
-                              alt={item.product.name}
-                              className="w-16 h-16 object-cover rounded"
-                            />
-                            <span>{item.product.name}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell>{item.color.name}</TableCell>
-                        <TableCell>
-                          {/* Hiển thị giá (dùng displayPrice để tránh lỗi undefined) */}
-                          {displayPrice.toLocaleString("vi-VN")} VNĐ
-                          {/* Hiển thị giá gốc nếu có giảm giá */}
+              <div className="space-y-4">
+                {cartItems.map((item) => {
+                  // Fallback cho discountedPrice: nếu không có thì dùng price
+                  const displayPrice =
+                    item.product.discountedPrice ?? item.product.price;
+
+                  return (
+                    <div
+                      key={item.id}
+                      className="flex items-center justify-between border-b p-3 flex-wrap md:flex-nowrap"
+                    >
+                      <div className="flex items-center space-x-4 w-full md:w-auto">
+                        <Checkbox
+                          checked={selectedItems.includes(item.id)}
+                          onCheckedChange={(checked) =>
+                            handleSelectItem(item.id, checked as boolean)
+                          }
+                        />
+                        <img
+                          src={
+                            item.product.productFiles?.length > 0
+                              ? item.product.productFiles[0].file.url
+                              : "/placeholder.png"
+                          }
+                          alt={item.product.name}
+                          className="w-16 h-16 object-cover rounded md:w-20 md:h-20"
+                        />
+                        <div className="text-sm md:text-base">
+                          <p className="font-medium">{item.product.name}</p>
+                          <p className="text-gray-500">{item.color.name}</p>
+                          <span className="text-red-500">
+                            {displayPrice.toLocaleString("vi-VN")} VNĐ
+                          </span>
                           {item.product.discountedPrice != null &&
-                            item.product.discountedPrice <
-                              item.product.price && (
-                              <span className="text-sm text-gray-500 line-through ml-2">
+                            item.product.discountedPrice < item.product.price && (
+                              <span className="text-gray-500 line-through ml-2">
                                 {item.product.price.toLocaleString("vi-VN")} VNĐ
                               </span>
                             )}
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            type="number"
-                            value={item.quantity}
-                            onChange={(e) =>
-                              handleUpdateQuantity(
-                                item.id,
-                                parseInt(e.target.value)
-                              )
-                            }
-                            className="w-20"
-                            min={1}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          {/* Tính thành tiền dựa trên displayPrice */}
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end w-full md:w-auto mt-4 md:mt-0">
+                        <Button
+                          variant="destructive"
+                          size="icon"
+                          onClick={() => handleRemoveFromCart(item.id)}
+                          className="mt-2"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                        <Input
+                          type="number"
+                          value={item.quantity}
+                          onChange={(e) =>
+                            handleUpdateQuantity(
+                              item.id,
+                              parseInt(e.target.value)
+                            )
+                          }
+                          className="w-16 md:w-20 mt-2"
+                          min={1}
+                        />
+                        <p className="font-medium text-red-500 text-sm md:text-base">
                           {(displayPrice * item.quantity).toLocaleString(
                             "vi-VN"
                           )}{" "}
                           VNĐ
-                        </TableCell>
-                        <TableCell>
-                          <Button
-                            variant="destructive"
-                            size="icon"
-                            onClick={() => handleRemoveFromCart(item.id)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-              <div className="mt-6 flex justify-between items-center">
-                <div>
-                  <p className="text-lg font-semibold">
-                    Tổng tiền (đã chọn):{" "}
-                    {selectedTotalAmount.toLocaleString("vi-VN")} VNĐ
-                  </p>
-                </div>
-                <Button onClick={handleCheckout}>Thanh toán</Button>
+                        </p>
+
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
+
             </>
           )}
-          <Button onClick={handleAddToCart} className="mt-4">
-            Thêm sản phẩm (Ví dụ)
-          </Button>
+
         </CardContent>
       </Card>
+      <div className="flex flex-col md:flex-row justify-between items-center border-2 rounded bg-white p-4 shadow-md mt-5">
+        <p className="text-base md:text-lg font-semibold text-red-500 mb-4 md:mb-0">
+          Tổng tiền (đã chọn):{" "}
+          {selectedTotalAmount.toLocaleString("vi-VN")} VNĐ
+        </p>
+        <Button onClick={handleCheckout} className="bg-red-500 hover:bg-red-500 w-full md:w-auto">Thanh toán</Button>
+      </div>
     </div>
   );
 }
