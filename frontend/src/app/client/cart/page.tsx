@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Trash2 } from "lucide-react";
+import { Trash, Trash2, Trash2Icon, TrashIcon } from "lucide-react";
 import {
   getCartItems,
   addToCart,
@@ -171,7 +171,7 @@ export default function CartPage() {
   };
 
   if (loading) {
-    return <div className="text-center mt-10">Đang tải...</div>;
+    return <div className="text-center mt-4">Đang tải...</div>;
   }
 
   if (error) {
@@ -179,9 +179,9 @@ export default function CartPage() {
   }
 
   return (
-    <div className="max-w-3xl mx-auto pt-10">
+    <div className="max-w-3xl mx-auto pt-4 px-3">
         <p className="text-2xl font-bold !px-0">Giỏ hàng của bạn</p>
-      <div className="flex items-center gap-3 flex-row border-b py-3">
+      <div className="flex items-center gap-3 flex-row py-3">
         <Checkbox
           checked={selectedItems.length === cartItems.length}
           onCheckedChange={(checked) => handleSelectAll(checked as boolean)}
@@ -205,9 +205,9 @@ export default function CartPage() {
                   return (
                     <div
                       key={item.id}
-                      className="flex items-center justify-between border-b p-3 flex-wrap md:flex-nowrap"
+                      className="flex items-center justify-between border-b flex-nowrap pb-1"
                     >
-                      <div className="flex items-center space-x-4 w-full md:w-auto">
+                      <div className="flex items-center space-x-2 w-auto">
                         <Checkbox
                           checked={selectedItems.includes(item.id)}
                           onCheckedChange={(checked) =>
@@ -221,9 +221,9 @@ export default function CartPage() {
                               : "/placeholder.png"
                           }
                           alt={item.product.name}
-                          className="w-16 h-16 object-cover rounded md:w-20 md:h-20"
+                          className="w-20 h-20 bg-white object-contain rounded md:w-24 md:h-24"
                         />
-                        <div className="text-sm md:text-base">
+                        <div className="text-sm md:text-base flex flex-col md:flex-auto">
                           <p className="font-medium">{item.product.name}</p>
                           <p className="text-gray-500">{item.color.name}</p>
                           <span className="text-red-500">
@@ -237,14 +237,14 @@ export default function CartPage() {
                             )}
                         </div>
                       </div>
-                      <div className="flex flex-col items-end w-full md:w-auto mt-4 md:mt-0">
+                      <div className="flex flex-col items-end w-auto mt-0">
                         <Button
                           variant="destructive"
                           size="icon"
                           onClick={() => handleRemoveFromCart(item.id)}
-                          className="mt-2"
+                          className="h-6 w-6 md:w-8 md:h-8"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="!h-4 !w-4 md:!w-6 md:!h-6" />
                         </Button>
                         <Input
                           type="number"
@@ -255,10 +255,10 @@ export default function CartPage() {
                               parseInt(e.target.value)
                             )
                           }
-                          className="w-16 md:w-20 mt-2"
+                          className="w-12 h-6 md:w-16 md:h-auto mt-1"
                           min={1}
                         />
-                        <p className="font-medium text-red-500 text-sm md:text-base">
+                        <p className="font-medium text-red-500 text-sm md:text-base flex-nowrap">
                           {(displayPrice * item.quantity).toLocaleString(
                             "vi-VN"
                           )}{" "}
@@ -276,7 +276,7 @@ export default function CartPage() {
 
         </CardContent>
       </Card>
-      <div className="flex flex-col md:flex-row justify-between items-center border-2 rounded bg-white p-4 shadow-md mt-5">
+      <div className="flex flex-col md:flex-row justify-between items-center border-2 rounded-xl bg-white p-4 shadow-md mt-5">
         <p className="text-base md:text-lg font-semibold text-red-500 mb-4 md:mb-0">
           Tổng tiền (đã chọn):{" "}
           {selectedTotalAmount.toLocaleString("vi-VN")} VNĐ

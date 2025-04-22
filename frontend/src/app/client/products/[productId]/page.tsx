@@ -192,10 +192,10 @@ export default function ProductDetailPage() {
         </div>
       </CardHeader>
       <Card className="border-none shadow-none">
-        <CardContent className="border-none shadow-none">
+        <CardContent className="border-none shadow-none !px-0 ">
           <div className="grid grid-cols-1 md:grid-cols-[7fr_5fr] gap-8 ">
             {/* Phần hình ảnh sản phẩm với Carousel */}
-            <div className=" p-5">
+            <div>
               <div>
                 {/* Carousel chính */}
                 <Carousel setApi={setApi} className="w-full border-2 rounded-md">
@@ -257,27 +257,27 @@ export default function ProductDetailPage() {
                   {originalPrice.toLocaleString("vi-VN")} VNĐ
                 </p>
               )}
-                {availableColors.length > 0 ? (
+              {availableColors.length > 0 ? (
                 <div>
                   <span className="font-semibold">Màu sắc:</span>
                   <div className="flex flex-wrap gap-4 mt-2">
-                  {availableColors.map((color) => (
-                    <button
-                    key={color.id}
-                    onClick={() => setSelectedColorId(color.id)}
-                    className={`px-4 py-2 border rounded-md ${selectedColorId === color.id
-                      ? "border-red-500 text-red-500"
-                      : "border-gray-300 text-gray-700"
-                      } hover:border-red-500 hover:text-red-500 transition duration-300`}
-                    >
-                    {color.name}
-                    </button>
-                  ))}
+                    {availableColors.map((color) => (
+                      <button
+                        key={color.id}
+                        onClick={() => setSelectedColorId(color.id)}
+                        className={`px-4 py-2 border rounded-md ${selectedColorId === color.id
+                          ? "border-red-500 text-red-500"
+                          : "border-gray-300 text-gray-700"
+                          } hover:border-red-500 hover:text-red-500 transition duration-300`}
+                      >
+                        {color.name}
+                      </button>
+                    ))}
                   </div>
                 </div>
-                ) : (
+              ) : (
                 <p className="text-red-600">Sản phẩm đã hết hàng</p>
-                )}
+              )}
 
               <div className="mt-4 rounded-md border-1 border-red-300">
                 <div className="px-3 py-1 bg-red-100 rounded-t-md">
@@ -294,13 +294,23 @@ export default function ProductDetailPage() {
                 </ul>
 
               </div>
-
-              {availableColors.length > 0 && (
-                <Button onClick={handleAddToCart} className="mt-6 w-full flex items-center justify-center gap-2 bg-white border-1 border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition duration-300">
-                  <ShoppingCart className="w-5 h-5" /> {/* Icon giỏ hàng */}
-                  Thêm vào giỏ hàng
+                <div className="flex flex-row gap-3 mt-4">
+                <Button className="flex-1 px-1 flex flex-col items-center justify-center gap-2 bg-red-500 border-1 h-auto text-white text-xl uppercase font-semibold hover:bg-red-500">
+                  Mua ngay
+                  <span className="text-[12px] normal-case">(giao nhanh từ 2 giờ hoặc nhận tại cửa hàng)</span>
                 </Button>
-              )}
+
+                {availableColors.length > 0 && (
+                  <Button
+                  onClick={handleAddToCart}
+                  className="w-auto !px-1 text-[12px] h-auto flex flex-col items-center justify-center gap-2 bg-white border-1 border-red-500 text-red-500 hover:bg-red-500 hover:text-white transition duration-300"
+                  >
+                  <ShoppingCart /> {/* Icon giỏ hàng */}
+                  Thêm vào giỏ
+                  </Button>
+                )}
+                </div>
+
 
 
             </div>

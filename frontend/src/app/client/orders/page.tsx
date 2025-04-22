@@ -102,14 +102,12 @@ const OrdersPage = () => {
   }
 
   return (
-    <div className="container mx-auto py-10">
-      <Card>
-        <CardHeader>
-          <CardTitle>Danh sách đơn hàng của bạn</CardTitle>
-        </CardHeader>
-        <CardContent>
+    <div className="container mx-auto py-4 px-3">
+      <Card className="!px-3">
+        <p className="px-3 text-2xl font-semibold">Danh sách đơn hàng của bạn</p>
+        <CardContent className="!p-0">
           <Tabs defaultValue="all" className="w-full">
-            <TabsList className="grid w-full grid-cols-6">
+            <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 gap-2 h-auto">
               <TabsTrigger value="all">Tất cả</TabsTrigger>
               <TabsTrigger value="Pending">Đang chờ</TabsTrigger>
               <TabsTrigger value="Confirmed">Đã xác nhận</TabsTrigger>
@@ -137,7 +135,7 @@ const OrdersPage = () => {
                   <TableBody>
                     {orders.map((order) => (
                       <TableRow key={order.id}>
-                        <TableCell>{order.id}</TableCell>
+                        <TableCell className=" !truncate">{order.id}</TableCell>
                         <TableCell>{order.address}</TableCell>
                         <TableCell>
                           {order.totalAmount.toLocaleString("vi-VN")} VNĐ

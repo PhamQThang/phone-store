@@ -136,21 +136,20 @@ const OrderDetailsPage = ({
   }
 
   if (error) {
-    return <div className="text-center mt-10 text-red-600">{error}</div>;
+    return <div className="text-center mt-4 text-red-600">{error}</div>;
   }
 
   if (!order) {
-    return <div className="text-center mt-10">Không tìm thấy đơn hàng.</div>;
+    return <div className="text-center mt-4">Không tìm thấy đơn hàng.</div>;
   }
 
   return (
-    <div className="container mx-auto py-10">
-      <Card>
-        <CardHeader>
-          <CardTitle>Chi tiết đơn hàng</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="container mx-auto py-4 px-3">
+      <p className="text-2xl font-semibold mb-4">Chi tiết đơn hàng</p>
+      <Card className="py-3">
+          
+        <CardContent className="px-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {/* Thông tin đơn hàng */}
             <div>
               <h2 className="text-lg font-semibold mb-4">Thông tin đơn hàng</h2>
@@ -219,7 +218,7 @@ const OrderDetailsPage = ({
 
             {/* Danh sách sản phẩm */}
             <div>
-              <h2 className="text-lg font-semibold mb-4">
+              <h2 className="text-lg font-semibold mt-2 mb-2">
                 Sản phẩm trong đơn hàng
               </h2>
               {order.orderDetails.length === 0 ? (
