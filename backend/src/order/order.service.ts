@@ -304,7 +304,7 @@ export class OrderService {
         paymentStatus: newPaymentStatus,
       },
       include: {
-        user: { select: { id: true, firstName: true, lastName: true } },
+        user: { select: { id: true, fullName: true } },
         orderDetails: {
           include: {
             product: true,
@@ -427,7 +427,7 @@ export class OrderService {
             paymentStatus: updatedPaymentStatus,
           },
           include: {
-            user: { select: { id: true, firstName: true, lastName: true } },
+            user: { select: { id: true, fullName: true } },
             orderDetails: {
               include: {
                 product: true,
@@ -523,7 +523,7 @@ export class OrderService {
     const orders = await this.prisma.order.findMany({
       where: isAdminOrEmployee ? {} : { userId: requesterId },
       include: {
-        user: { select: { id: true, firstName: true, lastName: true } },
+        user: { select: { id: true, fullName: true } },
         orderDetails: {
           include: {
             product: true,
@@ -578,7 +578,7 @@ export class OrderService {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
       include: {
-        user: { select: { id: true, firstName: true, lastName: true } },
+        user: { select: { id: true, fullName: true } },
         orderDetails: {
           include: {
             product: true,

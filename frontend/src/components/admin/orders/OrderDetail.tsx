@@ -71,8 +71,7 @@ export function OrderDetail({ open, onOpenChange, order }: OrderDetailProps) {
             {new Date(order.createdAt).toLocaleString()}
           </div>
           <div>
-            <strong>Người dùng:</strong>{" "}
-            {`${order.user.firstName} ${order.user.lastName}`}
+            <strong>Người dùng:</strong> {`${order.user.fullName}`}
           </div>
           <div>
             <strong>Sản phẩm:</strong>

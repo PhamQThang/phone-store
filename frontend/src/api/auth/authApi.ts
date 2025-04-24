@@ -4,8 +4,7 @@ import axiosInstance from "../axiosConfig";
 interface RegisterDto {
   email: string;
   password: string;
-  firstName: string;
-  lastName: string;
+  fullName: string;
   address: string;
   phoneNumber: string;
   roleId: number;
@@ -22,8 +21,7 @@ interface AuthResponse {
   user: {
     id: number;
     email: string;
-    firstName: string;
-    lastName: string;
+    fullName: string;
     address: string;
     phoneNumber: string;
     role: string;

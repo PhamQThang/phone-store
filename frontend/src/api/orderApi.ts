@@ -16,7 +16,7 @@ interface Order {
   phoneNumber?: string;
   paymentMethod: string;
   paymentStatus: string;
-  user: { firstName: string; lastName: string };
+  user: { fullName: string };
   orderDetails: OrderDetail[];
 }
 

@@ -1,4 +1,3 @@
-// backend/src/auth/dto/register.dto.ts
 import {
   IsEmail,
   IsNotEmpty,
@@ -27,20 +26,12 @@ export class RegisterDto {
   password: string;
 
   @ApiProperty({
-    description: 'Tên của người dùng',
-    example: 'John',
+    description: 'Họ và tên của người dùng',
+    example: 'John Doe',
   })
-  @IsString({ message: 'Tên phải là chuỗi' })
-  @IsNotEmpty({ message: 'Tên không được để trống' })
-  firstName: string;
-
-  @ApiProperty({
-    description: 'Họ của người dùng',
-    example: 'Doe',
-  })
-  @IsString({ message: 'Họ phải là chuỗi' })
-  @IsNotEmpty({ message: 'Họ không được để trống' })
-  lastName: string;
+  @IsString({ message: 'Họ và tên phải là chuỗi' })
+  @IsNotEmpty({ message: 'Họ và tên không được để trống' })
+  fullName: string;
 
   @ApiProperty({
     description: 'Địa chỉ của người dùng',

@@ -24,8 +24,7 @@ import { User } from "@/lib/types";
 import { Loader2 } from "lucide-react";
 
 const userSchema = z.object({
-  firstName: z.string().min(2, "Tên phải có ít nhất 2 ký tự"),
-  lastName: z.string().min(2, "Họ phải có ít nhất 2 ký tự"),
+  fullName: z.string().min(2, "Tên phải có ít nhất 2 ký tự"),
   address: z.string().optional(),
   phoneNumber: z.string().optional(),
   password: z
@@ -41,8 +40,7 @@ interface UserFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSubmit: (data: {
-    firstName: string;
-    lastName: string;
+    fullName: string;
     address?: string;
     phoneNumber?: string;
     password?: string;
@@ -61,8 +59,7 @@ export function UserForm({
   const form = useForm<z.infer<typeof userSchema>>({
     resolver: zodResolver(userSchema),
     defaultValues: {
-      firstName: initialData?.firstName || "",
-      lastName: initialData?.lastName || "",
+      fullName: initialData?.fullName || "",
       address: initialData?.address || "",
       phoneNumber: initialData?.phoneNumber || "",
       password: "", // Mật khẩu mặc định là rỗng
@@ -71,8 +68,7 @@ export function UserForm({
 
   useEffect(() => {
     form.reset({
-      firstName: initialData?.firstName || "",
-      lastName: initialData?.lastName || "",
+      fullName: initialData?.fullName || "",
       address: initialData?.address || "",
       phoneNumber: initialData?.phoneNumber || "",
       password: "", // Không điền sẵn mật khẩu
@@ -108,30 +104,13 @@ export function UserForm({
           >
             <FormField
               control={form.control}
-              name="firstName"
+              name="fullName"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-sm sm:text-base">Tên</FormLabel>
                   <FormControl>
                     <Input
                       placeholder="Nhập tên"
-                      {...field}
-                      className="text-sm sm:text-base"
-                    />
-                  </FormControl>
-                  <FormMessage className="text-xs sm:text-sm" />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="lastName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-sm sm:text-base">Họ</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Nhập họ"
                       {...field}
                       className="text-sm sm:text-base"
                     />

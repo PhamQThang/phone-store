@@ -14,8 +14,7 @@ export const getProfile = async (): Promise<User> => {
 
 // Cập nhật thông tin người dùng hiện tại
 export const updateProfile = async (data: {
-  firstName?: string;
-  lastName?: string;
+  fullName?: string;
   address?: string;
   phoneNumber?: string;
 }): Promise<User> => {
@@ -39,8 +38,7 @@ export const getUserById = async (id: number): Promise<User> => {
 export const updateUser = async (
   id: number,
   data: {
-    firstName?: string;
-    lastName?: string;
+    fullName?: string;
     address?: string;
     phoneNumber?: string;
     password?: string;

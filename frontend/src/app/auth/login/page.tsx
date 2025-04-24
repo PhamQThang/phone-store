@@ -64,7 +64,7 @@ export default function LoginPage() {
         accessToken: response.accessToken,
         id: response.user.id,
         email: response.user.email,
-        fullName: `${response.user.firstName} ${response.user.lastName}`,
+        fullName: response.user.fullName,
         address: response.user.address,
         phoneNumber: response.user.phoneNumber,
         role: response.user.role,

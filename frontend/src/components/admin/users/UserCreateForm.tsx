@@ -36,8 +36,7 @@ interface Role {
 const createUserSchema = z.object({
   email: z.string().email("Email không hợp lệ"),
   password: z.string().min(5, "Mật khẩu phải có ít nhất 5 ký tự"),
-  firstName: z.string().min(2, "Tên phải có ít nhất 2 ký tự"),
-  lastName: z.string().min(2, "Họ phải có ít nhất 2 ký tự"),
+  fullName: z.string().min(2, "Tên phải có ít nhất 2 ký tự"),
   address: z.string().min(1, "Địa chỉ không được để trống"),
   phoneNumber: z.string().min(1, "Số điện thoại không được để trống"),
   roleId: z.number().min(1, "Vui lòng chọn vai trò"),
@@ -49,8 +48,7 @@ interface UserCreateFormProps {
   onSubmit: (data: {
     email: string;
     password: string;
-    firstName: string;
-    lastName: string;
+    fullName: string;
     address: string;
     phoneNumber: string;
     roleId: number;
@@ -71,8 +69,7 @@ export function UserCreateForm({
     defaultValues: {
       email: "",
       password: "",
-      firstName: "",
-      lastName: "",
+      fullName: "",
       address: "",
       phoneNumber: "",
       roleId: 0,
@@ -140,30 +137,13 @@ export function UserCreateForm({
             />
             <FormField
               control={form.control}
-              name="firstName"
+              name="fullName"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="text-sm sm:text-base">Tên</FormLabel>
                   <FormControl>
                     <Input
                       placeholder="Nhập tên"
-                      {...field}
-                      className="text-sm sm:text-base"
-                    />
-                  </FormControl>
-                  <FormMessage className="text-xs sm:text-sm" />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="lastName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-sm sm:text-base">Họ</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="Nhập họ"
                       {...field}
                       className="text-sm sm:text-base"
                     />

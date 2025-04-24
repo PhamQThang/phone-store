@@ -166,8 +166,7 @@ export class OrderController {
               type: 'object',
               properties: {
                 id: { type: 'number' },
-                firstName: { type: 'string' },
-                lastName: { type: 'string' },
+                fullName: { type: 'string' },
               },
             },
             orderDetails: {
@@ -256,8 +255,7 @@ export class OrderController {
                 type: 'object',
                 properties: {
                   id: { type: 'number' },
-                  firstName: { type: 'string' },
-                  lastName: { type: 'string' },
+                  fullName: { type: 'string' },
                 },
               },
               orderDetails: {
@@ -330,8 +328,7 @@ export class OrderController {
               type: 'object',
               properties: {
                 id: { type: 'number' },
-                firstName: { type: 'string' },
-                lastName: { type: 'string' },
+                fullName: { type: 'string' },
               },
             },
             orderDetails: {

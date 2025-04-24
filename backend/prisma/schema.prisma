@@ -11,8 +11,6 @@ model User {
   id             Int             @id @default(autoincrement())
   email          String          @unique
   password       String
-  firstName      String
-  lastName       String
   roleId         Int
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @default(now()) @updatedAt
@@ -20,6 +18,7 @@ model User {
   phoneNumber    String?
   isActive       Boolean?        @default(true)
   deletedAt      DateTime?       @db.Timestamp(6)
+  fullName       String?
   cart           Cart?           @relation("UserCart")
   orders         Order[]
   returns        ProductReturn[]

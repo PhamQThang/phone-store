@@ -90,8 +90,7 @@ export class PurchaseOrdersService {
             select: {
               id: true,
               email: true,
-              firstName: true,
-              lastName: true,
+              fullName: true,
               address: true,
               phoneNumber: true,
               roleId: true,
@@ -148,8 +147,7 @@ export class PurchaseOrdersService {
           select: {
             id: true,
             email: true,
-            firstName: true,
-            lastName: true,
+            fullName: true,
             address: true,
             phoneNumber: true,
             roleId: true,
@@ -192,8 +190,7 @@ export class PurchaseOrdersService {
           select: {
             id: true,
             email: true,
-            firstName: true,
-            lastName: true,
+            fullName: true,
             address: true,
             phoneNumber: true,
             roleId: true,

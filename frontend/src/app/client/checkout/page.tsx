@@ -67,7 +67,7 @@ export default function CheckoutPage() {
 
   // Tính tổng tiền (dùng discountedPrice)
   const totalAmount = cartItems.reduce(
-    (sum, item) => sum + item.product.discountedPrice * item.quantity,
+    (sum, item) => sum + (item.product.discountedPrice ?? 0) * item.quantity,
     0
   );
 
@@ -218,12 +218,13 @@ export default function CheckoutPage() {
                           {/* Hiển thị giá đã giảm (discountedPrice) thay vì giá gốc (price) */}
                           <p className="font-medium">
                             {(
-                              item.product.discountedPrice * item.quantity
+                              (item.product.discountedPrice ?? 0) *
+                              item.quantity
                             ).toLocaleString("vi-VN")}{" "}
                             VNĐ
                           </p>
                           {/* Hiển thị giá gốc nếu có giảm giá */}
-                          {item.product.discountedPrice <
+                          {(item.product.discountedPrice ?? 0) <
                             item.product.price && (
                             <p className="text-sm text-gray-500 line-through">
                               {(

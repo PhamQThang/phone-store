@@ -54,8 +54,7 @@ export class UsersService {
     const updatedUser = await this.prisma.user.update({
       where: { id },
       data: {
-        firstName: updateUserDto.firstName,
-        lastName: updateUserDto.lastName,
+        fullName: updateUserDto.fullName,
         address: updateUserDto.address,
         phoneNumber: updateUserDto.phoneNumber,
         password: hashedPassword, // Cập nhật mật khẩu nếu có

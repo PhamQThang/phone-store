@@ -58,8 +58,7 @@ export default function UsersPage() {
   const createUserAction = async (formData: FormData) => {
     const email = formData.get("email")?.toString();
     const password = formData.get("password")?.toString();
-    const firstName = formData.get("firstName")?.toString();
-    const lastName = formData.get("lastName")?.toString();
+    const fullName = formData.get("fullName")?.toString();
     const address = formData.get("address")?.toString();
     const phoneNumber = formData.get("phoneNumber")?.toString();
     const roleId = parseInt(formData.get("roleId")?.toString() || "0");
@@ -71,11 +70,8 @@ export default function UsersPage() {
     if (!password || password.length < 5) {
       return { error: "Mật khẩu phải có ít nhất 5 ký tự" };
     }
-    if (!firstName || firstName.length < 2) {
-      return { error: "Tên phải có ít nhất 2 ký tự" };
-    }
-    if (!lastName || lastName.length < 2) {
-      return { error: "Họ phải có ít nhất 2 ký tự" };
+    if (!fullName || fullName.length < 2) {
+      return { error: "Họ và tên phải có ít nhất 2 ký tự" };
     }
     if (!address) {
       return { error: "Địa chỉ không được để trống" };
@@ -91,8 +87,7 @@ export default function UsersPage() {
       const response = await register({
         email,
         password,
-        firstName,
-        lastName,
+        fullName,
         address,
         phoneNumber,
         roleId,
@@ -100,8 +95,7 @@ export default function UsersPage() {
       const newUser: User = {
         id: response.user.id,
         email: response.user.email,
-        firstName: response.user.firstName,
-        lastName: response.user.lastName,
+        fullName: response.user.fullName,
         address: response.user.address,
         phoneNumber: response.user.phoneNumber,
         role: { id: roleId, name: response.user.role },
@@ -123,18 +117,14 @@ export default function UsersPage() {
   };
 
   const updateUserAction = async (id: number, formData: FormData) => {
-    const firstName = formData.get("firstName")?.toString();
-    const lastName = formData.get("lastName")?.toString();
+    const fullName = formData.get("fullName")?.toString();
     const address = formData.get("address")?.toString();
     const phoneNumber = formData.get("phoneNumber")?.toString();
     const password = formData.get("password")?.toString();
 
     // Validation
-    if (firstName && firstName.length < 2) {
-      return { error: "Tên phải có ít nhất 2 ký tự" };
-    }
-    if (lastName && lastName.length < 2) {
-      return { error: "Họ phải có ít nhất 2 ký tự" };
+    if (fullName && fullName.length < 2) {
+      return { error: "Họ và tên phải có ít nhất 2 ký tự" };
     }
     if (password && password.length < 5) {
       return { error: "Mật khẩu phải có ít nhất 5 ký tự" };
@@ -142,8 +132,7 @@ export default function UsersPage() {
 
     try {
       const updatedUser = await updateUser(id, {
-        firstName,
-        lastName,
+        fullName,
         address,
         phoneNumber,
         password,
