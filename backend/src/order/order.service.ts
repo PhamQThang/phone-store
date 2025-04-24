@@ -316,8 +316,7 @@ export class OrderService {
     });
 
     return {
-      message: 'Xử lý thanh toán VNPay thành công',
-      data: updatedOrder,
+      orderId: updatedOrder.id,
       isSuccess: vnpResponseCode === '00' && transactionStatus === '00',
     };
   }

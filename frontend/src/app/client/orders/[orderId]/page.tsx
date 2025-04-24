@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import React from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -22,25 +22,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { getOrderDetails, updateOrderStatus } from "@/api/orderApi";
-
-interface OrderDetail {
-  product: { name: string };
-  color: { name: string };
-  price: number;
-}
-
-interface Order {
-  id: string;
-  address: string;
-  totalAmount: number;
-  status: string;
-  createdAt: string;
-  phoneNumber?: string;
-  paymentMethod: string;
-  paymentStatus: string;
-  user: { firstName: string; lastName: string };
-  orderDetails: OrderDetail[];
-}
+import { Order } from "@/lib/types";
 
 const OrderDetailsPage = ({
   params,
@@ -96,7 +78,6 @@ const OrderDetailsPage = ({
       Shipping: "Đang giao",
       Delivered: "Đã giao",
       Canceled: "Đã hủy",
-      Completed: "Đã hoàn thành",
     };
     return statusMap[status] || status;
   };
@@ -119,9 +100,8 @@ const OrderDetailsPage = ({
       const response = await updateOrderStatus(orderId, {
         status: newStatus,
       });
-      console.log("response", response);
-
-      setOrder(response); // Lấy data từ response
+      setOrder(response);
+      setNewStatus("Canceled");
       toast.success("Hủy đơn hàng thành công", { duration: 2000 });
     } catch (error: any) {
       toast.error("Lỗi", {
@@ -147,7 +127,6 @@ const OrderDetailsPage = ({
     <div className="container mx-auto py-4 px-3">
       <p className="text-2xl font-semibold mb-4">Chi tiết đơn hàng</p>
       <Card className="py-3">
-          
         <CardContent className="px-3">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {/* Thông tin đơn hàng */}
@@ -178,14 +157,16 @@ const OrderDetailsPage = ({
                   <strong>Trạng thái thanh toán:</strong>{" "}
                   {order.paymentStatus === "Completed"
                     ? "Đã thanh toán"
-                    : "Chưa thanh toán"}
+                    : order.paymentStatus === "Pending"
+                    ? "Chưa thanh toán"
+                    : "Thanh toán thất bại"}
                 </p>
                 <p>
                   <strong>Trạng thái:</strong> {translateStatus(order.status)}
                 </p>
                 <p>
                   <strong>Ngày tạo:</strong>{" "}
-                  {new Date(order.createdAt).toLocaleString()}
+                  {new Date(order.createdAt).toLocaleDateString("vi-VN")}
                 </p>
               </div>
 
@@ -238,7 +219,16 @@ const OrderDetailsPage = ({
                         <TableCell>{item.product.name}</TableCell>
                         <TableCell>{item.color.name}</TableCell>
                         <TableCell>
-                          {item.price.toLocaleString("vi-VN")} VNĐ
+                          {(item.product.discountedPrice ?? 0).toLocaleString(
+                            "vi-VN"
+                          )}{" "}
+                          VNĐ
+                          {(item.product.discountedPrice ?? 0) <
+                            item.product.price && (
+                            <span className="text-sm text-gray-500 line-through ml-2">
+                              {item.product.price.toLocaleString("vi-VN")} VNĐ
+                            </span>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}

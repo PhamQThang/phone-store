@@ -10,6 +10,7 @@ import {
   HttpStatus,
   Req,
   Query,
+  Res,
 } from '@nestjs/common';
 import { OrderService } from './order.service';
 import { CreateOrderDto } from './dto/create-order.dto';
@@ -22,7 +23,7 @@ import {
   ApiBody,
   ApiQuery,
 } from '@nestjs/swagger';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 
 @ApiTags('order')
 @Controller('order')
@@ -98,80 +99,28 @@ export class OrderController {
     description: 'Chữ ký bảo mật',
   })
   @ApiResponse({
-    status: 200,
-    description: 'Xử lý callback VNPay thành công',
-    schema: {
-      type: 'object',
-      properties: {
-        message: {
-          type: 'string',
-          example: 'Xử lý thanh toán VNPay thành công',
-        },
-        data: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-            address: { type: 'string' },
-            totalAmount: { type: 'number' },
-            status: { type: 'string' },
-            createdAt: { type: 'string', format: 'date-time' },
-            phoneNumber: { type: 'string', nullable: true },
-            paymentMethod: { type: 'string' },
-            paymentStatus: { type: 'string' },
-            user: {
-              type: 'object',
-              properties: {
-                id: { type: 'number' },
-                firstName: { type: 'string' },
-                lastName: { type: 'string' },
-              },
-            },
-            orderDetails: {
-              type: 'array',
-              items: {
-                type: 'object',
-                properties: {
-                  product: {
-                    type: 'object',
-                    properties: {
-                      id: { type: 'number' },
-                      name: { type: 'string' },
-                      price: { type: 'number' },
-                      discountedPrice: { type: 'number' },
-                    },
-                  },
-                  color: {
-                    type: 'object',
-                    properties: {
-                      id: { type: 'number' },
-                      name: { type: 'string' },
-                    },
-                  },
-                  productIdentity: {
-                    type: 'object',
-                    properties: {
-                      id: { type: 'string' },
-                      isSold: { type: 'boolean' },
-                    },
-                  },
-                  price: { type: 'number' },
-                },
-              },
-            },
-          },
-        },
-        isSuccess: { type: 'boolean' },
-      },
-    },
+    status: 302,
+    description: 'Redirect về trang danh sách đơn hàng trên frontend',
   })
   @ApiResponse({
     status: 400,
     description: 'Chữ ký không hợp lệ hoặc dữ liệu không hợp lệ',
   })
   @ApiResponse({ status: 404, description: 'Đơn hàng không tồn tại' })
-  @HttpCode(HttpStatus.OK)
-  async handleVNPayReturn(@Query() query: { [key: string]: string }) {
-    return this.orderService.handleVNPayReturn(query);
+  async handleVNPayReturn(
+    @Query() query: { [key: string]: string },
+    @Res() res: Response
+  ) {
+    const result = await this.orderService.handleVNPayReturn(query);
+    const { orderId, isSuccess } = result;
+
+    // Tạo URL redirect cho FE
+    const frontendBaseUrl =
+      process.env.FRONTEND_BASE_URL || 'http://localhost:3000';
+    const redirectUrl = `${frontendBaseUrl}/client/orders?orderId=${orderId}&success=${isSuccess}`;
+
+    // Redirect đến FE
+    return res.redirect(redirectUrl);
   }
 
   @Patch(':id/status')

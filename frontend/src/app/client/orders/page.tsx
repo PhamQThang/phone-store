@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,7 +17,7 @@ import {
 import { getOrders } from "@/api/orderApi";
 
 interface OrderDetail {
-  product: { name: string };
+  product: { name: string; discountedPrice: number; price: number };
   color: { name: string };
   price: number;
 }
@@ -40,6 +40,7 @@ const OrdersPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   // Kiểm tra đăng nhập
   const user = localStorage.getItem("fullName");
@@ -69,7 +70,28 @@ const OrdersPage = () => {
     };
 
     fetchOrders();
-  }, [user, router]);
+
+    // Xử lý query parameters từ VNPay redirect
+    const orderId = searchParams.get("orderId");
+    const success = searchParams.get("success");
+
+    if (orderId && success) {
+      if (success === "true") {
+        toast.success("Thanh toán thành công", {
+          description: `Đơn hàng ${orderId} đã được xác nhận`,
+          duration: 3000,
+        });
+      } else {
+        toast.error("Thanh toán thất bại", {
+          description: `Đơn hàng ${orderId} đã bị hủy`,
+          duration: 3000,
+        });
+      }
+
+      // Xóa query parameters sau khi hiển thị thông báo
+      router.replace("/client/orders");
+    }
+  }, [user, router, searchParams]);
 
   // Hàm dịch trạng thái sang tiếng Việt
   const translateStatus = (status: string) => {
@@ -104,7 +126,9 @@ const OrdersPage = () => {
   return (
     <div className="container mx-auto py-4 px-3">
       <Card className="!px-3">
-        <p className="px-3 text-2xl font-semibold">Danh sách đơn hàng của bạn</p>
+        <p className="px-3 text-2xl font-semibold">
+          Danh sách đơn hàng của bạn
+        </p>
         <CardContent className="!p-0">
           <Tabs defaultValue="all" className="w-full">
             <TabsList className="grid w-full grid-cols-3 md:grid-cols-6 gap-2 h-auto">
@@ -135,14 +159,16 @@ const OrdersPage = () => {
                   <TableBody>
                     {orders.map((order) => (
                       <TableRow key={order.id}>
-                        <TableCell className=" !truncate">{order.id}</TableCell>
+                        <TableCell className="!truncate">{order.id}</TableCell>
                         <TableCell>{order.address}</TableCell>
                         <TableCell>
                           {order.totalAmount.toLocaleString("vi-VN")} VNĐ
                         </TableCell>
                         <TableCell>{translateStatus(order.status)}</TableCell>
                         <TableCell>
-                          {new Date(order.createdAt).toLocaleString()}
+                          {new Date(order.createdAt).toLocaleDateString(
+                            "vi-VN"
+                          )}
                         </TableCell>
                         <TableCell>
                           <Button onClick={() => handleViewDetails(order.id)}>
@@ -184,7 +210,9 @@ const OrdersPage = () => {
                         </TableCell>
                         <TableCell>{translateStatus(order.status)}</TableCell>
                         <TableCell>
-                          {new Date(order.createdAt).toLocaleString()}
+                          {new Date(order.createdAt).toLocaleDateString(
+                            "vi-VN"
+                          )}
                         </TableCell>
                         <TableCell>
                           <Button onClick={() => handleViewDetails(order.id)}>
@@ -226,7 +254,9 @@ const OrdersPage = () => {
                         </TableCell>
                         <TableCell>{translateStatus(order.status)}</TableCell>
                         <TableCell>
-                          {new Date(order.createdAt).toLocaleString()}
+                          {new Date(order.createdAt).toLocaleDateString(
+                            "vi-VN"
+                          )}
                         </TableCell>
                         <TableCell>
                           <Button onClick={() => handleViewDetails(order.id)}>
@@ -268,7 +298,9 @@ const OrdersPage = () => {
                         </TableCell>
                         <TableCell>{translateStatus(order.status)}</TableCell>
                         <TableCell>
-                          {new Date(order.createdAt).toLocaleString()}
+                          {new Date(order.createdAt).toLocaleDateString(
+                            "vi-VN"
+                          )}
                         </TableCell>
                         <TableCell>
                           <Button onClick={() => handleViewDetails(order.id)}>
@@ -310,7 +342,9 @@ const OrdersPage = () => {
                         </TableCell>
                         <TableCell>{translateStatus(order.status)}</TableCell>
                         <TableCell>
-                          {new Date(order.createdAt).toLocaleString()}
+                          {new Date(order.createdAt).toLocaleDateString(
+                            "vi-VN"
+                          )}
                         </TableCell>
                         <TableCell>
                           <Button onClick={() => handleViewDetails(order.id)}>
@@ -352,7 +386,9 @@ const OrdersPage = () => {
                         </TableCell>
                         <TableCell>{translateStatus(order.status)}</TableCell>
                         <TableCell>
-                          {new Date(order.createdAt).toLocaleString()}
+                          {new Date(order.createdAt).toLocaleDateString(
+                            "vi-VN"
+                          )}
                         </TableCell>
                         <TableCell>
                           <Button onClick={() => handleViewDetails(order.id)}>
