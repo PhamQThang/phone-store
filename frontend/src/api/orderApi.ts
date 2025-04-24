@@ -20,10 +20,12 @@ interface Order {
   orderDetails: OrderDetail[];
 }
 
-// Định nghĩa kiểu phản hồi từ API
 interface OrderResponse {
   message: string;
-  data: Order;
+  data: {
+    order: Order;
+    paymentUrl?: string;
+  };
 }
 
 interface OrdersResponse {
@@ -36,7 +38,6 @@ interface UpdateStatusResponse {
   data: Order;
 }
 
-// Định nghĩa kiểu dữ liệu để tạo đơn hàng
 interface CreateOrderData {
   address: string;
   paymentMethod: string;
@@ -46,7 +47,6 @@ interface CreateOrderData {
   cartItemIds: string[];
 }
 
-// Định nghĩa kiểu dữ liệu để cập nhật trạng thái
 interface UpdateOrderStatusData {
   status: string;
 }
@@ -64,7 +64,9 @@ export const getOrderDetails = async (orderId: string): Promise<Order> => {
 };
 
 // Tạo đơn hàng mới
-export const createOrder = async (data: CreateOrderData): Promise<Order> => {
+export const createOrder = async (
+  data: CreateOrderData
+): Promise<{ order: Order; paymentUrl?: string }> => {
   const response: OrderResponse = await axiosInstance.post("/order", data);
   return response.data;
 };

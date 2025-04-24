@@ -87,16 +87,22 @@ export default function CheckoutPage() {
         cartItemIds: selectedItems,
       };
 
-      const newOrder = await createOrder(orderData);
-      toast.success("Đặt hàng thành công", {
-        description: `Mã đơn hàng: ${newOrder.id}`,
-        duration: 3000,
-      });
+      const { order, paymentUrl } = await createOrder(orderData);
 
-      localStorage.removeItem("selectedCartItems");
-      localStorage.removeItem("cartIdForCheckout");
+      if (paymentMethod === "Online" && paymentUrl) {
+        // Chuyển hướng đến trang thanh toán VNPay
+        window.location.href = paymentUrl;
+      } else {
+        toast.success("Đặt hàng thành công", {
+          description: `Mã đơn hàng: ${order.id}`,
+          duration: 3000,
+        });
 
-      router.push("/client/orders");
+        localStorage.removeItem("selectedCartItems");
+        localStorage.removeItem("cartIdForCheckout");
+
+        router.push("/client/orders");
+      }
     } catch (error: any) {
       toast.error("Lỗi", {
         description: error.response?.data?.message || "Không thể tạo đơn hàng",
@@ -161,7 +167,7 @@ export default function CheckoutPage() {
                         Thanh toán khi nhận hàng (COD)
                       </SelectItem>
                       <SelectItem value="Online">
-                        Thanh toán trực tuyến
+                        Thanh toán trực tuyến (VNPay)
                       </SelectItem>
                     </SelectContent>
                   </Select>
@@ -235,7 +241,9 @@ export default function CheckoutPage() {
                       Tổng tiền: {totalAmount.toLocaleString("vi-VN")} VNĐ
                     </p>
                     <Button onClick={handlePlaceOrder} className="mt-4 w-full">
-                      Đặt hàng
+                      {paymentMethod === "Online"
+                        ? "Thanh toán ngay"
+                        : "Đặt hàng"}
                     </Button>
                   </div>
                 </>

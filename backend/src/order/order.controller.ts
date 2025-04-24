@@ -9,6 +9,7 @@ import {
   HttpCode,
   HttpStatus,
   Req,
+  Query,
 } from '@nestjs/common';
 import { OrderService } from './order.service';
 import { CreateOrderDto } from './dto/create-order.dto';
@@ -19,6 +20,7 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiBody,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { Request } from 'express';
 
@@ -41,15 +43,21 @@ export class OrderController {
         data: {
           type: 'object',
           properties: {
-            id: { type: 'string' },
-            userId: { type: 'number' },
-            address: { type: 'string' },
-            totalAmount: { type: 'number' },
-            paymentMethod: { type: 'string' },
-            status: { type: 'string' },
-            paymentStatus: { type: 'string' },
-            phoneNumber: { type: 'string' },
-            note: { type: 'string' },
+            order: {
+              type: 'object',
+              properties: {
+                id: { type: 'string' },
+                userId: { type: 'number' },
+                address: { type: 'string' },
+                totalAmount: { type: 'number' },
+                paymentMethod: { type: 'string' },
+                status: { type: 'string' },
+                paymentStatus: { type: 'string' },
+                phoneNumber: { type: 'string' },
+                note: { type: 'string' },
+              },
+            },
+            paymentUrl: { type: 'string', nullable: true },
           },
         },
       },
@@ -67,7 +75,103 @@ export class OrderController {
     @Body() createOrderDto: CreateOrderDto
   ) {
     const userId = req.user['userId'];
-    return this.orderService.createOrder(userId, createOrderDto);
+    const ipAddr = req.ip || req.connection.remoteAddress;
+    return this.orderService.createOrder(userId, createOrderDto, ipAddr);
+  }
+
+  @Get('vnpay-return')
+  @ApiOperation({ summary: 'Xử lý callback từ VNPay sau khi thanh toán' })
+  @ApiQuery({ name: 'vnp_TxnRef', type: String, description: 'Mã đơn hàng' })
+  @ApiQuery({
+    name: 'vnp_ResponseCode',
+    type: String,
+    description: 'Mã phản hồi VNPay',
+  })
+  @ApiQuery({
+    name: 'vnp_TransactionStatus',
+    type: String,
+    description: 'Trạng thái giao dịch',
+  })
+  @ApiQuery({
+    name: 'vnp_SecureHash',
+    type: String,
+    description: 'Chữ ký bảo mật',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Xử lý callback VNPay thành công',
+    schema: {
+      type: 'object',
+      properties: {
+        message: {
+          type: 'string',
+          example: 'Xử lý thanh toán VNPay thành công',
+        },
+        data: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            address: { type: 'string' },
+            totalAmount: { type: 'number' },
+            status: { type: 'string' },
+            createdAt: { type: 'string', format: 'date-time' },
+            phoneNumber: { type: 'string', nullable: true },
+            paymentMethod: { type: 'string' },
+            paymentStatus: { type: 'string' },
+            user: {
+              type: 'object',
+              properties: {
+                id: { type: 'number' },
+                firstName: { type: 'string' },
+                lastName: { type: 'string' },
+              },
+            },
+            orderDetails: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  product: {
+                    type: 'object',
+                    properties: {
+                      id: { type: 'number' },
+                      name: { type: 'string' },
+                      price: { type: 'number' },
+                      discountedPrice: { type: 'number' },
+                    },
+                  },
+                  color: {
+                    type: 'object',
+                    properties: {
+                      id: { type: 'number' },
+                      name: { type: 'string' },
+                    },
+                  },
+                  productIdentity: {
+                    type: 'object',
+                    properties: {
+                      id: { type: 'string' },
+                      isSold: { type: 'boolean' },
+                    },
+                  },
+                  price: { type: 'number' },
+                },
+              },
+            },
+          },
+        },
+        isSuccess: { type: 'boolean' },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Chữ ký không hợp lệ hoặc dữ liệu không hợp lệ',
+  })
+  @ApiResponse({ status: 404, description: 'Đơn hàng không tồn tại' })
+  @HttpCode(HttpStatus.OK)
+  async handleVNPayReturn(@Query() query: { [key: string]: string }) {
+    return this.orderService.handleVNPayReturn(query);
   }
 
   @Patch(':id/status')
