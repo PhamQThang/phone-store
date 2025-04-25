@@ -46,7 +46,6 @@ export default function ClientHomePage() {
   if (loading) {
     return (
       <div className=" mx-auto px-4 py-10">
-
         <div className=" mx-auto px-4 py-10">
           <Skeleton className="h-10 w-64 mb-8" />
           <div className="flex space-x-4 mb-6">
@@ -73,13 +72,15 @@ export default function ClientHomePage() {
         <HomeCarousel slides={slides} />
       </div>
       <div className="container mx-auto px-3 py-3 mt-5">
-        <h1 className="text-5xl font-bold mt-5 mb-8 uppercase text-white">Tất cả sản phẩm</h1>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-5">
+        <h1 className="text-5xl font-bold mt-5 mb-8 uppercase text-white">
+          Tất cả sản phẩm
+        </h1>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
           {products.map((product) => (
             <ProductCard key={product.id} product={product} />
           ))}
         </div>
       </div>
-    </div>  
+    </div>
   );
 }

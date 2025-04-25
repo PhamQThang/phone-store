@@ -1,4 +1,3 @@
-// components/HomeCarousel.tsx
 "use client";
 
 import Image from "next/image";
@@ -10,7 +9,6 @@ import {
   CarouselPrevious,
   CarouselApi,
 } from "@/components/ui/carousel";
-import { Button } from "@/components/ui/button";
 import { Slide } from "@/lib/types";
 import { useEffect, useState } from "react";
 import Link from "next/link";
@@ -23,6 +21,7 @@ export default function HomeCarousel({ slides }: HomeCarouselProps) {
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
   const [count, setCount] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
 
   useEffect(() => {
     if (!api) return;
@@ -35,22 +34,24 @@ export default function HomeCarousel({ slides }: HomeCarouselProps) {
     });
 
     const interval = setInterval(() => {
-      api.scrollNext();
+      if (!isPaused) {
+        api.scrollNext();
+      }
     }, 3000);
 
     return () => clearInterval(interval);
-  }, [api]);
+  }, [api, isPaused]);
 
   if (slides.length === 0) {
-    return (
-      <div className="w-full container mx-auto py-3 px-3 text-center">
-        <p>Không có slide nào để hiển thị.</p>
-      </div>
-    );
+    return null;
   }
 
   return (
-    <div className="w-full container mx-auto py-3 px-3">
+    <div
+      className="w-full relative group"
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+    >
       <Carousel
         setApi={setApi}
         className="w-full"
@@ -61,34 +62,49 @@ export default function HomeCarousel({ slides }: HomeCarouselProps) {
         <CarouselContent>
           {slides.map((slide, index) => (
             <CarouselItem key={index}>
-              <Link
-                href={slide.link || "#"}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="relative w-full h-[200px] sm:h-[300px] md:h-[400px] lg:h-[500px] overflow-hidden block"
-              >
-                <Image
-                  src={slide.image.url}
-                  alt={slide.title || `Slide ${index + 1}`}
-                  fill
-                  style={{ objectFit: "cover" }}
-                  className=""
-                />
-              </Link>
+              <div className="relative w-full h-[40vh] sm:h-[50vh] md:h-[60vh] lg:h-[70vh] flex items-center justify-center bg-gray-100">
+                <Link
+                  href={slide.link || "#"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="relative w-full h-full flex items-center justify-center"
+                >
+                  <Image
+                    src={slide.image.url}
+                    alt={`Slide ${index + 1}`}
+                    fill
+                    priority={index === 0}
+                    style={{
+                      objectFit: "contain", // Thay đổi từ 'cover' sang 'contain'
+                      maxWidth: "100%",
+                      maxHeight: "100%",
+                    }}
+                    className="transition-opacity duration-500"
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 60vw"
+                  />
+                </Link>
+              </div>
             </CarouselItem>
           ))}
         </CarouselContent>
-        <CarouselPrevious className="absolute left-2 sm:left-4 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white text-gray-800 shadow-md rounded-full p-1 sm:p-2" />
-        <CarouselNext className="absolute right-2 sm:right-4 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white text-gray-800 shadow-md rounded-full p-1 sm:p-2" />
+
+        {/* Navigation Arrows */}
+        <CarouselPrevious className="absolute left-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white/90 hover:bg-white text-gray-900 rounded-full p-2 shadow-lg hover:scale-110" />
+        <CarouselNext className="absolute right-4 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white/90 hover:bg-white text-gray-900 rounded-full p-2 shadow-lg hover:scale-110" />
       </Carousel>
-      <div className="flex justify-center gap-2 mt-4">
+
+      {/* Dot Indicators */}
+      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center gap-2 z-10">
         {Array.from({ length: count }).map((_, index) => (
-          <Button
+          <button
             key={index}
-            className={`h-3 rounded-full transition-colors duration-200 ${
-              current === index + 1 ? "bg-green-600" : "bg-gray-300"
+            className={`w-3 h-3 rounded-full transition-all duration-300 ${
+              current === index + 1
+                ? "bg-white scale-125 shadow-md"
+                : "bg-white/50 hover:bg-white/80"
             }`}
             onClick={() => api?.scrollTo(index)}
+            aria-label={`Go to slide ${index + 1}`}
           />
         ))}
       </div>

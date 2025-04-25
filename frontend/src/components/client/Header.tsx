@@ -3,14 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  Menu,
-  ShoppingCart,
-  User,
-  ChevronDown,
-  Search,
-  ChevronRight,
-} from "lucide-react";
+import { Menu, ShoppingCart, User, ChevronDown, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -154,40 +147,49 @@ export default function Header() {
     { name: "Sản phẩm", href: "/client/products", hasDropdown: true },
     { name: "Tin tức", href: "/client/newsPage" },
     { name: "Đơn hàng", href: "/client/orders" },
-    { name: "Giỏ hàng", href: "/client/cart" },
   ];
 
   return (
-    <div className="flex flex-col sticky top-0 z-50 bg-white shadow-sm">
-      <div className="container w-full mx-auto p-3">
-        <div className="container mx-auto flex items-center justify-between">
+    <header className="sticky top-0 z-50 bg-white shadow-md">
+      {/* Top Header: Logo, Search, Icons */}
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
+        <div className="flex items-center justify-between">
+          {/* Logo */}
           <Link href="/client">
             <Image
               src="/images/logo.png"
               alt="PhoneStore"
               width={60}
               height={60}
+              className="h-12 w-auto"
             />
           </Link>
 
-          <div className="hidden md:flex relative w-full max-w-lg mx-6">
+          {/* Search Bar (Desktop) */}
+          <div className="hidden md:flex w-full max-w-md mx-6">
             <form onSubmit={handleSearch} className="relative w-full">
               <Input
                 type="text"
-                placeholder="Tìm kiếm..."
-                className="pl-10 pr-4 py-2 text-sm rounded-full border-gray-200 focus:border-red-400 focus:ring-red-400"
+                placeholder="Tìm kiếm sản phẩm..."
+                className="pl-10 pr-4 py-2 rounded-lg border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 transition-all text-gray-700"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
-              <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
             </form>
           </div>
 
-          <div className="flex items-center gap-3">
+          {/* Icons: Search (Mobile), Account, Cart, Menu */}
+          <div className="flex items-center gap-2">
+            {/* Search Icon (Mobile) */}
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="md:hidden">
-                  <Search className="h-6 w-6 text-gray-600" />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="md:hidden hover:bg-gray-100 rounded-full"
+                >
+                  <Search className="h-5 w-5 text-gray-600" />
                 </Button>
               </SheetTrigger>
               <SheetContent side="top" className="bg-white p-4">
@@ -198,33 +200,34 @@ export default function Header() {
                   onSubmit={handleSearch}
                   className="flex items-center gap-2"
                 >
-                  <div className="relative w-full max-w-[280px] mx-auto">
+                  <div className="relative w-full max-w-md mx-auto">
                     <Input
                       type="text"
                       placeholder="Tìm kiếm sản phẩm..."
-                      className="pl-10 pr-4 py-2 text-sm rounded-full border-gray-200 focus:border-red-400 focus:ring-red-400"
+                      className="pl-10 pr-4 py-2 rounded-lg border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 transition-all text-gray-700"
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                     />
-                    <Search className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
                   </div>
                 </form>
               </SheetContent>
             </Sheet>
 
+            {/* Account Popover */}
             <Popover open={isAccountOpen} onOpenChange={setIsAccountOpen}>
               <PopoverTrigger asChild>
                 <Button
                   variant="ghost"
-                  className="flex items-center gap-2"
+                  className="flex items-center gap-2 hover:bg-gray-100 rounded-full px-2 py-1"
                   onMouseEnter={() => setIsAccountOpen(true)}
                 >
-                  <User className="h-6 w-6 text-gray-600" />
-                  <span className="hidden md:inline text-gray-700 font-medium">
+                  <User className="h-5 w-5 text-gray-600" />
+                  <span className="hidden lg:inline text-gray-700 font-medium text-sm">
                     {isLoggedIn ? fullName : "Tài khoản"}
                   </span>
                   <ChevronDown
-                    className={`h-5 w-5 transition-transform ${
+                    className={`h-4 w-4 text-gray-600 transition-transform ${
                       isAccountOpen ? "rotate-180" : ""
                     }`}
                   />
@@ -240,14 +243,14 @@ export default function Header() {
                     <Link href="/client/profile">
                       <Button
                         variant="ghost"
-                        className="w-full justify-start text-sm text-gray-700 hover:bg-red-50"
+                        className="w-full justify-start text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md"
                       >
                         Thông tin cá nhân
                       </Button>
                     </Link>
                     <Button
                       variant="ghost"
-                      className="w-full justify-start text-sm text-gray-700 hover:bg-red-50"
+                      className="w-full justify-start text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md"
                       onClick={handleLogout}
                     >
                       Đăng xuất
@@ -258,7 +261,7 @@ export default function Header() {
                     <Link href="/auth/login">
                       <Button
                         variant="ghost"
-                        className="w-full justify-start text-sm text-gray-700 hover:bg-red-50"
+                        className="w-full justify-start text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md"
                       >
                         Đăng nhập
                       </Button>
@@ -266,7 +269,7 @@ export default function Header() {
                     <Link href="/auth/register">
                       <Button
                         variant="ghost"
-                        className="w-full justify-start text-sm text-gray-700 hover:bg-red-50"
+                        className="w-full justify-start text-sm text-gray-700 hover:bg-blue-50 hover:text-blue-600 rounded-md"
                       >
                         Đăng ký
                       </Button>
@@ -275,25 +278,31 @@ export default function Header() {
                 )}
               </PopoverContent>
             </Popover>
-            
+
+            {/* Cart Icon */}
             <Button
               variant="ghost"
               size="icon"
               onClick={handleCartClick}
-              className="relative"
+              className="relative hover:bg-gray-100 rounded-full"
             >
-              <ShoppingCart className="h-6 w-6 text-gray-600" />
+              <ShoppingCart className="h-5 w-5 text-gray-600" />
               {cartCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs font-semibold rounded-full h-4 w-4 flex items-center justify-center">
                   {cartCount}
                 </span>
               )}
             </Button>
 
+            {/* Menu Icon (Mobile) */}
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="md:hidden">
-                  <Menu className="h-6 w-6 text-gray-600" />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="md:hidden hover:bg-gray-100 rounded-full"
+                >
+                  <Menu className="h-5 w-5 text-gray-600" />
                 </Button>
               </SheetTrigger>
               <SheetContent side="right" className="w-72 bg-white p-5">
@@ -309,52 +318,43 @@ export default function Header() {
                   {navItems.map((item) =>
                     item.hasDropdown ? (
                       <div key={item.name} className="relative">
-                        <span className="block py-2 px-4 text-white font-bold text-lg">
+                        <button
+                          onClick={() => toggleCategory("Sản phẩm")}
+                          className="block py-2 px-4 text-gray-800 font-semibold text-base w-full text-left hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors"
+                        >
                           {item.name}
-                        </span>
-                        {categories.map((category) => (
-                          <div key={category.name} className="pl-2">
-                            <div className="flex items-center justify-between">
-                              <Link
-                                href={category.href}
-                                className="block py-2 px-4 text-white font-semibold text-base hover:bg-red-50 hover:text-red-600 rounded-lg flex-1 transition-colors duration-200"
-                              >
-                                {category.name}
-                              </Link>
-                              <Button
-                                onClick={() => toggleCategory(category.name)}
-                                className="p-2 bg-red-50 hover:bg-red-50 rounded-lg transition-colors duration-200"
-                              >
-                                <ChevronRight
-                                  className={`h-5 w-5 text-gray-500 transition-transform duration-200 ${
-                                    openCategory === category.name
-                                      ? "rotate-90"
-                                      : ""
-                                  }`}
-                                />
-                              </Button>
-                            </div>
-                            {openCategory === category.name && (
-                              <div className="pl-6 mt-1">
-                                {category.products.map((product) => (
-                                  <Link
-                                    key={product.name}
-                                    href={`${category.href}&model=${product.slug}`}
-                                    className="block py-1.5 px-4 text-white text-sm hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors duration-200"
-                                  >
-                                    {product.name}
-                                  </Link>
-                                ))}
+                        </button>
+                        {openCategory === "Sản phẩm" && (
+                          <div className="pl-4 mt-1">
+                            {categories.map((category) => (
+                              <div key={category.name} className="mt-2">
+                                <Link
+                                  href={category.href}
+                                  className="block py-2 px-4 text-gray-700 font-medium text-sm hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors"
+                                >
+                                  {category.name}
+                                </Link>
+                                <div className="pl-4 mt-1">
+                                  {category.products.map((product) => (
+                                    <Link
+                                      key={product.name}
+                                      href={`${category.href}&model=${product.slug}`}
+                                      className="block py-1.5 px-4 text-gray-600 text-sm hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors"
+                                    >
+                                      {product.name}
+                                    </Link>
+                                  ))}
+                                </div>
                               </div>
-                            )}
+                            ))}
                           </div>
-                        ))}
+                        )}
                       </div>
                     ) : (
                       <Link
                         key={item.name}
                         href={item.href}
-                        className="block py-2 px-4 text-gray-700 font-medium text-base hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors duration-200"
+                        className="block py-2 px-4 text-gray-700 font-medium text-base hover:bg-blue-50 hover:text-blue-600 rounded-lg transition-colors"
                       >
                         {item.name}
                       </Link>
@@ -367,55 +367,61 @@ export default function Header() {
         </div>
       </div>
 
-      <div className="hidden md:flex bg-red-500 items-center justify-center text-base font-semibold relative gap-5">
-        {navItems.map((item) =>
-          item.hasDropdown ? (
-            <div
-              key={item.name}
-              className="relative"
-              onMouseEnter={handleMouseEnter}
-              onMouseLeave={handleMouseLeave}
-            >
-              <span className="cursor-pointer text-xl font-bold text-white transition-colors duration-200 flex items-center px-3 py-1 hover:bg-red-400 rounded-lg">
-                {item.name}
-              </span>
-              {isProductsOpen && (
-                <div className="absolute left-1/2 transform -translate-x-[35%] mx-auto top-full mt-3 w-[700px] bg-white shadow-xl rounded-lg p-6 z-50 border border-gray-100">
-                  <div className="grid sm:grid-cols-3 gap-6">
-                    {categories.map((category) => (
-                      <div key={category.name} className="flex flex-col gap-2">
-                        <Link
-                          href={category.href}
-                          className="font-bold text-lg text-red-400 hover:text-red-600 border-b border-gray-200 pb-2 mb-2 transition-colors duration-200"
+      {/* Navigation Bar (Desktop) */}
+      <nav className="hidden md:flex bg-red-600 py-1 px-4 justify-center">
+        <div className="flex gap-8">
+          {navItems.map((item) =>
+            item.hasDropdown ? (
+              <div
+                key={item.name}
+                className="relative top-2"
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
+              >
+                <span className="cursor-pointer text-white font-semibold text-lg px-3 py-2 hover:bg-red-700 rounded-md transition-colors">
+                  {item.name}
+                </span>
+                {isProductsOpen && (
+                  <div className="absolute left-1/2 transform -translate-x-1/2 top-full mt-2 w-[800px] bg-white shadow-xl rounded-lg p-6 border border-gray-100 z-50">
+                    <div className="grid grid-cols-3 gap-6">
+                      {categories.map((category) => (
+                        <div
+                          key={category.name}
+                          className="flex flex-col gap-2"
                         >
-                          {category.name}
-                        </Link>
-                        {category.products.map((product) => (
                           <Link
-                            key={product.name}
-                            href={`${category.href}&model=${product.slug}`}
-                            className="text-gray-600 text-sm hover:text-red-600 hover:bg-red-50 rounded-md px-2 py-1 transition-colors duration-200"
+                            href={category.href}
+                            className="font-semibold text-base text-blue-600 hover:text-blue-700 border-b border-gray-200 pb-2 transition-colors"
                           >
-                            {product.name}
+                            {category.name}
                           </Link>
-                        ))}
-                      </div>
-                    ))}
+                          {category.products.map((product) => (
+                            <Link
+                              key={product.name}
+                              href={`${category.href}&model=${product.slug}`}
+                              className="text-gray-600 text-sm hover:text-blue-600 hover:bg-blue-50 rounded-md px-2 py-1 transition-colors"
+                            >
+                              {product.name}
+                            </Link>
+                          ))}
+                        </div>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
-            </div>
-          ) : (
-            <Link
-              key={item.name}
-              href={item.href}
-              className="text-white font-bold text-xl transition-colors duration-200 px-3 py-1 my-2 hover:bg-red-400 rounded-lg active:rounded-lg"
-            >
-              {item.name}
-            </Link>
-          )
-        )}
-      </div>
-    </div>
+                )}
+              </div>
+            ) : (
+              <Link
+                key={item.name}
+                href={item.href}
+                className="text-white font-semibold text-lg px-3 py-2 hover:bg-red-700 rounded-md transition-colors"
+              >
+                {item.name}
+              </Link>
+            )
+          )}
+        </div>
+      </nav>
+    </header>
   );
 }

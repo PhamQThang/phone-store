@@ -181,6 +181,7 @@ export class OrderController {
                       name: { type: 'string' },
                       price: { type: 'number' },
                       discountedPrice: { type: 'number' },
+                      imageUrl: { type: 'string', nullable: true },
                     },
                   },
                   color: {
@@ -270,6 +271,7 @@ export class OrderController {
                         name: { type: 'string' },
                         price: { type: 'number' },
                         discountedPrice: { type: 'number' },
+                        imageUrl: { type: 'string', nullable: true },
                       },
                     },
                     color: {
@@ -343,6 +345,7 @@ export class OrderController {
                       name: { type: 'string' },
                       price: { type: 'number' },
                       discountedPrice: { type: 'number' },
+                      imageUrl: { type: 'string', nullable: true },
                     },
                   },
                   color: {

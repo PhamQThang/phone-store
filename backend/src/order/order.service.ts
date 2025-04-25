@@ -430,7 +430,15 @@ export class OrderService {
             user: { select: { id: true, fullName: true } },
             orderDetails: {
               include: {
-                product: true,
+                product: {
+                  include: {
+                    productFiles: {
+                      include: {
+                        file: true,
+                      },
+                    },
+                  },
+                },
                 color: true,
                 productIdentity: true,
               },
@@ -460,11 +468,19 @@ export class OrderService {
                 detail.price,
                 detail.productId
               );
+
+            // Lấy URL hình ảnh chính (isMain = true) hoặc hình đầu tiên nếu không có hình chính
+            const mainImage =
+              detail.product.productFiles.find(pf => pf.isMain) ||
+              detail.product.productFiles[0];
+            const imageUrl = mainImage?.file?.url || null;
+
             return {
               ...detail,
               product: {
                 ...detail.product,
                 discountedPrice,
+                imageUrl,
               },
             };
           })
@@ -526,7 +542,15 @@ export class OrderService {
         user: { select: { id: true, fullName: true } },
         orderDetails: {
           include: {
-            product: true,
+            product: {
+              include: {
+                productFiles: {
+                  include: {
+                    file: true,
+                  },
+                },
+              },
+            },
             color: true,
           },
         },
@@ -543,11 +567,18 @@ export class OrderService {
                 detail.price,
                 detail.productId
               );
+
+            const mainImage =
+              detail.product.productFiles.find(pf => pf.isMain) ||
+              detail.product.productFiles[0];
+            const imageUrl = mainImage?.file?.url || null;
+
             return {
               ...detail,
               product: {
                 ...detail.product,
                 discountedPrice,
+                imageUrl,
               },
             };
           })
@@ -581,7 +612,15 @@ export class OrderService {
         user: { select: { id: true, fullName: true } },
         orderDetails: {
           include: {
-            product: true,
+            product: {
+              include: {
+                productFiles: {
+                  include: {
+                    file: true,
+                  },
+                },
+              },
+            },
             color: true,
             productIdentity: true,
           },
@@ -609,11 +648,19 @@ export class OrderService {
             detail.price,
             detail.productId
           );
+
+        // Lấy URL hình ảnh chính (isMain = true) hoặc hình đầu tiên nếu không có hình chính
+        const mainImage =
+          detail.product.productFiles.find(pf => pf.isMain) ||
+          detail.product.productFiles[0];
+        const imageUrl = mainImage?.file?.url || null;
+
         return {
           ...detail,
           product: {
             ...detail.product,
             discountedPrice,
+            imageUrl, // Thêm trường imageUrl vào product
           },
         };
       })
