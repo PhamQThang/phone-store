@@ -114,12 +114,10 @@ export class OrderController {
     const result = await this.orderService.handleVNPayReturn(query);
     const { orderId, isSuccess } = result;
 
-    // Tạo URL redirect cho FE
     const frontendBaseUrl =
       process.env.FRONTEND_BASE_URL || 'http://localhost:3000';
     const redirectUrl = `${frontendBaseUrl}/client/orders?orderId=${orderId}&success=${isSuccess}`;
 
-    // Redirect đến FE
     return res.redirect(redirectUrl);
   }
 
@@ -174,10 +172,12 @@ export class OrderController {
               items: {
                 type: 'object',
                 properties: {
+                  originalPrice: { type: 'number' },
+                  discountedPrice: { type: 'number' },
                   product: {
                     type: 'object',
                     properties: {
-                      id: { type: 'number' },
+                      id: { type: 'string' },
                       name: { type: 'string' },
                       price: { type: 'number' },
                       discountedPrice: { type: 'number' },
@@ -187,7 +187,7 @@ export class OrderController {
                   color: {
                     type: 'object',
                     properties: {
-                      id: { type: 'number' },
+                      id: { type: 'string' },
                       name: { type: 'string' },
                     },
                   },
@@ -198,7 +198,6 @@ export class OrderController {
                       isSold: { type: 'boolean' },
                     },
                   },
-                  price: { type: 'number' },
                 },
               },
             },
@@ -264,10 +263,12 @@ export class OrderController {
                 items: {
                   type: 'object',
                   properties: {
+                    originalPrice: { type: 'number' },
+                    discountedPrice: { type: 'number' },
                     product: {
                       type: 'object',
                       properties: {
-                        id: { type: 'number' },
+                        id: { type: 'string' },
                         name: { type: 'string' },
                         price: { type: 'number' },
                         discountedPrice: { type: 'number' },
@@ -277,11 +278,10 @@ export class OrderController {
                     color: {
                       type: 'object',
                       properties: {
-                        id: { type: 'number' },
+                        id: { type: 'string' },
                         name: { type: 'string' },
                       },
                     },
-                    price: { type: 'number' },
                   },
                 },
               },
@@ -338,10 +338,12 @@ export class OrderController {
               items: {
                 type: 'object',
                 properties: {
+                  originalPrice: { type: 'number' },
+                  discountedPrice: { type: 'number' },
                   product: {
                     type: 'object',
                     properties: {
-                      id: { type: 'number' },
+                      id: { type: 'string' },
                       name: { type: 'string' },
                       price: { type: 'number' },
                       discountedPrice: { type: 'number' },
@@ -351,7 +353,7 @@ export class OrderController {
                   color: {
                     type: 'object',
                     properties: {
-                      id: { type: 'number' },
+                      id: { type: 'string' },
                       name: { type: 'string' },
                     },
                   },
@@ -362,7 +364,6 @@ export class OrderController {
                       isSold: { type: 'boolean' },
                     },
                   },
-                  price: { type: 'number' },
                 },
               },
             },

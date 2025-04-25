@@ -84,7 +84,7 @@ export class StatisticsService {
 
     const detailedStats = deliveredOrders.flatMap(order =>
       order.orderDetails.map(detail => {
-        const sellingPrice = detail.price || 0; // Giá bán từ OrderDetail.price
+        const sellingPrice = detail.originalPrice || 0;
         const importPrice =
           detail.productIdentity?.purchaseOrderDetail?.importPrice || 0; // Giá nhập
         const profit = sellingPrice - importPrice; // Lợi nhuận cho sản phẩm này

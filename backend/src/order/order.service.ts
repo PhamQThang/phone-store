@@ -26,7 +26,6 @@ export class OrderService {
     const { address, paymentMethod, note, cartId, phoneNumber, cartItemIds } =
       createOrderDto;
 
-    // Kiểm tra cartId và cartItemIds trước khi vào transaction
     const cart = await this.prisma.cart.findUnique({
       where: { id: cartId, userId },
       include: {
@@ -56,7 +55,6 @@ export class OrderService {
       );
     }
 
-    // Tính toán totalAmount và kiểm tra productIdentity
     let totalAmount = 0;
     const orderDetails: any[] = [];
     const usedProductIdentityIds = new Set<string>();
@@ -104,17 +102,17 @@ export class OrderService {
           productId: product.id,
           colorId: color.id,
           productIdentityId: identity.id,
-          price: itemPrice,
+          originalPrice: product.price, // Lưu giá gốc
+          discountedPrice: itemPrice, // Lưu giá sau giảm
         });
       }
     }
 
-    // Xác định trạng thái ban đầu
     let initialStatus: string;
     let initialPaymentStatus: string;
 
     if (paymentMethod === 'Online') {
-      initialStatus = 'Pending'; // Chờ thanh toán VNPay
+      initialStatus = 'Pending';
       initialPaymentStatus = 'Pending';
     } else if (paymentMethod === 'COD') {
       initialStatus = 'Pending';
@@ -124,14 +122,12 @@ export class OrderService {
     }
 
     try {
-      // Tăng timeout transaction nếu cần
       const order = await this.prisma.$transaction(
         async tx => {
           const productIdentityIds = orderDetails.map(
             detail => detail.productIdentityId
           );
 
-          // Kiểm tra productIdentityId đã được sử dụng
           const existingOrderDetails = await tx.orderDetail.findMany({
             where: {
               productIdentityId: { in: productIdentityIds },
@@ -151,7 +147,6 @@ export class OrderService {
             );
           }
 
-          // Kiểm tra lại trạng thái isSold
           const existingProductIdentities = await tx.productIdentity.findMany({
             where: {
               id: { in: productIdentityIds },
@@ -166,7 +161,6 @@ export class OrderService {
             );
           }
 
-          // Tạo đơn hàng
           const newOrder = await tx.order.create({
             data: {
               userId,
@@ -180,22 +174,15 @@ export class OrderService {
             },
           });
 
-          // Tạo chi tiết đơn hàng
           const orderDetailsWithOrderId = orderDetails.map(detail => ({
             ...detail,
             orderId: newOrder.id,
           }));
 
-          try {
-            await tx.orderDetail.createMany({
-              data: orderDetailsWithOrderId,
-            });
-          } catch (error) {
-            console.error('Error in createMany orderDetail:', error);
-            throw new BadRequestException('Lỗi khi tạo chi tiết đơn hàng');
-          }
+          await tx.orderDetail.createMany({
+            data: orderDetailsWithOrderId,
+          });
 
-          // Cập nhật productIdentity
           await tx.productIdentity.updateMany({
             where: {
               id: { in: productIdentityIds },
@@ -203,14 +190,13 @@ export class OrderService {
             data: { isSold: true },
           });
 
-          // Xóa cart items
           await tx.cartItem.deleteMany({
             where: { id: { in: cartItemIds } },
           });
 
           return newOrder;
         },
-        { timeout: 10000 } // Tăng timeout lên 10 giây
+        { timeout: 10000 }
       );
 
       let paymentUrl: string | undefined;
@@ -259,6 +245,24 @@ export class OrderService {
 
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
+      include: {
+        user: { select: { id: true, fullName: true } },
+        orderDetails: {
+          include: {
+            product: {
+              include: {
+                productFiles: {
+                  include: {
+                    file: true,
+                  },
+                },
+              },
+            },
+            color: true,
+            productIdentity: true,
+          },
+        },
+      },
     });
 
     if (!order) {
@@ -273,24 +277,16 @@ export class OrderService {
     let newPaymentStatus = order.paymentStatus;
 
     if (vnpResponseCode === '00' && transactionStatus === '00') {
-      // Thanh toán thành công
       newStatus = 'Confirmed';
       newPaymentStatus = 'Completed';
     } else {
-      // Thanh toán thất bại
       newStatus = 'Canceled';
       newPaymentStatus = 'Failed';
 
-      // Hoàn lại productIdentity
       await this.prisma.productIdentity.updateMany({
         where: {
           id: {
-            in: (
-              await this.prisma.orderDetail.findMany({
-                where: { orderId },
-                select: { productIdentityId: true },
-              })
-            ).map(detail => detail.productIdentityId),
+            in: order.orderDetails.map(detail => detail.productIdentityId),
           },
         },
         data: { isSold: false },
@@ -307,7 +303,15 @@ export class OrderService {
         user: { select: { id: true, fullName: true } },
         orderDetails: {
           include: {
-            product: true,
+            product: {
+              include: {
+                productFiles: {
+                  include: {
+                    file: true,
+                  },
+                },
+              },
+            },
             color: true,
             productIdentity: true,
           },
@@ -315,9 +319,30 @@ export class OrderService {
       },
     });
 
+    const updatedOrderDetails = updatedOrder.orderDetails.map(detail => {
+      const mainImage =
+        detail.product.productFiles.find(pf => pf.isMain) ||
+        detail.product.productFiles[0];
+      const imageUrl = mainImage?.file?.url || null;
+
+      return {
+        ...detail,
+        product: {
+          ...detail.product,
+          price: detail.originalPrice, // Sử dụng giá gốc đã lưu
+          discountedPrice: detail.discountedPrice, // Sử dụng giá giảm đã lưu
+          imageUrl,
+        },
+      };
+    });
+
     return {
       orderId: updatedOrder.id,
       isSuccess: vnpResponseCode === '00' && transactionStatus === '00',
+      data: {
+        ...updatedOrder,
+        orderDetails: updatedOrderDetails,
+      },
     };
   }
 
@@ -406,10 +431,8 @@ export class OrderService {
 
     try {
       const updatedOrder = await this.prisma.$transaction(async tx => {
-        // Xác định trạng thái thanh toán mới
         let updatedPaymentStatus = order.paymentStatus;
 
-        // Nếu trạng thái mới là "Delivered" và là Admin/Employee, cập nhật paymentStatus
         if (
           isAdminOrEmployee &&
           newStatus === 'Delivered' &&
@@ -419,7 +442,6 @@ export class OrderService {
           updatedPaymentStatus = 'Completed';
         }
 
-        // Cập nhật trạng thái đơn hàng và trạng thái thanh toán trong cùng transaction
         const updated = await tx.order.update({
           where: { id: orderId },
           data: {
@@ -446,7 +468,6 @@ export class OrderService {
           },
         });
 
-        // Nếu trạng thái là "Canceled", cập nhật productIdentity
         if (newStatus === 'Canceled') {
           const productIdentityIds = order.orderDetails.map(
             detail => detail.productIdentityId
@@ -460,31 +481,22 @@ export class OrderService {
           }
         }
 
-        // Tính toán discountedPrice cho từng orderDetail
-        const updatedOrderDetails = await Promise.all(
-          updated.orderDetails.map(async detail => {
-            const discountedPrice =
-              await this.productsService.calculateDiscountedPrice(
-                detail.price,
-                detail.productId
-              );
+        const updatedOrderDetails = updated.orderDetails.map(detail => {
+          const mainImage =
+            detail.product.productFiles.find(pf => pf.isMain) ||
+            detail.product.productFiles[0];
+          const imageUrl = mainImage?.file?.url || null;
 
-            // Lấy URL hình ảnh chính (isMain = true) hoặc hình đầu tiên nếu không có hình chính
-            const mainImage =
-              detail.product.productFiles.find(pf => pf.isMain) ||
-              detail.product.productFiles[0];
-            const imageUrl = mainImage?.file?.url || null;
-
-            return {
-              ...detail,
-              product: {
-                ...detail.product,
-                discountedPrice,
-                imageUrl,
-              },
-            };
-          })
-        );
+          return {
+            ...detail,
+            product: {
+              ...detail.product,
+              price: detail.originalPrice, // Sử dụng giá gốc đã lưu
+              discountedPrice: detail.discountedPrice, // Sử dụng giá giảm đã lưu
+              imageUrl,
+            },
+          };
+        });
 
         return {
           ...updated,
@@ -492,7 +504,6 @@ export class OrderService {
         };
       });
 
-      // Trả về dữ liệu với cấu trúc giống getOrderDetails
       return {
         message: 'Cập nhật trạng thái đơn hàng thành công',
         data: updatedOrder,
@@ -558,37 +569,28 @@ export class OrderService {
       orderBy: { createdAt: 'desc' },
     });
 
-    const ordersWithDynamicPrices = await Promise.all(
-      orders.map(async order => {
-        const updatedOrderDetails = await Promise.all(
-          order.orderDetails.map(async detail => {
-            const discountedPrice =
-              await this.productsService.calculateDiscountedPrice(
-                detail.price,
-                detail.productId
-              );
+    const ordersWithDynamicPrices = orders.map(order => {
+      const updatedOrderDetails = order.orderDetails.map(detail => {
+        const mainImage =
+          detail.product.productFiles.find(pf => pf.isMain) ||
+          detail.product.productFiles[0];
+        const imageUrl = mainImage?.file?.url || null;
 
-            const mainImage =
-              detail.product.productFiles.find(pf => pf.isMain) ||
-              detail.product.productFiles[0];
-            const imageUrl = mainImage?.file?.url || null;
-
-            return {
-              ...detail,
-              product: {
-                ...detail.product,
-                discountedPrice,
-                imageUrl,
-              },
-            };
-          })
-        );
         return {
-          ...order,
-          orderDetails: updatedOrderDetails,
+          ...detail,
+          product: {
+            ...detail.product,
+            price: detail.originalPrice, // Sử dụng giá gốc đã lưu
+            discountedPrice: detail.discountedPrice, // Sử dụng giá giảm đã lưu
+            imageUrl,
+          },
         };
-      })
-    );
+      });
+      return {
+        ...order,
+        orderDetails: updatedOrderDetails,
+      };
+    });
 
     return {
       message: 'Lấy danh sách đơn hàng thành công',
@@ -641,30 +643,22 @@ export class OrderService {
       throw new BadRequestException('Bạn không có quyền xem đơn hàng này');
     }
 
-    const updatedOrderDetails = await Promise.all(
-      order.orderDetails.map(async detail => {
-        const discountedPrice =
-          await this.productsService.calculateDiscountedPrice(
-            detail.price,
-            detail.productId
-          );
+    const updatedOrderDetails = order.orderDetails.map(detail => {
+      const mainImage =
+        detail.product.productFiles.find(pf => pf.isMain) ||
+        detail.product.productFiles[0];
+      const imageUrl = mainImage?.file?.url || null;
 
-        // Lấy URL hình ảnh chính (isMain = true) hoặc hình đầu tiên nếu không có hình chính
-        const mainImage =
-          detail.product.productFiles.find(pf => pf.isMain) ||
-          detail.product.productFiles[0];
-        const imageUrl = mainImage?.file?.url || null;
-
-        return {
-          ...detail,
-          product: {
-            ...detail.product,
-            discountedPrice,
-            imageUrl, // Thêm trường imageUrl vào product
-          },
-        };
-      })
-    );
+      return {
+        ...detail,
+        product: {
+          ...detail.product,
+          price: detail.originalPrice, // Sử dụng giá gốc đã lưu
+          discountedPrice: detail.discountedPrice, // Sử dụng giá giảm đã lưu
+          imageUrl,
+        },
+      };
+    });
 
     return {
       message: 'Lấy chi tiết đơn hàng thành công',

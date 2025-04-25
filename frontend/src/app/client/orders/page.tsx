@@ -29,12 +29,10 @@ const OrdersPage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Format UUID để hiển thị ngắn gọn
   const formatOrderId = (id: string) => {
     return `${id.substring(0, 8)}...`;
   };
 
-  // Kiểm tra đăng nhập
   useEffect(() => {
     const user = localStorage.getItem("fullName");
     if (!user) {
@@ -62,7 +60,6 @@ const OrdersPage = () => {
 
     fetchOrders();
 
-    // Xử lý query parameters từ VNPay redirect
     const orderId = searchParams.get("orderId");
     const success = searchParams.get("success");
 
@@ -83,7 +80,6 @@ const OrdersPage = () => {
     }
   }, [router, searchParams]);
 
-  // Hàm dịch trạng thái sang tiếng Việt
   const translateStatus = (status: string) => {
     const statusMap: { [key: string]: string } = {
       Pending: "Đang chờ",
@@ -95,17 +91,14 @@ const OrdersPage = () => {
     return statusMap[status] || status;
   };
 
-  // Lọc đơn hàng theo trạng thái
   const filterOrdersByStatus = (status: string) => {
     return orders.filter((order) => order.status === status);
   };
 
-  // Chuyển hướng đến trang chi tiết đơn hàng
   const handleViewDetails = (orderId: string) => {
     router.push(`/client/orders/${orderId}`);
   };
 
-  // Hiển thị icon theo trạng thái
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "Pending":
@@ -123,7 +116,6 @@ const OrdersPage = () => {
     }
   };
 
-  // Màu sắc cho badge theo trạng thái
   const getStatusColor = (status: string) => {
     switch (status) {
       case "Pending":
@@ -169,7 +161,6 @@ const OrdersPage = () => {
   return (
     <div className="bg-gray-50 min-h-screen py-6 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
         <div className="mb-6 sm:mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
             Danh sách đơn hàng
@@ -179,7 +170,6 @@ const OrdersPage = () => {
           </p>
         </div>
 
-        {/* Tabs */}
         <Tabs defaultValue="all" className="w-full">
           <div className="overflow-x-auto pb-2">
             <TabsList className="flex w-max sm:w-full">
@@ -232,7 +222,6 @@ const OrdersPage = () => {
             </TabsList>
           </div>
 
-          {/* Tab: Tất cả đơn hàng */}
           <TabsContent value="all">
             {orders.length === 0 ? (
               <div className="bg-white rounded-lg shadow-sm p-6 sm:p-8 text-center">
@@ -259,7 +248,6 @@ const OrdersPage = () => {
                   >
                     <CardContent className="p-4 sm:p-6">
                       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
-                        {/* Order info - mobile */}
                         <div className="sm:hidden mb-3">
                           <div className="flex items-center justify-between">
                             <span className="font-medium text-gray-500 text-sm">
@@ -278,7 +266,6 @@ const OrdersPage = () => {
                           </div>
                         </div>
 
-                        {/* Order info - desktop */}
                         <div className="hidden sm:block">
                           <div className="flex items-center">
                             <span className="font-medium text-gray-500 text-sm mr-3">
@@ -308,21 +295,21 @@ const OrdersPage = () => {
                           </div>
                         </div>
 
-                        {/* Payment info */}
                         <div className="text-right">
                           <div className="hidden sm:block text-lg font-bold text-blue-600">
                             {order.totalAmount.toLocaleString("vi-VN")}₫
                           </div>
                           <div className="text-xs sm:text-sm text-gray-500 mt-1">
                             {order.paymentMethod} •{" "}
-                            {order.paymentStatus === "Paid"
+                            {order.paymentStatus === "Completed"
                               ? "Đã thanh toán"
-                              : "Chưa thanh toán"}
+                              : order.paymentStatus === "Pending"
+                              ? "Chưa thanh toán"
+                              : "Thanh toán thất bại"}
                           </div>
                         </div>
                       </div>
 
-                      {/* Products */}
                       <div className="mt-4 border-t pt-4">
                         <h4 className="text-sm font-medium text-gray-900 mb-2">
                           Sản phẩm
@@ -350,10 +337,21 @@ const OrdersPage = () => {
                                   Màu: {detail.color.name}
                                 </p>
                                 <p className="text-sm font-medium mt-1">
-                                  {detail.product.discountedPrice.toLocaleString(
+                                  {detail.discountedPrice?.toLocaleString(
                                     "vi-VN"
                                   )}
                                   ₫
+                                  {detail.discountedPrice &&
+                                    detail.originalPrice &&
+                                    detail.discountedPrice <
+                                      detail.originalPrice && (
+                                      <span className="text-sm text-gray-500 line-through ml-2">
+                                        {detail.originalPrice.toLocaleString(
+                                          "vi-VN"
+                                        )}
+                                        ₫
+                                      </span>
+                                    )}
                                 </p>
                               </div>
                             </div>
@@ -361,7 +359,6 @@ const OrdersPage = () => {
                         </div>
                       </div>
 
-                      {/* Action button */}
                       <div className="mt-4 flex justify-end">
                         <Button
                           onClick={() => handleViewDetails(order.id)}
@@ -379,7 +376,6 @@ const OrdersPage = () => {
             )}
           </TabsContent>
 
-          {/* Các tab trạng thái khác */}
           {["Pending", "Confirmed", "Shipping", "Delivered", "Canceled"].map(
             (status) => (
               <TabsContent key={status} value={status}>
@@ -404,7 +400,6 @@ const OrdersPage = () => {
                         className="hover:shadow-md transition-shadow"
                       >
                         <CardContent className="p-4 sm:p-6">
-                          {/* Cấu trúc giống như tab "all" */}
                           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
                             <div className="sm:hidden mb-3">
                               <div className="flex items-center justify-between">
@@ -459,9 +454,11 @@ const OrdersPage = () => {
                               </div>
                               <div className="text-xs sm:text-sm text-gray-500 mt-1">
                                 {order.paymentMethod} •{" "}
-                                {order.paymentStatus === "Paid"
+                                {order.paymentStatus === "Completed"
                                   ? "Đã thanh toán"
-                                  : "Chưa thanh toán"}
+                                  : order.paymentStatus === "Pending"
+                                  ? "Chưa thanh toán"
+                                  : "Thanh toán thất bại"}
                               </div>
                             </div>
                           </div>
@@ -490,14 +487,24 @@ const OrdersPage = () => {
                                       {detail.product.name}
                                     </p>
                                     <p className="text-xs text-gray-500">
-                                      {detail.color.name} • Số lượng:{" "}
-                                      {detail.quantity}
+                                      Màu: {detail.color.name}
                                     </p>
                                     <p className="text-sm font-medium mt-1">
-                                      {detail.product.discountedPrice.toLocaleString(
+                                      {detail.discountedPrice?.toLocaleString(
                                         "vi-VN"
                                       )}
                                       ₫
+                                      {detail.discountedPrice &&
+                                        detail.originalPrice &&
+                                        detail.discountedPrice <
+                                          detail.originalPrice && (
+                                          <span className="text-sm text-gray-500 line-through ml-2">
+                                            {detail.originalPrice.toLocaleString(
+                                              "vi-VN"
+                                            )}
+                                            ₫
+                                          </span>
+                                        )}
                                     </p>
                                   </div>
                                 </div>

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import React from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -27,11 +27,9 @@ const OrderDetailsPage = ({
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  // Unwrap params với React.use
   const unwrappedParams = React.use(params);
   const orderId = unwrappedParams.orderId;
 
-  // Kiểm tra đăng nhập
   const user = localStorage.getItem("fullName");
 
   useEffect(() => {
@@ -61,7 +59,6 @@ const OrderDetailsPage = ({
     fetchOrderDetails();
   }, [user, orderId, router]);
 
-  // Hàm dịch trạng thái sang tiếng Việt
   const translateStatus = (status: string) => {
     const statusMap: { [key: string]: string } = {
       Pending: "Đang chờ",
@@ -73,7 +70,6 @@ const OrderDetailsPage = ({
     return statusMap[status] || status;
   };
 
-  // Xử lý hủy đơn hàng (chỉ cho phép khi trạng thái là Pending)
   const handleUpdateStatus = async () => {
     if (order?.status !== "Pending") {
       toast.error("Bạn chỉ có thể hủy đơn hàng ở trạng thái Đang chờ", {
@@ -151,10 +147,9 @@ const OrderDetailsPage = ({
       <Card className="max-w-4xl mx-auto shadow-lg border border-gray-100 rounded-xl bg-white relative">
         <div className="p-6 sm:p-8">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-6">
-            Chi tiết đơn hàng #{order.id}
+            Chi tiết đơn hàng #{order.id.substring(0, 8)}...
           </h1>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Thông tin đơn hàng */}
             <div className="space-y-6">
               <h2 className="text-xl font-semibold text-gray-800 border-b pb-2">
                 Thông tin đơn hàng
@@ -243,7 +238,6 @@ const OrderDetailsPage = ({
               </div>
             </div>
 
-            {/* Danh sách sản phẩm */}
             <div className="space-y-6">
               <h2 className="text-xl font-semibold text-gray-800 border-b pb-2">
                 Sản phẩm trong đơn hàng
@@ -282,17 +276,17 @@ const OrderDetailsPage = ({
                           </TableCell>
                           <TableCell className="text-gray-800">
                             <span className="font-semibold text-blue-600">
-                              {(
-                                item.product.discountedPrice ?? 0
-                              ).toLocaleString("vi-VN")}{" "}
+                              {item.discountedPrice?.toLocaleString("vi-VN")}{" "}
                               VNĐ
                             </span>
-                            {(item.product.discountedPrice ?? 0) <
-                              item.product.price && (
-                              <span className="text-sm text-gray-400 line-through ml-2">
-                                {item.product.price.toLocaleString("vi-VN")} VNĐ
-                              </span>
-                            )}
+                            {item.discountedPrice &&
+                              item.originalPrice &&
+                              item.discountedPrice < item.originalPrice && (
+                                <span className="text-sm text-gray-400 line-through ml-2">
+                                  {item.originalPrice.toLocaleString("vi-VN")}{" "}
+                                  VNĐ
+                                </span>
+                              )}
                           </TableCell>
                         </TableRow>
                       ))}
@@ -303,7 +297,6 @@ const OrderDetailsPage = ({
             </div>
           </div>
 
-          {/* Nút Hủy đơn hàng */}
           {order.status === "Pending" && (
             <div className="mt-6 lg:absolute lg:bottom-8 lg:right-8 lg:w-auto">
               <Button

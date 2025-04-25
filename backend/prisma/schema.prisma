@@ -201,9 +201,10 @@ model OrderDetail {
   productId         String
   colorId           String
   productIdentityId String
-  price             Int
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @default(now()) @updatedAt
+  originalPrice     Float?
+  discountedPrice   Float?
   color             Color           @relation(fields: [colorId], references: [id])
   order             Order           @relation(fields: [orderId], references: [id])
   product           Product         @relation(fields: [productId], references: [id])
