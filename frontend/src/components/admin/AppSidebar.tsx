@@ -57,6 +57,12 @@ const items = [
     allowedRoles: ["Admin", "Employee"],
   },
   {
+    title: "Quản lý đơn bán hàng",
+    url: "/admin/orders",
+    icon: ShoppingCart,
+    allowedRoles: ["Admin", "Employee"],
+  },
+  {
     title: "Quản lý khuyến mãi",
     url: "/admin/promotions",
     icon: Sliders,

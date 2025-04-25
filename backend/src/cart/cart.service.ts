@@ -5,13 +5,17 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { ProductsService } from '../products/products.service'; // Import ProductsService
 import { CreateCartItemDto } from './dto/create-cart-item.dto';
 import { UpdateCartItemDto } from './dto/update-cart-item.dto';
 import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class CartService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly productsService: ProductsService // Inject ProductsService
+  ) {}
 
   async getCartItems(cartId: string) {
     const cart = await this.prisma.cart.findUnique({
@@ -33,9 +37,21 @@ export class CartService {
       throw new NotFoundException('Giỏ hàng không tồn tại');
     }
 
+    const cartItemsWithDiscountedPrice = await Promise.all(
+      cart.cartItems.map(async item => {
+        const productWithDiscountedPrice = await this.productsService.findOne(
+          item.product.id
+        );
+        return {
+          ...item,
+          product: productWithDiscountedPrice.data, // Lấy data từ kết quả
+        };
+      })
+    );
+
     return {
       message: 'Lấy danh sách sản phẩm trong giỏ hàng thành công',
-      data: cart.cartItems,
+      data: cartItemsWithDiscountedPrice,
     };
   }
 
@@ -47,9 +63,7 @@ export class CartService {
       throw new NotFoundException('Giỏ hàng không tồn tại');
     }
 
-    const product = await this.prisma.product.findUnique({
-      where: { id: productId },
-    });
+    const product = await this.productsService.findOne(productId);
     if (!product) {
       throw new BadRequestException('Sản phẩm không tồn tại');
     }
@@ -80,9 +94,15 @@ export class CartService {
           },
         });
 
+        const productWithDiscountedPrice = await this.productsService.findOne(
+          updatedCartItem.product.id
+        );
         return {
           message: 'Cập nhật số lượng sản phẩm trong giỏ hàng thành công',
-          data: updatedCartItem,
+          data: {
+            ...updatedCartItem,
+            product: productWithDiscountedPrice.data, // Lấy data từ kết quả
+          },
         };
       }
 
@@ -99,9 +119,15 @@ export class CartService {
         },
       });
 
+      const productWithDiscountedPrice = await this.productsService.findOne(
+        newCartItem.product.id
+      );
       return {
         message: 'Thêm sản phẩm vào giỏ hàng thành công',
-        data: newCartItem,
+        data: {
+          ...newCartItem,
+          product: productWithDiscountedPrice.data, // Lấy data từ kết quả
+        },
       };
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -141,9 +167,15 @@ export class CartService {
       },
     });
 
+    const productWithDiscountedPrice = await this.productsService.findOne(
+      updatedCartItem.product.id
+    );
     return {
       message: 'Cập nhật số lượng sản phẩm trong giỏ hàng thành công',
-      data: updatedCartItem,
+      data: {
+        ...updatedCartItem,
+        product: productWithDiscountedPrice.data, // Lấy data từ kết quả
+      },
     };
   }
 

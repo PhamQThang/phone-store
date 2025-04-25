@@ -38,8 +38,7 @@ export class AuthService {
         data: {
           email: dto.email,
           password: hashedPassword,
-          firstName: dto.firstName,
-          lastName: dto.lastName,
+          fullName: dto.fullName,
           address: dto.address,
           phoneNumber: dto.phoneNumber,
           roleId: dto.roleId,
@@ -64,8 +63,7 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
+        fullName: user.fullName,
         address: user.address,
         phoneNumber: user.phoneNumber,
         role: role.name,
@@ -101,8 +99,7 @@ export class AuthService {
       user: {
         id: user.id,
         email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
+        fullName: user.fullName,
         address: user.address,
         phoneNumber: user.phoneNumber,
         role: user.role.name,

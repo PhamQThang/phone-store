@@ -3,22 +3,13 @@ import { ApiProperty } from '@nestjs/swagger';
 
 export class UpdateUserDto {
   @ApiProperty({
-    description: 'Tên của người dùng',
-    example: 'John',
+    description: 'Họ và tên của người dùng',
+    example: 'John Doe',
     required: false,
   })
   @IsOptional()
-  @IsString({ message: 'Tên phải là chuỗi' })
-  firstName?: string;
-
-  @ApiProperty({
-    description: 'Họ của người dùng',
-    example: 'Doe',
-    required: false,
-  })
-  @IsOptional()
-  @IsString({ message: 'Họ phải là chuỗi' })
-  lastName?: string;
+  @IsString({ message: 'Họ và tên phải là chuỗi' })
+  fullName?: string;
 
   @ApiProperty({
     description: 'Địa chỉ của người dùng',

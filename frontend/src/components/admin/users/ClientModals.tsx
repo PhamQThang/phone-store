@@ -70,14 +70,14 @@ export default function ClientModals({
 
   // Lọc danh sách người dùng dựa trên từ khóa tìm kiếm
   const filteredCustomers = customers.filter((user) =>
-    [user.email, user.firstName, user.lastName]
+    [user.email, user.fullName]
       .join(" ")
       .toLowerCase()
       .includes(searchTerm.toLowerCase())
   );
 
   const filteredEmployees = employees.filter((user) =>
-    [user.email, user.firstName, user.lastName]
+    [user.email, user.fullName]
       .join(" ")
       .toLowerCase()
       .includes(searchTerm.toLowerCase())
@@ -87,8 +87,7 @@ export default function ClientModals({
   const handleCreateUser = async (data: {
     email: string;
     password: string;
-    firstName: string;
-    lastName: string;
+    fullName: string;
     address: string;
     phoneNumber: string;
     roleId: number;
@@ -98,8 +97,7 @@ export default function ClientModals({
       const formData = new FormData();
       formData.append("email", data.email);
       formData.append("password", data.password);
-      formData.append("firstName", data.firstName);
-      formData.append("lastName", data.lastName);
+      formData.append("fullName", data.fullName);
       formData.append("address", data.address);
       formData.append("phoneNumber", data.phoneNumber);
       formData.append("roleId", data.roleId.toString());
@@ -126,8 +124,7 @@ export default function ClientModals({
 
   // Sửa người dùng
   const handleEditUser = async (data: {
-    firstName: string;
-    lastName: string;
+    fullName: string;
     address?: string;
     phoneNumber?: string;
     password?: string;
@@ -136,8 +133,7 @@ export default function ClientModals({
     setIsEditing(true);
     try {
       const formData = new FormData();
-      formData.append("firstName", data.firstName);
-      formData.append("lastName", data.lastName);
+      formData.append("fullName", data.fullName);
       if (data.address) formData.append("address", data.address);
       if (data.phoneNumber) formData.append("phoneNumber", data.phoneNumber);
       if (data.password) formData.append("password", data.password);
@@ -358,7 +354,7 @@ export default function ClientModals({
                           {user.email}
                         </TableCell>
                         <TableCell className="text-xs sm:text-sm">
-                          {user.firstName} {user.lastName}
+                          {user.fullName}
                         </TableCell>
                         <TableCell className="text-xs sm:text-sm">
                           {user.role.name}
@@ -426,7 +422,7 @@ export default function ClientModals({
                   >
                     <CardHeader>
                       <CardTitle className="text-sm font-medium">
-                        {user.firstName} {user.lastName}
+                        {user.fullName}
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="text-xs space-y-2">
@@ -545,7 +541,7 @@ export default function ClientModals({
                           {user.email}
                         </TableCell>
                         <TableCell className="text-xs sm:text-sm">
-                          {user.firstName} {user.lastName}
+                          {user.fullName}
                         </TableCell>
                         <TableCell className="text-xs sm:text-sm">
                           {user.role.name}
@@ -613,7 +609,7 @@ export default function ClientModals({
                   >
                     <CardHeader>
                       <CardTitle className="text-sm font-medium">
-                        {user.firstName} {user.lastName}
+                        {user.fullName}
                       </CardTitle>
                     </CardHeader>
                     <CardContent className="text-xs space-y-2">

@@ -16,21 +16,17 @@ export class ProductsService {
     private readonly cloudinaryService: CloudinaryService
   ) {}
 
-  // Hàm tính giá sau khi giảm dựa trên khuyến mãi
   public async calculateDiscountedPrice(
     price: number,
     productId?: string
   ): Promise<number> {
     if (!productId) {
-      return price; // Khi tạo mới, chưa có khuyến mãi nên trả về giá gốc
+      return price;
     }
 
-    // Lấy danh sách khuyến mãi liên quan đến sản phẩm
     const promotions = await this.prisma.productPromotion.findMany({
       where: { productId },
-      include: {
-        promotion: true,
-      },
+      include: { promotion: true },
     });
 
     const now = new Date();
@@ -42,32 +38,11 @@ export class ProductsService {
 
     if (activePromotion) {
       const discount = activePromotion.promotion.discount || 0;
-      return Math.max(0, price - discount); // Đảm bảo giá không âm
+      return Math.max(0, price - discount);
     }
-    return price; // Nếu không có khuyến mãi, trả về giá gốc
+    return price;
   }
 
-  // Đồng bộ giá giảm cho một sản phẩm cụ thể
-  async syncDiscountedPriceForProduct(productId: string) {
-    const product = await this.prisma.product.findUnique({
-      where: { id: productId },
-    });
-
-    if (!product) {
-      throw new NotFoundException('Sản phẩm không tồn tại');
-    }
-
-    const discountedPrice = await this.calculateDiscountedPrice(
-      product.price,
-      productId
-    );
-    await this.prisma.product.update({
-      where: { id: productId },
-      data: { discountedPrice },
-    });
-  }
-
-  // Tạo một sản phẩm mới
   async create(createProductDto: CreateProductDto) {
     const {
       name,
@@ -82,7 +57,6 @@ export class ProductsService {
       files,
     } = createProductDto;
 
-    // Kiểm tra model có tồn tại không
     const model = await this.prisma.model.findUnique({
       where: { id: modelId },
     });
@@ -94,16 +68,11 @@ export class ProductsService {
       const slug =
         name.toLowerCase().replace(/\s+/g, '-') + '-' + storage + 'gb';
 
-      // Khi tạo mới, chưa có khuyến mãi nên discountedPrice = price
-      const discountedPrice = price;
-
-      // Tạo sản phẩm với các thuộc tính mới
       const product = await this.prisma.product.create({
         data: {
           name,
           slug,
           price,
-          discountedPrice, // Lưu giá sau khi giảm (bằng giá gốc ban đầu)
           storage,
           ram,
           screenSize,
@@ -114,7 +83,6 @@ export class ProductsService {
         },
       });
 
-      // Upload ảnh lên Cloudinary và lưu vào bảng File
       if (files && files.length > 0) {
         const filePromises = files.map(async (file, index) => {
           const uploadResult = await this.cloudinaryService.uploadFile(file);
@@ -128,12 +96,11 @@ export class ProductsService {
             },
           });
 
-          // Liên kết file với sản phẩm qua bảng ProductFiles
           await this.prisma.productFiles.create({
             data: {
               productId: product.id,
               fileId: fileRecord.id,
-              isMain: index === 0, // Ảnh đầu tiên là ảnh chính
+              isMain: index === 0,
             },
           });
 
@@ -143,7 +110,6 @@ export class ProductsService {
         await Promise.all(filePromises);
       }
 
-      // Lấy lại sản phẩm với thông tin đầy đủ
       const createdProduct = await this.prisma.product.findUnique({
         where: { id: product.id },
         include: {
@@ -153,9 +119,18 @@ export class ProductsService {
         },
       });
 
+      // Tính discountedPrice động khi trả về
+      const discountedPrice = await this.calculateDiscountedPrice(
+        createdProduct.price,
+        createdProduct.id
+      );
+
       return {
         message: 'Tạo sản phẩm thành công',
-        data: createdProduct,
+        data: {
+          ...createdProduct,
+          discountedPrice, // Thêm discountedPrice vào dữ liệu trả về
+        },
       };
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -167,25 +142,21 @@ export class ProductsService {
     }
   }
 
-  // Lấy danh sách tất cả các sản phẩm, hỗ trợ lọc theo brandSlug và modelSlug
   async findAll(brandSlug?: string, modelSlug?: string) {
     const where: Prisma.ProductWhereInput = {
       model: {},
     };
 
-    // Lọc theo brandSlug
     if (brandSlug) {
       where.model.brand = {
         slug: brandSlug,
       };
     }
 
-    // Lọc theo modelSlug
     if (modelSlug) {
       where.model.slug = modelSlug;
     }
 
-    // Nếu không có điều kiện lọc nào, xóa model để không áp dụng bộ lọc rỗng
     if (!brandSlug && !modelSlug) {
       delete where.model;
     }
@@ -208,13 +179,26 @@ export class ProductsService {
       orderBy: { createdAt: 'desc' },
     });
 
+    // Tính discountedPrice động cho từng sản phẩm
+    const productsWithDiscountedPrice = await Promise.all(
+      products.map(async product => {
+        const discountedPrice = await this.calculateDiscountedPrice(
+          product.price,
+          product.id
+        );
+        return {
+          ...product,
+          discountedPrice,
+        };
+      })
+    );
+
     return {
       message: 'Lấy danh sách sản phẩm thành công',
-      data: products,
+      data: productsWithDiscountedPrice,
     };
   }
 
-  // Lấy thông tin chi tiết của một sản phẩm theo ID
   async findOne(id: string) {
     const product = await this.prisma.product.findUnique({
       where: { id },
@@ -238,13 +222,21 @@ export class ProductsService {
       throw new NotFoundException('Sản phẩm không tồn tại');
     }
 
+    // Tính discountedPrice động
+    const discountedPrice = await this.calculateDiscountedPrice(
+      product.price,
+      product.id
+    );
+
     return {
       message: 'Lấy thông tin sản phẩm thành công',
-      data: product,
+      data: {
+        ...product,
+        discountedPrice,
+      },
     };
   }
 
-  // Lấy danh sách các sản phẩm tương tự (dựa trên giá gần giống)
   async findSimilar(id: string) {
     const product = await this.prisma.product.findUnique({
       where: { id },
@@ -260,15 +252,15 @@ export class ProductsService {
     }
 
     const brandId = product.model.brandId;
-    const priceRange = 0.2; // ±20% giá
+    const priceRange = 0.2;
     const minPrice = product.price * (1 - priceRange);
     const maxPrice = product.price * (1 + priceRange);
 
     const similarProducts = await this.prisma.product.findMany({
       where: {
-        id: { not: id }, // Loại bỏ chính sản phẩm hiện tại
+        id: { not: id },
         model: {
-          brandId: brandId, // Cùng thương hiệu
+          brandId: brandId,
         },
         price: {
           gte: minPrice,
@@ -288,17 +280,30 @@ export class ProductsService {
           },
         },
       },
-      take: 4, // Giới hạn tối đa 4 sản phẩm tương tự
+      take: 4,
       orderBy: { createdAt: 'desc' },
     });
 
+    // Tính discountedPrice động cho từng sản phẩm
+    const similarProductsWithDiscountedPrice = await Promise.all(
+      similarProducts.map(async product => {
+        const discountedPrice = await this.calculateDiscountedPrice(
+          product.price,
+          product.id
+        );
+        return {
+          ...product,
+          discountedPrice,
+        };
+      })
+    );
+
     return {
       message: 'Lấy danh sách sản phẩm tương tự thành công',
-      data: similarProducts,
+      data: similarProductsWithDiscountedPrice,
     };
   }
 
-  // Cập nhật thông tin của một sản phẩm
   async update(id: string, updateProductDto: UpdateProductDto) {
     const product = await this.prisma.product.findUnique({
       where: { id },
@@ -332,7 +337,6 @@ export class ProductsService {
       }
     }
 
-    // Kiểm tra nếu không có thay đổi
     const hasChanges =
       name !== undefined ||
       price !== undefined ||
@@ -359,18 +363,12 @@ export class ProductsService {
           ? name.toLowerCase().replace(/\s+/g, '-') + '-' + storage + 'gb'
           : undefined;
 
-      // Tính giá sau khi giảm (dùng giá mới nếu có, nếu không dùng giá cũ)
-      const newPrice = price !== undefined ? price : product.price;
-      const discountedPrice = await this.calculateDiscountedPrice(newPrice, id);
-
-      // Cập nhật sản phẩm với các thuộc tính mới
       const updatedProduct = await this.prisma.product.update({
         where: { id },
         data: {
           name: name || undefined,
           slug: slug || undefined,
           price: price || undefined,
-          discountedPrice, // Cập nhật giá sau khi giảm
           storage: storage || undefined,
           ram: ram || undefined,
           screenSize: screenSize || undefined,
@@ -381,7 +379,6 @@ export class ProductsService {
         },
       });
 
-      // Xóa các ảnh được chỉ định trong filesToDelete
       if (filesToDelete && filesToDelete.length > 0) {
         const deletePromises = filesToDelete.map(async fileId => {
           const productFile = await this.prisma.productFiles.findUnique({
@@ -413,7 +410,6 @@ export class ProductsService {
         await Promise.all(deletePromises);
       }
 
-      // Thêm ảnh mới nếu có
       if (files && files.length > 0) {
         const filePromises = files.map(async (file, index) => {
           const uploadResult = await this.cloudinaryService.uploadFile(file);
@@ -427,7 +423,6 @@ export class ProductsService {
             },
           });
 
-          // Liên kết file với sản phẩm qua bảng ProductFiles
           await this.prisma.productFiles.create({
             data: {
               productId: product.id,
@@ -442,7 +437,6 @@ export class ProductsService {
         await Promise.all(filePromises);
       }
 
-      // Lấy lại sản phẩm với thông tin đầy đủ
       const finalProduct = await this.prisma.product.findUnique({
         where: { id: updatedProduct.id },
         include: {
@@ -452,9 +446,18 @@ export class ProductsService {
         },
       });
 
+      // Tính discountedPrice động
+      const discountedPrice = await this.calculateDiscountedPrice(
+        finalProduct.price,
+        finalProduct.id
+      );
+
       return {
         message: 'Cập nhật sản phẩm thành công',
-        data: finalProduct,
+        data: {
+          ...finalProduct,
+          discountedPrice,
+        },
       };
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
@@ -466,7 +469,6 @@ export class ProductsService {
     }
   }
 
-  // Xóa một sản phẩm
   async remove(id: string) {
     const product = await this.prisma.product.findUnique({
       where: { id },
@@ -478,7 +480,6 @@ export class ProductsService {
     }
 
     try {
-      // Xóa các ảnh trên Cloudinary và trong database
       const deletePromises = product.productFiles.map(async productFile => {
         await this.cloudinaryService.deleteFile(productFile.file.public_id);
         await this.prisma.productFiles.delete({
@@ -496,7 +497,6 @@ export class ProductsService {
 
       await Promise.all(deletePromises);
 
-      // Xóa sản phẩm
       await this.prisma.product.delete({
         where: { id },
       });
@@ -508,7 +508,7 @@ export class ProductsService {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2003') {
           throw new BadRequestException(
-            'Không thể xóa sản phẩm vì có dữ liệu liên quan (product identities, order details, v.v.)'
+            'Không thể xóa sản phẩm vì có dữ liệu liên quan'
           );
         }
       }
@@ -516,7 +516,6 @@ export class ProductsService {
     }
   }
 
-  // Xóa một file của sản phẩm
   async removeFile(productId: string, fileId: string) {
     const product = await this.prisma.product.findUnique({
       where: { id: productId },
@@ -541,10 +540,7 @@ export class ProductsService {
     }
 
     try {
-      // Xóa file trên Cloudinary
       await this.cloudinaryService.deleteFile(productFile.file.public_id);
-
-      // Xóa bản ghi trong ProductFiles
       await this.prisma.productFiles.delete({
         where: {
           productId_fileId: {
@@ -553,8 +549,6 @@ export class ProductsService {
           },
         },
       });
-
-      // Xóa bản ghi trong File
       await this.prisma.file.delete({
         where: { id: fileId },
       });

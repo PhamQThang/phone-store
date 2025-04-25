@@ -35,8 +35,7 @@ export class AuthController {
         user: {
           id: 1,
           email: 'user@example.com',
-          firstName: 'John',
-          lastName: 'Doe',
+          fullName: 'John Doe',
           address: '123 Đường Láng, Đống Đa, Hà Nội',
           phoneNumber: '0912345678',
           role: 'USER',
@@ -65,11 +64,11 @@ export class AuthController {
         user: {
           id: 1,
           email: 'user@example.com',
-          firstName: 'John',
-          lastName: 'Doe',
+          fullName: 'John Doe',
           address: '123 Đường Láng, Đống Đa, Hà Nội',
           phoneNumber: '0912345678',
           role: 'USER',
+          cartId: 'cart-id-here',
         },
       },
     },

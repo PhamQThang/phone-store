@@ -58,9 +58,7 @@ export default function ClientPurchaseOrders({
     [
       order.supplier?.name || "",
       order.status,
-      order.createdBy
-        ? `${order.createdBy.firstName} ${order.createdBy.lastName}`
-        : "",
+      order.createdBy ? order.createdBy.fullName : "",
     ]
       .join(" ")
       .toLowerCase()
@@ -366,7 +364,7 @@ export default function ClientPurchaseOrders({
                     </TableCell>
                     <TableCell className="text-xs sm:text-sm">
                       {order.createdBy
-                        ? `${order.createdBy.firstName} ${order.createdBy.lastName}`
+                        ? order.createdBy.fullName
                         : "Không xác định"}
                     </TableCell>
                     <TableCell>
@@ -458,7 +456,7 @@ export default function ClientPurchaseOrders({
                   <p>
                     <strong>Người tạo:</strong>{" "}
                     {order.createdBy
-                      ? `${order.createdBy.firstName} ${order.createdBy.lastName}`
+                      ? order.createdBy.fullName
                       : "Không xác định"}
                   </p>
                   <div className="flex space-x-2 pt-2">

@@ -4,7 +4,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { ProductsService } from '../products/products.service'; // Inject ProductsService
+import { ProductsService } from '../products/products.service';
 import { CreatePromotionDto } from './dto/create-promotion.dto';
 import { UpdatePromotionDto } from './dto/update-promotion.dto';
 import { AddProductToPromotionDto } from './dto/add-product-to-promotion.dto';
@@ -14,7 +14,7 @@ import { Prisma } from '@prisma/client';
 export class PromotionsService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly productsService: ProductsService // Inject ProductsService
+    private readonly productsService: ProductsService
   ) {}
 
   async create(createPromotionDto: CreatePromotionDto) {
@@ -138,13 +138,7 @@ export class PromotionsService {
         },
       });
 
-      // Đồng bộ giá giảm cho tất cả sản phẩm liên quan
-      const productIds = updatedPromotion.products.map(p => p.productId);
-      await Promise.all(
-        productIds.map(productId =>
-          this.productsService.syncDiscountedPriceForProduct(productId)
-        )
-      );
+      // Không cần đồng bộ giá vì đã tính động trong ProductsService
 
       return {
         message: 'Cập nhật khuyến mãi thành công',
@@ -177,25 +171,15 @@ export class PromotionsService {
     }
 
     try {
-      // Lấy danh sách sản phẩm liên quan để đồng bộ giá sau khi xóa
-      const productIds = promotion.products.map(p => p.productId);
-
-      // Xóa các liên kết trong ProductPromotion
       await this.prisma.productPromotion.deleteMany({
         where: { promotionId: id },
       });
 
-      // Xóa khuyến mãi
       await this.prisma.promotion.delete({
         where: { id },
       });
 
-      // Đồng bộ giá giảm cho các sản phẩm bị ảnh hưởng
-      await Promise.all(
-        productIds.map(productId =>
-          this.productsService.syncDiscountedPriceForProduct(productId)
-        )
-      );
+      // Không cần đồng bộ giá vì đã tính động trong ProductsService
 
       return {
         message: 'Xóa khuyến mãi thành công',
@@ -256,8 +240,7 @@ export class PromotionsService {
       },
     });
 
-    // Đồng bộ giá giảm cho sản phẩm vừa thêm
-    await this.productsService.syncDiscountedPriceForProduct(productId);
+    // Không cần đồng bộ giá vì đã tính động trong ProductsService
 
     return {
       message: 'Thêm sản phẩm vào khuyến mãi thành công',
@@ -295,8 +278,7 @@ export class PromotionsService {
       },
     });
 
-    // Đồng bộ giá giảm cho sản phẩm vừa xóa
-    await this.productsService.syncDiscountedPriceForProduct(productId);
+    // Không cần đồng bộ giá vì đã tính động trong ProductsService
 
     return {
       message: 'Xóa sản phẩm khỏi khuyến mãi thành công',

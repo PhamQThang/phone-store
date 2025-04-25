@@ -52,7 +52,7 @@ export function PurchaseOrderDetail({
               <p>
                 <strong>Người tạo:</strong>{" "}
                 {purchaseOrder.createdBy
-                  ? `${purchaseOrder.createdBy.firstName} ${purchaseOrder.createdBy.lastName}`
+                  ? purchaseOrder.createdBy.fullName
                   : "Không xác định"}
               </p>
               <p>
