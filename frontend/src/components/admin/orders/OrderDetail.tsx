@@ -34,7 +34,7 @@ export function OrderDetail({ open, onOpenChange, order }: OrderDetailProps) {
       <DialogContent className="w-full max-w-md p-4 sm:p-6">
         <DialogHeader>
           <DialogTitle className="text-lg sm:text-xl">
-            Chi tiết đơn hàng
+            Chi tiết đơn hàng #{order.id.substring(0, 8)}...
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-3 text-sm sm:text-base">
@@ -61,7 +61,9 @@ export function OrderDetail({ open, onOpenChange, order }: OrderDetailProps) {
             <strong>Trạng thái thanh toán:</strong>{" "}
             {order.paymentStatus === "Completed"
               ? "Đã thanh toán"
-              : "Chưa thanh toán"}
+              : order.paymentStatus === "Pending"
+              ? "Chưa thanh toán"
+              : "Thanh toán thất bại"}
           </div>
           <div>
             <strong>Trạng thái:</strong> {translateStatus(order.status)}
@@ -79,7 +81,14 @@ export function OrderDetail({ open, onOpenChange, order }: OrderDetailProps) {
               {order.orderDetails.map((item: OrderDetail, index: number) => (
                 <li key={index}>
                   {item.product.name} - Màu: {item.color.name} - Giá:{" "}
-                  {item.price.toLocaleString("vi-VN")} VNĐ
+                  {item.discountedPrice?.toLocaleString("vi-VN")} VNĐ
+                  {item.discountedPrice &&
+                    item.originalPrice &&
+                    item.discountedPrice < item.originalPrice && (
+                      <span className="text-sm text-gray-500 line-through ml-2">
+                        {item.originalPrice.toLocaleString("vi-VN")} VNĐ
+                      </span>
+                    )}
                 </li>
               ))}
             </ul>

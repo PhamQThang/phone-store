@@ -12,11 +12,11 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Edit, Trash, Eye, Search, X } from "lucide-react";
+import { Edit, Eye, Search, X } from "lucide-react";
 import { Order } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { OrderDetail } from "./OrderDetail";
 import { OrderForm } from "./OrderForm";
 
@@ -37,7 +37,6 @@ export default function ClientOrders({
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [isViewing, setIsViewing] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("all");
@@ -123,7 +122,7 @@ export default function ClientOrders({
       const result = await getOrderDetailAction(id);
       if (result.success) {
         setSelectedOrder(result.order);
-        setIsEditOpen(true);
+        setIsEditOpen(true); // Mở dialog chỉnh sửa, hiển thị chi tiết
         toast.success("Tải thông tin đơn hàng thành công");
       } else {
         toast.error("Lỗi khi lấy thông tin đơn hàng", {
@@ -141,7 +140,7 @@ export default function ClientOrders({
     }
   };
 
-  const isLoading = isUpdating || isDeleting || isViewing;
+  const isLoading = isUpdating || isViewing;
 
   return (
     <div className="relative">
