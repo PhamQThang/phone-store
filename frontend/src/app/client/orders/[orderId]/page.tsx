@@ -14,8 +14,18 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { getOrderDetails, updateOrderStatus } from "@/api/orderApi";
-import { Order } from "@/lib/types";
+import { createWarrantyRequest, getWarrantyRequests } from "@/api/warrantyApi";
+import { Order, WarrantyRequest } from "@/lib/types";
 
 const OrderDetailsPage = ({
   params,
@@ -23,6 +33,9 @@ const OrderDetailsPage = ({
   params: Promise<{ orderId: string }>;
 }) => {
   const [order, setOrder] = useState<Order | null>(null);
+  const [warrantyRequests, setWarrantyRequests] = useState<WarrantyRequest[]>(
+    []
+  );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -31,6 +44,19 @@ const OrderDetailsPage = ({
   const orderId = unwrappedParams.orderId;
 
   const user = localStorage.getItem("fullName");
+  const userEmail = localStorage.getItem("userEmail");
+  const userPhone = localStorage.getItem("phoneNumber");
+
+  const [isWarrantyModalOpen, setIsWarrantyModalOpen] = useState(false);
+  const [selectedProductIdentityId, setSelectedProductIdentityId] = useState<
+    string | null
+  >(null);
+  const [warrantyForm, setWarrantyForm] = useState({
+    reason: "",
+    fullName: user || "",
+    phoneNumber: userPhone || "",
+    email: userEmail || "",
+  });
 
   useEffect(() => {
     if (!user) {
@@ -38,10 +64,15 @@ const OrderDetailsPage = ({
       return;
     }
 
-    const fetchOrderDetails = async () => {
+    const fetchData = async () => {
       try {
+        // Lấy chi tiết đơn hàng
         const orderData = await getOrderDetails(orderId);
         setOrder(orderData);
+
+        // Lấy danh sách yêu cầu bảo hành để kiểm tra
+        const warrantyRequestsData = await getWarrantyRequests();
+        setWarrantyRequests(warrantyRequestsData);
       } catch (error: any) {
         setError(
           error.response?.data?.message || "Không thể lấy chi tiết đơn hàng"
@@ -56,7 +87,7 @@ const OrderDetailsPage = ({
       }
     };
 
-    fetchOrderDetails();
+    fetchData();
   }, [user, orderId, router]);
 
   const translateStatus = (status: string) => {
@@ -87,6 +118,62 @@ const OrderDetailsPage = ({
     } catch (error: any) {
       toast.error("Lỗi", {
         description: error.response?.data?.message || "Không thể hủy đơn hàng",
+        duration: 2000,
+      });
+    }
+  };
+
+  const isWithinWarrantyPeriod = (warrantyEndDate: string | undefined) => {
+    if (!warrantyEndDate) return false;
+    const currentDate = new Date();
+    const endDate = new Date(warrantyEndDate);
+    return currentDate <= endDate;
+  };
+
+  const hasPendingWarrantyRequest = (productIdentityId: string) => {
+    return warrantyRequests.some(
+      (request) =>
+        request.productIdentityId === productIdentityId &&
+        ["Pending", "Approved"].includes(request.status)
+    );
+  };
+
+  const handleOpenWarrantyModal = (productIdentityId: string) => {
+    setSelectedProductIdentityId(productIdentityId);
+    setWarrantyForm({
+      reason: "",
+      fullName: user || "",
+      phoneNumber: userPhone || "",
+      email: userEmail || "",
+    });
+    setIsWarrantyModalOpen(true);
+  };
+
+  const handleWarrantyFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setWarrantyForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmitWarrantyRequest = async () => {
+    if (!selectedProductIdentityId) return;
+
+    try {
+      const warrantyRequestData = {
+        productIdentityId: selectedProductIdentityId,
+        reason: warrantyForm.reason,
+        fullName: warrantyForm.fullName,
+        phoneNumber: warrantyForm.phoneNumber,
+        email: warrantyForm.email,
+      };
+
+      const response = await createWarrantyRequest(warrantyRequestData);
+      setWarrantyRequests((prev) => [...prev, response]);
+      setIsWarrantyModalOpen(false);
+      toast.success("Tạo yêu cầu bảo hành thành công", { duration: 2000 });
+    } catch (error: any) {
+      toast.error("Lỗi", {
+        description:
+          error.response?.data?.message || "Không thể tạo yêu cầu bảo hành",
         duration: 2000,
       });
     }
@@ -260,36 +347,194 @@ const OrderDetailsPage = ({
                         <TableHead className="text-gray-700 font-semibold">
                           Giá
                         </TableHead>
+                        <TableHead className="text-gray-700 font-semibold">
+                          Thời hạn bảo hành
+                        </TableHead>
+                        <TableHead className="text-gray-700 font-semibold">
+                          Số lần bảo hành
+                        </TableHead>
+                        <TableHead className="text-gray-700 font-semibold">
+                          Hành động
+                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {order.orderDetails.map((item, index) => (
-                        <TableRow
-                          key={index}
-                          className="hover:bg-blue-50 transition-colors"
-                        >
-                          <TableCell className="font-medium text-gray-800">
-                            {item.product.name}
-                          </TableCell>
-                          <TableCell className="text-gray-600">
-                            {item.color.name}
-                          </TableCell>
-                          <TableCell className="text-gray-800">
-                            <span className="font-semibold text-blue-600">
-                              {item.discountedPrice?.toLocaleString("vi-VN")}{" "}
-                              VNĐ
-                            </span>
-                            {item.discountedPrice &&
-                              item.originalPrice &&
-                              item.discountedPrice < item.originalPrice && (
-                                <span className="text-sm text-gray-400 line-through ml-2">
-                                  {item.originalPrice.toLocaleString("vi-VN")}{" "}
-                                  VNĐ
+                      {order.orderDetails.map((item, index) => {
+                        const withinWarranty = isWithinWarrantyPeriod(
+                          item.productIdentity.warrantyEndDate
+                        );
+                        const hasWarrantyRequest = hasPendingWarrantyRequest(
+                          item.productIdentityId
+                        );
+                        const isOrderDelivered = order.status === "Delivered";
+
+                        return (
+                          <TableRow
+                            key={index}
+                            className="hover:bg-blue-50 transition-colors"
+                          >
+                            <TableCell className="font-medium text-gray-800">
+                              {item.product.name}
+                            </TableCell>
+                            <TableCell className="text-gray-600">
+                              {item.color.name}
+                            </TableCell>
+                            <TableCell className="text-gray-800">
+                              <span className="font-semibold text-blue-600">
+                                {item.discountedPrice?.toLocaleString("vi-VN")}{" "}
+                                VNĐ
+                              </span>
+                              {item.discountedPrice &&
+                                item.originalPrice &&
+                                item.discountedPrice < item.originalPrice && (
+                                  <span className="text-sm text-gray-400 line-through ml-2">
+                                    {item.originalPrice.toLocaleString("vi-VN")}{" "}
+                                    VNĐ
+                                  </span>
+                                )}
+                            </TableCell>
+                            <TableCell className="text-gray-600">
+                              {item.productIdentity.warrantyEndDate ? (
+                                withinWarranty ? (
+                                  <span className="text-green-600">
+                                    Còn hạn đến{" "}
+                                    {new Date(
+                                      item.productIdentity.warrantyEndDate
+                                    ).toLocaleDateString("vi-VN")}
+                                  </span>
+                                ) : (
+                                  <span className="text-red-600">
+                                    Hết hạn{" "}
+                                    {new Date(
+                                      item.productIdentity.warrantyEndDate
+                                    ).toLocaleDateString("vi-VN")}
+                                  </span>
+                                )
+                              ) : (
+                                "Không có"
+                              )}
+                            </TableCell>
+                            <TableCell className="text-gray-600">
+                              {item.productIdentity.warrantyCount || 0} lần
+                            </TableCell>
+                            <TableCell>
+                              {withinWarranty &&
+                              !hasWarrantyRequest &&
+                              isOrderDelivered ? (
+                                <Dialog
+                                  open={isWarrantyModalOpen}
+                                  onOpenChange={setIsWarrantyModalOpen}
+                                >
+                                  <DialogTrigger asChild>
+                                    <Button
+                                      onClick={() =>
+                                        handleOpenWarrantyModal(
+                                          item.productIdentityId
+                                        )
+                                      }
+                                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                                    >
+                                      Yêu cầu bảo hành
+                                    </Button>
+                                  </DialogTrigger>
+                                  <DialogContent className="sm:max-w-[425px]">
+                                    <DialogHeader>
+                                      <DialogTitle>
+                                        Yêu cầu bảo hành
+                                      </DialogTitle>
+                                    </DialogHeader>
+                                    <div className="grid gap-4 py-4">
+                                      <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label
+                                          htmlFor="reason"
+                                          className="text-right"
+                                        >
+                                          Lý do
+                                        </Label>
+                                        <Input
+                                          id="reason"
+                                          name="reason"
+                                          value={warrantyForm.reason}
+                                          onChange={handleWarrantyFormChange}
+                                          className="col-span-3"
+                                          required
+                                        />
+                                      </div>
+                                      <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label
+                                          htmlFor="fullName"
+                                          className="text-right"
+                                        >
+                                          Họ tên
+                                        </Label>
+                                        <Input
+                                          id="fullName"
+                                          name="fullName"
+                                          value={warrantyForm.fullName}
+                                          onChange={handleWarrantyFormChange}
+                                          className="col-span-3"
+                                          required
+                                        />
+                                      </div>
+                                      <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label
+                                          htmlFor="phoneNumber"
+                                          className="text-right"
+                                        >
+                                          Số điện thoại
+                                        </Label>
+                                        <Input
+                                          id="phoneNumber"
+                                          name="phoneNumber"
+                                          value={warrantyForm.phoneNumber}
+                                          onChange={handleWarrantyFormChange}
+                                          className="col-span-3"
+                                          required
+                                        />
+                                      </div>
+                                      <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label
+                                          htmlFor="email"
+                                          className="text-right"
+                                        >
+                                          Email
+                                        </Label>
+                                        <Input
+                                          id="email"
+                                          name="email"
+                                          type="email"
+                                          value={warrantyForm.email}
+                                          onChange={handleWarrantyFormChange}
+                                          className="col-span-3"
+                                          required
+                                        />
+                                      </div>
+                                    </div>
+                                    <Button
+                                      onClick={handleSubmitWarrantyRequest}
+                                      className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                                    >
+                                      Gửi yêu cầu
+                                    </Button>
+                                  </DialogContent>
+                                </Dialog>
+                              ) : hasWarrantyRequest ? (
+                                <span className="text-yellow-600">
+                                  Đang xử lý bảo hành
+                                </span>
+                              ) : !isOrderDelivered ? (
+                                <span className="text-gray-600">
+                                  Đơn hàng chưa được giao
+                                </span>
+                              ) : (
+                                <span className="text-gray-600">
+                                  Không thể yêu cầu
                                 </span>
                               )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
                     </TableBody>
                   </Table>
                 </div>

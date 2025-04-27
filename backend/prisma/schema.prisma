@@ -8,24 +8,25 @@ datasource db {
 }
 
 model User {
-  id             Int             @id @default(autoincrement())
-  email          String          @unique
-  password       String
-  roleId         Int
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @default(now()) @updatedAt
-  address        String?
-  phoneNumber    String?
-  isActive       Boolean?        @default(true)
-  deletedAt      DateTime?       @db.Timestamp(6)
-  fullName       String?
-  cart           Cart?           @relation("UserCart")
-  orders         Order[]
-  returns        ProductReturn[]
-  reviews        ProductReview[]
-  purchaseOrders PurchaseOrder[] @relation("CreatedBy")
-  role           Role            @relation(fields: [roleId], references: [id])
-  warranties     Warranty[]
+  id              Int               @id @default(autoincrement())
+  email           String            @unique
+  password        String
+  roleId          Int
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @default(now()) @updatedAt
+  address         String?
+  phoneNumber     String?
+  isActive        Boolean?          @default(true)
+  deletedAt       DateTime?         @db.Timestamp(6)
+  fullName        String?
+  cart            Cart?             @relation("UserCart")
+  orders          Order[]
+  returns         ProductReturn[]
+  reviews         ProductReview[]
+  purchaseOrders  PurchaseOrder[]   @relation("CreatedBy")
+  role            Role              @relation(fields: [roleId], references: [id])
+  warranties      Warranty[]
+  warrantyRequest WarrantyRequest[]
 }
 
 model Role {
@@ -86,12 +87,16 @@ model ProductIdentity {
   isSold              Boolean              @default(false) @map("is_sold")
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @default(now()) @updatedAt
+  warrantyStartDate   DateTime?            @db.Timestamp(6)
+  warrantyEndDate     DateTime?            @db.Timestamp(6)
+  warrantyCount       Int                  @default(0)
   orderDetail         OrderDetail[]
   color               Color                @relation(fields: [colorId], references: [id])
   product             Product              @relation(fields: [productId], references: [id])
   returns             ProductReturn[]
   purchaseOrderDetail PurchaseOrderDetail?
   warranties          Warranty[]
+  warrantyRequest     WarrantyRequest[]
 
   @@index([imei], map: "idx_product_identity_imei")
 }
@@ -110,6 +115,7 @@ model Product {
   modelId              String
   createdAt            DateTime              @default(now())
   updatedAt            DateTime              @default(now()) @updatedAt
+  warrantyPeriod       Int?                  @default(12)
   cartItems            CartItem[]
   orderDetails         OrderDetail[]
   model                Model                 @relation(fields: [modelId], references: [id])
@@ -293,16 +299,19 @@ model ProductPromotion {
 }
 
 model Warranty {
-  id                String          @id @default(uuid())
+  id                String           @id @default(uuid())
   userId            Int
   productIdentityId String
-  startDate         DateTime        @default(now())
+  startDate         DateTime         @default(now())
   endDate           DateTime
-  status            String          @default("Active")
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @default(now()) @updatedAt
-  productIdentity   ProductIdentity @relation(fields: [productIdentityId], references: [id])
-  user              User            @relation(fields: [userId], references: [id])
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @default(now()) @updatedAt
+  status            warranty_status?
+  note              String?
+  warrantyRequestId String?
+  productIdentity   ProductIdentity  @relation(fields: [productIdentityId], references: [id])
+  user              User             @relation(fields: [userId], references: [id])
+  warrantyRequest   WarrantyRequest? @relation(fields: [warrantyRequestId], references: [id])
 }
 
 model ProductReturn {
@@ -331,10 +340,44 @@ model Payment {
   order           Order     @relation(fields: [orderId], references: [id])
 }
 
+model WarrantyRequest {
+  id                String                   @id @default(dbgenerated("gen_random_uuid()"))
+  userId            Int
+  productIdentityId String
+  reason            String
+  fullName          String
+  phoneNumber       String                   @db.VarChar(15)
+  email             String
+  requestDate       DateTime                 @default(now())
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @default(now())
+  status            warranty_request_status? @default(Pending)
+  warranty          Warranty[]
+  productIdentity   ProductIdentity          @relation(fields: [productIdentityId], references: [id])
+  user              User                     @relation(fields: [userId], references: [id])
+}
+
 enum order_status {
   Pending
   Confirmed
   Shipping
   Delivered
+  Canceled
+}
+
+enum warranty_status {
+  Requested
+  Processing
+  Repairing
+  Repaired
+  Returned
+  Canceled
+}
+
+enum warranty_request_status {
+  Pending
+  Approved
+  Rejected
+  Completed
   Canceled
 }
