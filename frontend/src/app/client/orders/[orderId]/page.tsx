@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import React from "react";
 import { toast } from "sonner";
@@ -24,8 +24,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getOrderDetails, updateOrderStatus } from "@/api/orderApi";
-import { createWarrantyRequest, getWarrantyRequests } from "@/api/warrantyApi";
-import { Order, WarrantyRequest } from "@/lib/types";
+import {
+  createWarrantyRequest,
+  getWarrantyRequests,
+  getWarranties,
+} from "@/api/warrantyApi";
+import { Order, WarrantyRequest, Warranty } from "@/lib/types";
 
 const OrderDetailsPage = ({
   params,
@@ -36,6 +40,7 @@ const OrderDetailsPage = ({
   const [warrantyRequests, setWarrantyRequests] = useState<WarrantyRequest[]>(
     []
   );
+  const [warranties, setWarranties] = useState<Warranty[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -58,37 +63,51 @@ const OrderDetailsPage = ({
     email: userEmail || "",
   });
 
+  const fetchData = useCallback(async () => {
+    try {
+      const orderData = await getOrderDetails(orderId);
+      setOrder(orderData);
+
+      const [warrantyRequestsData, warrantiesData] = await Promise.all([
+        getWarrantyRequests(),
+        getWarranties(),
+      ]);
+      setWarrantyRequests(warrantyRequestsData);
+      setWarranties(warrantiesData);
+    } catch (error: any) {
+      setError(
+        error.response?.data?.message || "Không thể lấy chi tiết đơn hàng"
+      );
+      toast.error("Lỗi", {
+        description:
+          error.response?.data?.message || "Không thể lấy chi tiết đơn hàng",
+        duration: 2000,
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [orderId]);
+
   useEffect(() => {
     if (!user) {
       router.push("/auth/login");
       return;
     }
 
-    const fetchData = async () => {
-      try {
-        // Lấy chi tiết đơn hàng
-        const orderData = await getOrderDetails(orderId);
-        setOrder(orderData);
+    fetchData();
+  }, [user, orderId, router, fetchData]);
 
-        // Lấy danh sách yêu cầu bảo hành để kiểm tra
-        const warrantyRequestsData = await getWarrantyRequests();
-        setWarrantyRequests(warrantyRequestsData);
-      } catch (error: any) {
-        setError(
-          error.response?.data?.message || "Không thể lấy chi tiết đơn hàng"
-        );
-        toast.error("Lỗi", {
-          description:
-            error.response?.data?.message || "Không thể lấy chi tiết đơn hàng",
-          duration: 2000,
-        });
-      } finally {
-        setLoading(false);
-      }
+  // Làm mới dữ liệu khi người dùng quay lại trang
+  useEffect(() => {
+    const handleFocus = () => {
+      fetchData();
     };
 
-    fetchData();
-  }, [user, orderId, router]);
+    window.addEventListener("focus", handleFocus);
+    return () => {
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, [fetchData]);
 
   const translateStatus = (status: string) => {
     const statusMap: { [key: string]: string } = {
@@ -131,11 +150,22 @@ const OrderDetailsPage = ({
   };
 
   const hasPendingWarrantyRequest = (productIdentityId: string) => {
-    return warrantyRequests.some(
-      (request) =>
-        request.productIdentityId === productIdentityId &&
-        ["Pending", "Approved"].includes(request.status)
+    // Lấy tất cả warrantyRequest liên quan đến productIdentityId
+    const relatedRequests = warrantyRequests.filter(
+      (request) => request.productIdentityId === productIdentityId
     );
+
+    // Nếu không có warrantyRequest nào, cho phép tạo yêu cầu mới
+    if (!relatedRequests.length) {
+      return false;
+    }
+
+    // Kiểm tra xem có bất kỳ warrantyRequest nào không ở trạng thái Completed hoặc Rejected không
+    const hasUnfinishedRequest = relatedRequests.some(
+      (request) => !["Completed", "Rejected"].includes(request.status)
+    );
+
+    return hasUnfinishedRequest;
   };
 
   const handleOpenWarrantyModal = (productIdentityId: string) => {
@@ -170,6 +200,8 @@ const OrderDetailsPage = ({
       setWarrantyRequests((prev) => [...prev, response]);
       setIsWarrantyModalOpen(false);
       toast.success("Tạo yêu cầu bảo hành thành công", { duration: 2000 });
+
+      await fetchData();
     } catch (error: any) {
       toast.error("Lỗi", {
         description:

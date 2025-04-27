@@ -1,4 +1,3 @@
-// warranty.controller.ts
 import {
   Controller,
   Post,
@@ -218,7 +217,7 @@ export class WarrantyController {
       properties: {
         status: {
           type: 'string',
-          enum: ['Pending', 'Approved', 'Rejected', 'Completed', 'Canceled'],
+          enum: ['Pending', 'Approved', 'Rejected'],
           description: 'Trạng thái mới của yêu cầu bảo hành',
         },
       },

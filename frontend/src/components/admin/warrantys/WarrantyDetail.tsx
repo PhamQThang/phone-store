@@ -19,87 +19,129 @@ export function WarrantyDetail({
 }: WarrantyDetailProps) {
   if (!warranty) return null;
 
+  const translateWarrantyStatus = (status: string) => {
+    const statusMap: { [key: string]: string } = {
+      Requested: "Đã yêu cầu",
+      Processing: "Đang xử lý",
+      Repairing: "Đang sửa chữa",
+      Repaired: "Đã sửa xong",
+      Returned: "Đã trả máy",
+      Canceled: "Đã hủy",
+    };
+    return statusMap[status] || status;
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-full max-w-md p-4 sm:p-6">
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle className="text-lg sm:text-xl">
-            Chi tiết phiếu bảo hành
-          </DialogTitle>
+          <DialogTitle>Chi tiết phiếu bảo hành</DialogTitle>
         </DialogHeader>
-        <div className="space-y-3 text-sm sm:text-base">
+        <div className="space-y-4">
           <div>
-            <strong>ID:</strong> {warranty.id}
+            <strong className="text-gray-800">Mã phiếu:</strong>{" "}
+            {warranty.id.substring(0, 8)}...
           </div>
           <div>
-            <strong>Sản phẩm:</strong> {warranty.productIdentity.product.name}
+            <strong className="text-gray-800">Sản phẩm:</strong>{" "}
+            {warranty.productIdentity.product.name}
           </div>
           <div>
-            <strong>Màu sắc:</strong> {warranty.productIdentity.color.name}
+            <strong className="text-gray-800">IMEI:</strong>{" "}
+            {warranty.productIdentity.imei || "Không có"}
+          </div>
+          <div>
+            <strong className="text-gray-800">Màu sắc:</strong>{" "}
+            {warranty.productIdentity.color?.name || "Không có"}
           </div>
           {warranty.productIdentity.product.imageUrl && (
             <div>
-              <strong>Hình ảnh:</strong>
+              <strong className="text-gray-800">Hình ảnh:</strong>
               <img
                 src={warranty.productIdentity.product.imageUrl}
                 alt={warranty.productIdentity.product.name}
-                className="w-32 h-32 object-cover mt-2"
+                className="w-32 h-32 object-cover mt-2 rounded-md"
               />
             </div>
           )}
           <div>
-            <strong>IMEI:</strong> {warranty.productIdentity.imei}
-          </div>
-          <div>
-            <strong>Số lần bảo hành:</strong>{" "}
+            <strong className="text-gray-800">Số lần bảo hành:</strong>{" "}
             {warranty.productIdentity.warrantyCount || 0}
           </div>
           <div>
-            <strong>Trạng thái bán:</strong>{" "}
-            {warranty.productIdentity.isSold ? "Đã bán" : "Chưa bán"}
-          </div>
-          <div>
-            <strong>Thời hạn bảo hành:</strong>{" "}
+            <strong className="text-gray-800">Thời gian bảo hành:</strong>{" "}
             {warranty.productIdentity.warrantyStartDate &&
             warranty.productIdentity.warrantyEndDate
               ? `${new Date(
                   warranty.productIdentity.warrantyStartDate
-                ).toLocaleDateString()} - ${new Date(
+                ).toLocaleDateString("vi-VN")} - ${new Date(
                   warranty.productIdentity.warrantyEndDate
-                ).toLocaleDateString()}`
+                ).toLocaleDateString("vi-VN")}`
               : "Không có"}
           </div>
           <div>
-            <strong>Người dùng:</strong> {warranty.user.fullName}
+            <strong className="text-gray-800">Người dùng:</strong>{" "}
+            {warranty.user.fullName}
           </div>
           <div>
-            <strong>Trạng thái:</strong> {warranty.status}
+            <strong className="text-gray-800">Thời gian bảo hành:</strong>{" "}
+            {new Date(warranty.startDate).toLocaleDateString("vi-VN")} -{" "}
+            {new Date(warranty.endDate).toLocaleDateString("vi-VN")}
           </div>
           <div>
-            <strong>Ngày bắt đầu:</strong>{" "}
-            {new Date(warranty.startDate).toLocaleString()}
+            <strong className="text-gray-800">Trạng thái:</strong>{" "}
+            <span
+              className={`px-2 py-1 rounded-full text-xs font-medium ${
+                warranty.status === "Requested"
+                  ? "bg-yellow-100 text-yellow-800"
+                  : warranty.status === "Processing"
+                  ? "bg-blue-100 text-blue-800"
+                  : warranty.status === "Repairing"
+                  ? "bg-purple-100 text-purple-800"
+                  : warranty.status === "Repaired"
+                  ? "bg-orange-100 text-orange-800"
+                  : warranty.status === "Returned"
+                  ? "bg-green-100 text-green-800"
+                  : "bg-red-100 text-red-800"
+              }`}
+            >
+              {translateWarrantyStatus(warranty.status)}
+            </span>
           </div>
           <div>
-            <strong>Ngày kết thúc:</strong>{" "}
-            {new Date(warranty.endDate).toLocaleString()}
+            <strong className="text-gray-800">Ghi chú:</strong>{" "}
+            {warranty.note || "Không có"}
           </div>
-          {warranty.note && (
-            <div>
-              <strong>Ghi chú:</strong> {warranty.note}
-            </div>
-          )}
           {warranty.warrantyRequest && (
-            <div>
-              <strong>Yêu cầu bảo hành:</strong> {warranty.warrantyRequest.id}
+            <div className="border-t pt-4">
+              <h3 className="text-lg font-semibold text-gray-800">
+                Thông tin yêu cầu bảo hành liên quan
+              </h3>
+              <div className="space-y-2 mt-2">
+                <div>
+                  <strong className="text-gray-800">Mã yêu cầu:</strong>{" "}
+                  {warranty.warrantyRequest.id.substring(0, 8)}...
+                </div>
+                <div>
+                  <strong className="text-gray-800">Lý do:</strong>{" "}
+                  {warranty.warrantyRequest.reason}
+                </div>
+                <div>
+                  <strong className="text-gray-800">Ngày yêu cầu:</strong>{" "}
+                  {new Date(
+                    warranty.warrantyRequest.requestDate
+                  ).toLocaleDateString("vi-VN")}
+                </div>
+              </div>
             </div>
           )}
           <div>
-            <strong>Ngày tạo:</strong>{" "}
-            {new Date(warranty.createdAt).toLocaleString()}
+            <strong className="text-gray-800">Ngày tạo:</strong>{" "}
+            {new Date(warranty.createdAt).toLocaleDateString("vi-VN")}
           </div>
           <div>
-            <strong>Ngày cập nhật:</strong>{" "}
-            {new Date(warranty.updatedAt).toLocaleString()}
+            <strong className="text-gray-800">Ngày cập nhật:</strong>{" "}
+            {new Date(warranty.updatedAt).toLocaleDateString("vi-VN")}
           </div>
         </div>
       </DialogContent>

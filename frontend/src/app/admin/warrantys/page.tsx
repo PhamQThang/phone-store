@@ -37,7 +37,6 @@ export default function WarrantyManagementPage() {
 
       startTransition(async () => {
         try {
-          // Lấy danh sách yêu cầu bảo hành và phiếu bảo hành song song
           const [warrantyRequestsData, warrantiesData] = await Promise.all([
             getWarrantyRequests(),
             getWarranties(),
@@ -74,7 +73,6 @@ export default function WarrantyManagementPage() {
           request.id === requestId ? updatedRequest : request
         )
       );
-      // Cập nhật danh sách warranties nếu trạng thái là Approved (tạo warranty mới)
       if (status === "Approved") {
         const updatedWarranties = await getWarranties();
         setWarranties(updatedWarranties);
@@ -136,8 +134,11 @@ export default function WarrantyManagementPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-screen">
-        <Loader2 className="h-8 w-8 animate-spin" />
+      <div className="flex items-center justify-center h-screen bg-gray-50">
+        <div className="text-gray-600 text-lg flex items-center">
+          <Loader2 className="h-8 w-8 animate-spin mr-2 text-blue-500" />
+          Đang tải...
+        </div>
       </div>
     );
   }

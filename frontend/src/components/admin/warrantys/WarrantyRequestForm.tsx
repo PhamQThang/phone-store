@@ -30,7 +30,7 @@ import { WarrantyRequest } from "@/lib/types";
 import { Loader2 } from "lucide-react";
 
 const warrantyRequestStatusSchema = z.object({
-  status: z.enum(["Pending", "Approved", "Rejected", "Completed", "Canceled"]),
+  status: z.enum(["Pending", "Approved", "Rejected", "Completed"]),
 });
 
 interface WarrantyRequestFormProps {
@@ -66,19 +66,26 @@ export function WarrantyRequestForm({
   ) => {
     try {
       await onSubmit(values.status);
-      onOpenChange(false);
     } catch (error) {
       console.error("Error submitting form:", error);
     }
   };
 
+  const translateWarrantyRequestStatus = (status: string) => {
+    const statusMap: { [key: string]: string } = {
+      Pending: "Đang chờ",
+      Approved: "Đã duyệt",
+      Rejected: "Bị từ chối",
+      Completed: "Hoàn tất",
+    };
+    return statusMap[status] || status;
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-full max-w-md p-4 sm:p-6">
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle className="text-lg sm:text-xl">
-            Cập nhật trạng thái yêu cầu bảo hành
-          </DialogTitle>
+          <DialogTitle>Cập nhật trạng thái yêu cầu bảo hành</DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form
@@ -90,9 +97,7 @@ export function WarrantyRequestForm({
               name="status"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-sm sm:text-base">
-                    Trạng thái
-                  </FormLabel>
+                  <FormLabel>Trạng thái</FormLabel>
                   <FormControl>
                     <Select
                       onValueChange={field.onChange}
@@ -102,15 +107,22 @@ export function WarrantyRequestForm({
                         <SelectValue placeholder="Chọn trạng thái" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Pending">Đang chờ</SelectItem>
-                        <SelectItem value="Approved">Đã phê duyệt</SelectItem>
-                        <SelectItem value="Rejected">Đã từ chối</SelectItem>
-                        <SelectItem value="Completed">Hoàn thành</SelectItem>
-                        <SelectItem value="Canceled">Đã hủy</SelectItem>
+                        <SelectItem value="Pending">
+                          {translateWarrantyRequestStatus("Pending")}
+                        </SelectItem>
+                        <SelectItem value="Approved">
+                          {translateWarrantyRequestStatus("Approved")}
+                        </SelectItem>
+                        <SelectItem value="Rejected">
+                          {translateWarrantyRequestStatus("Rejected")}
+                        </SelectItem>
+                        <SelectItem value="Completed">
+                          {translateWarrantyRequestStatus("Completed")}
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </FormControl>
-                  <FormMessage className="text-xs sm:text-sm" />
+                  <FormMessage />
                 </FormItem>
               )}
             />
@@ -119,16 +131,11 @@ export function WarrantyRequestForm({
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                className="w-full sm:w-auto"
                 disabled={isLoading}
               >
                 Hủy
               </Button>
-              <Button
-                type="submit"
-                className="w-full sm:w-auto"
-                disabled={isLoading}
-              >
+              <Button type="submit" disabled={isLoading}>
                 {isLoading ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />

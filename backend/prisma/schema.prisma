@@ -379,5 +379,4 @@ enum warranty_request_status {
   Approved
   Rejected
   Completed
-  Canceled
 }

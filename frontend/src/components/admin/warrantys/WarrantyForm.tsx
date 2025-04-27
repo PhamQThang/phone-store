@@ -71,19 +71,28 @@ export function WarrantyForm({
   const handleSubmit = async (values: z.infer<typeof warrantyStatusSchema>) => {
     try {
       await onSubmit(values.status);
-      onOpenChange(false);
     } catch (error) {
       console.error("Error submitting form:", error);
     }
   };
 
+  const translateWarrantyStatus = (status: string) => {
+    const statusMap: { [key: string]: string } = {
+      Requested: "Đã yêu cầu",
+      Processing: "Đang xử lý",
+      Repairing: "Đang sửa chữa",
+      Repaired: "Đã sửa xong",
+      Returned: "Đã trả máy",
+      Canceled: "Đã hủy",
+    };
+    return statusMap[status] || status;
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-full max-w-md p-4 sm:p-6">
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle className="text-lg sm:text-xl">
-            Cập nhật trạng thái phiếu bảo hành
-          </DialogTitle>
+          <DialogTitle>Cập nhật trạng thái phiếu bảo hành</DialogTitle>
         </DialogHeader>
         <Form {...form}>
           <form
@@ -95,9 +104,7 @@ export function WarrantyForm({
               name="status"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-sm sm:text-base">
-                    Trạng thái
-                  </FormLabel>
+                  <FormLabel>Trạng thái</FormLabel>
                   <FormControl>
                     <Select
                       onValueChange={field.onChange}
@@ -107,16 +114,28 @@ export function WarrantyForm({
                         <SelectValue placeholder="Chọn trạng thái" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="Requested">Đã tiếp nhận</SelectItem>
-                        <SelectItem value="Processing">Đang xử lý</SelectItem>
-                        <SelectItem value="Repairing">Đang sửa chữa</SelectItem>
-                        <SelectItem value="Repaired">Đã sửa chữa</SelectItem>
-                        <SelectItem value="Returned">Đã trả lại</SelectItem>
-                        <SelectItem value="Canceled">Đã hủy</SelectItem>
+                        <SelectItem value="Requested">
+                          {translateWarrantyStatus("Requested")}
+                        </SelectItem>
+                        <SelectItem value="Processing">
+                          {translateWarrantyStatus("Processing")}
+                        </SelectItem>
+                        <SelectItem value="Repairing">
+                          {translateWarrantyStatus("Repairing")}
+                        </SelectItem>
+                        <SelectItem value="Repaired">
+                          {translateWarrantyStatus("Repaired")}
+                        </SelectItem>
+                        <SelectItem value="Returned">
+                          {translateWarrantyStatus("Returned")}
+                        </SelectItem>
+                        <SelectItem value="Canceled">
+                          {translateWarrantyStatus("Canceled")}
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </FormControl>
-                  <FormMessage className="text-xs sm:text-sm" />
+                  <FormMessage />
                 </FormItem>
               )}
             />
@@ -125,16 +144,11 @@ export function WarrantyForm({
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
-                className="w-full sm:w-auto"
                 disabled={isLoading}
               >
                 Hủy
               </Button>
-              <Button
-                type="submit"
-                className="w-full sm:w-auto"
-                disabled={isLoading}
-              >
+              <Button type="submit" disabled={isLoading}>
                 {isLoading ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />

@@ -51,7 +51,7 @@ export class UpdateWarrantyRequestStatusDto {
   @ApiProperty({
     description: 'Trạng thái mới của yêu cầu bảo hành',
     example: 'Approved',
-    enum: ['Pending', 'Approved', 'Rejected', 'Completed', 'Canceled'],
+    enum: ['Pending', 'Approved', 'Rejected'],
   })
   @IsString({ message: 'Trạng thái phải là chuỗi ký tự' })
   @IsNotEmpty({ message: 'Trạng thái không được để trống' })

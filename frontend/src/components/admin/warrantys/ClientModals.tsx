@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import {
   Table,
@@ -21,6 +21,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WarrantyDetail } from "./WarrantyDetail";
 import { WarrantyForm } from "./WarrantyForm";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface ClientModalsProps {
   warrantyRequests: WarrantyRequest[];
@@ -63,32 +70,68 @@ export default function ClientModals({
   const [isEditingWarranty, setIsEditingWarranty] = useState(false);
   const [isViewing, setIsViewing] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+  const [requestStatusFilter, setRequestStatusFilter] = useState<string>("all");
+  const [warrantyStatusFilter, setWarrantyStatusFilter] =
+    useState<string>("all");
 
-  // Lọc danh sách yêu cầu bảo hành dựa trên từ khóa tìm kiếm
-  const filteredWarrantyRequests = warrantyRequests.filter((request) =>
-    [
-      request.productIdentity.product.name,
-      request.user.fullName,
-      request.reason,
-      request.status,
-    ]
-      .join(" ")
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase())
-  );
+  const translateWarrantyRequestStatus = (status: string) => {
+    const statusMap: { [key: string]: string } = {
+      Pending: "Đang chờ",
+      Approved: "Đã duyệt",
+      Rejected: "Bị từ chối",
+      Completed: "Hoàn tất",
+    };
+    return statusMap[status] || status;
+  };
 
-  // Lọc danh sách phiếu bảo hành dựa trên từ khóa tìm kiếm
-  const filteredWarranties = warranties.filter((warranty) =>
-    [
-      warranty.productIdentity.product.name,
-      warranty.user.fullName,
-      warranty.status,
-      warranty.productIdentity.imei,
-    ]
-      .join(" ")
-      .toLowerCase()
-      .includes(searchTerm.toLowerCase())
-  );
+  const translateWarrantyStatus = (status: string) => {
+    const statusMap: { [key: string]: string } = {
+      Requested: "Đã yêu cầu",
+      Processing: "Đang xử lý",
+      Repairing: "Đang sửa chữa",
+      Repaired: "Đã sửa xong",
+      Returned: "Đã trả máy",
+      Canceled: "Đã hủy",
+    };
+    return statusMap[status] || status;
+  };
+
+  // Lọc danh sách yêu cầu bảo hành dựa trên từ khóa tìm kiếm và trạng thái
+  const filteredWarrantyRequests = useMemo(() => {
+    return warrantyRequests.filter((request) => {
+      const matchesSearch = [
+        request.productIdentity.product.name,
+        request.user.fullName,
+        request.reason,
+        request.status,
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+      const matchesStatus =
+        requestStatusFilter === "all" || request.status === requestStatusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [warrantyRequests, searchTerm, requestStatusFilter]);
+
+  // Lọc danh sách phiếu bảo hành dựa trên từ khóa tìm kiếm và trạng thái
+  const filteredWarranties = useMemo(() => {
+    return warranties.filter((warranty) => {
+      const matchesSearch = [
+        warranty.productIdentity.product.name,
+        warranty.user.fullName,
+        warranty.status,
+        warranty.productIdentity.imei,
+      ]
+        .join(" ")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+      const matchesStatus =
+        warrantyStatusFilter === "all" ||
+        warranty.status === warrantyStatusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [warranties, searchTerm, warrantyStatusFilter]);
 
   // Cập nhật trạng thái yêu cầu bảo hành
   const handleUpdateWarrantyRequestStatus = async (status: string) => {
@@ -101,6 +144,7 @@ export default function ClientModals({
       );
       if (result.success) {
         toast.success(result.message);
+        setIsWarrantyRequestEditOpen(false);
       } else {
         toast.error("Cập nhật trạng thái thất bại", {
           description: result.error || "Vui lòng thử lại sau.",
@@ -128,6 +172,7 @@ export default function ClientModals({
       );
       if (result.success) {
         toast.success(result.message);
+        setIsWarrantyEditOpen(false);
       } else {
         toast.error("Cập nhật trạng thái thất bại", {
           description: result.error || "Vui lòng thử lại sau.",
@@ -247,376 +292,513 @@ export default function ClientModals({
   const isLoading = isEditingWarrantyRequest || isEditingWarranty || isViewing;
 
   return (
-    <div className="relative">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-4">
-        <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold">
-          Quản lý bảo hành
-        </h2>
-        <div className="relative flex-1 sm:flex-none sm:w-64">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <Input
-            placeholder="Tìm kiếm..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9 pr-9 text-sm sm:text-base w-full"
-            disabled={isLoading}
-          />
-          {searchTerm && (
-            <button
-              onClick={() => setSearchTerm("")}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+    <Card className="max-w-5xl mx-auto shadow-lg border border-gray-100 rounded-xl bg-white">
+      <div className="p-6 sm:p-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-4">
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-800">
+            Quản lý bảo hành
+          </h2>
+          <div className="relative flex-1 sm:flex-none sm:w-64">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Tìm kiếm..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9 pr-9 text-sm sm:text-base w-full"
               disabled={isLoading}
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm("")}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                disabled={isLoading}
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
         </div>
-      </div>
 
-      <Tabs defaultValue="requests" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="requests">Yêu cầu bảo hành</TabsTrigger>
-          <TabsTrigger value="warranties">Phiếu bảo hành</TabsTrigger>
-        </TabsList>
+        <Tabs defaultValue="requests" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="requests">Yêu cầu bảo hành</TabsTrigger>
+            <TabsTrigger value="warranties">Phiếu bảo hành</TabsTrigger>
+          </TabsList>
 
-        {/* Tab Yêu cầu bảo hành */}
-        <TabsContent value="requests">
-          {isLoading ? (
-            <div className="space-y-4">
-              {[...Array(3)].map((_, index) => (
-                <Skeleton key={index} className="h-12 w-full rounded-md" />
-              ))}
-            </div>
-          ) : filteredWarrantyRequests.length === 0 ? (
-            <p className="text-center text-gray-500">
-              {searchTerm
-                ? "Không tìm thấy yêu cầu bảo hành nào."
-                : "Không có yêu cầu bảo hành nào."}
-            </p>
-          ) : (
-            <>
-              {/* Hiển thị dạng bảng trên màn hình lớn (PC, tablet) */}
-              <div className="hidden md:block overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-xs sm:text-sm">ID</TableHead>
-                      <TableHead className="text-xs sm:text-sm">
-                        Sản phẩm
-                      </TableHead>
-                      <TableHead className="text-xs sm:text-sm">
-                        Người yêu cầu
-                      </TableHead>
-                      <TableHead className="text-xs sm:text-sm">
-                        Lý do
-                      </TableHead>
-                      <TableHead className="text-xs sm:text-sm">
-                        Trạng thái
-                      </TableHead>
-                      <TableHead className="text-xs sm:text-sm">
-                        Ngày yêu cầu
-                      </TableHead>
-                      <TableHead className="text-xs sm:text-sm">
-                        Hành động
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
+          {/* Tab Yêu cầu bảo hành */}
+          <TabsContent value="requests">
+            <div className="mt-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold text-gray-800 border-b pb-2">
+                  Danh sách yêu cầu bảo hành
+                </h2>
+                <Select
+                  value={requestStatusFilter}
+                  onValueChange={setRequestStatusFilter}
+                >
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Lọc theo trạng thái" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tất cả</SelectItem>
+                    <SelectItem value="Pending">Đang chờ</SelectItem>
+                    <SelectItem value="Approved">Đã duyệt</SelectItem>
+                    <SelectItem value="Rejected">Bị từ chối</SelectItem>
+                    <SelectItem value="Completed">Hoàn tất</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {isLoading ? (
+                <div className="space-y-4">
+                  {[...Array(3)].map((_, index) => (
+                    <Skeleton key={index} className="h-12 w-full rounded-md" />
+                  ))}
+                </div>
+              ) : filteredWarrantyRequests.length === 0 ? (
+                <p className="text-center text-gray-500">
+                  {searchTerm
+                    ? "Không tìm thấy yêu cầu bảo hành nào."
+                    : "Không có yêu cầu bảo hành nào."}
+                </p>
+              ) : (
+                <>
+                  {/* Hiển thị dạng bảng trên màn hình lớn (PC, tablet) */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-gray-50">
+                          <TableHead className="text-gray-700 font-semibold">
+                            Sản phẩm
+                          </TableHead>
+                          <TableHead className="text-gray-700 font-semibold">
+                            IMEI
+                          </TableHead>
+                          <TableHead className="text-gray-700 font-semibold">
+                            Người yêu cầu
+                          </TableHead>
+                          <TableHead className="text-gray-700 font-semibold">
+                            Lý do
+                          </TableHead>
+                          <TableHead className="text-gray-700 font-semibold">
+                            Trạng thái
+                          </TableHead>
+                          <TableHead className="text-gray-700 font-semibold">
+                            Ngày yêu cầu
+                          </TableHead>
+                          <TableHead className="text-gray-700 font-semibold">
+                            Hành động
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredWarrantyRequests.map((request) => (
+                          <TableRow
+                            key={request.id}
+                            className="hover:bg-blue-50 transition-colors"
+                          >
+                            <TableCell className="font-medium text-gray-800">
+                              {request.productIdentity.product.name}
+                            </TableCell>
+                            <TableCell className="text-gray-600">
+                              {request.productIdentity.imei || "Không có"}
+                            </TableCell>
+                            <TableCell className="text-gray-600">
+                              {request.user.fullName}
+                            </TableCell>
+                            <TableCell className="text-gray-600">
+                              {request.reason}
+                            </TableCell>
+                            <TableCell>
+                              <span
+                                className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                  request.status === "Pending"
+                                    ? "bg-yellow-100 text-yellow-800"
+                                    : request.status === "Approved"
+                                    ? "bg-blue-100 text-blue-800"
+                                    : request.status === "Rejected"
+                                    ? "bg-red-100 text-red-800"
+                                    : "bg-green-100 text-green-800"
+                                }`}
+                              >
+                                {translateWarrantyRequestStatus(request.status)}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-gray-600">
+                              {new Date(request.requestDate).toLocaleDateString(
+                                "vi-VN"
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex space-x-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    handleViewWarrantyRequestDetail(request.id)
+                                  }
+                                  disabled={isLoading}
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    handleOpenWarrantyRequestEdit(request.id)
+                                  }
+                                  disabled={isLoading}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  {/* Hiển thị dạng danh sách trên mobile */}
+                  <div className="block md:hidden space-y-4">
                     {filteredWarrantyRequests.map((request) => (
-                      <TableRow key={request.id}>
-                        <TableCell className="text-xs sm:text-sm">
-                          {request.id}
-                        </TableCell>
-                        <TableCell className="text-xs sm:text-sm">
-                          {request.productIdentity.product.name}
-                        </TableCell>
-                        <TableCell className="text-xs sm:text-sm">
-                          {request.user.fullName}
-                        </TableCell>
-                        <TableCell className="text-xs sm:text-sm">
-                          {request.reason}
-                        </TableCell>
-                        <TableCell className="text-xs sm:text-sm">
-                          {request.status}
-                        </TableCell>
-                        <TableCell className="text-xs sm:text-sm">
-                          {new Date(request.requestDate).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex space-x-2">
+                      <Card key={request.id} className="shadow-sm">
+                        <CardHeader>
+                          <CardTitle className="text-sm font-medium">
+                            {request.productIdentity.product.name}
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="text-xs space-y-2">
+                          <p>
+                            <strong>IMEI:</strong>{" "}
+                            {request.productIdentity.imei || "Không có"}
+                          </p>
+                          <p>
+                            <strong>Người yêu cầu:</strong>{" "}
+                            {request.user.fullName}
+                          </p>
+                          <p>
+                            <strong>Lý do:</strong> {request.reason}
+                          </p>
+                          <p>
+                            <strong>Trạng thái:</strong>{" "}
+                            <span
+                              className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                request.status === "Pending"
+                                  ? "bg-yellow-100 text-yellow-800"
+                                  : request.status === "Approved"
+                                  ? "bg-blue-100 text-blue-800"
+                                  : request.status === "Rejected"
+                                  ? "bg-red-100 text-red-800"
+                                  : "bg-green-100 text-green-800"
+                              }`}
+                            >
+                              {translateWarrantyRequestStatus(request.status)}
+                            </span>
+                          </p>
+                          <p>
+                            <strong>Ngày yêu cầu:</strong>{" "}
+                            {new Date(request.requestDate).toLocaleDateString(
+                              "vi-VN"
+                            )}
+                          </p>
+                          <div className="flex space-x-2 pt-2">
                             <Button
-                              variant="ghost"
+                              variant="outline"
                               size="sm"
                               onClick={() =>
                                 handleViewWarrantyRequestDetail(request.id)
                               }
                               disabled={isLoading}
                             >
-                              <Eye className="h-4 w-4" />
+                              <Eye className="h-4 w-4 mr-1" />
+                              Xem
                             </Button>
                             <Button
-                              variant="ghost"
+                              variant="outline"
                               size="sm"
                               onClick={() =>
                                 handleOpenWarrantyRequestEdit(request.id)
                               }
                               disabled={isLoading}
                             >
-                              <Edit className="h-4 w-4" />
+                              <Edit className="h-4 w-4 mr-1" />
+                              Sửa
                             </Button>
                           </div>
-                        </TableCell>
-                      </TableRow>
+                        </CardContent>
+                      </Card>
                     ))}
-                  </TableBody>
-                </Table>
-              </div>
-
-              {/* Hiển thị dạng danh sách trên mobile */}
-              <div className="block md:hidden space-y-4">
-                {filteredWarrantyRequests.map((request) => (
-                  <Card key={request.id} className="shadow-sm">
-                    <CardHeader>
-                      <CardTitle className="text-sm font-medium">
-                        {request.productIdentity.product.name}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-xs space-y-2">
-                      <p>
-                        <strong>ID:</strong> {request.id}
-                      </p>
-                      <p>
-                        <strong>Người yêu cầu:</strong> {request.user.fullName}
-                      </p>
-                      <p>
-                        <strong>Lý do:</strong> {request.reason}
-                      </p>
-                      <p>
-                        <strong>Trạng thái:</strong> {request.status}
-                      </p>
-                      <p>
-                        <strong>Ngày yêu cầu:</strong>{" "}
-                        {new Date(request.requestDate).toLocaleDateString()}
-                      </p>
-                      <div className="flex space-x-2 pt-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() =>
-                            handleViewWarrantyRequestDetail(request.id)
-                          }
-                          disabled={isLoading}
-                        >
-                          <Eye className="h-4 w-4 mr-1" />
-                          Xem
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() =>
-                            handleOpenWarrantyRequestEdit(request.id)
-                          }
-                          disabled={isLoading}
-                        >
-                          <Edit className="h-4 w-4 mr-1" />
-                          Sửa
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </>
-          )}
-        </TabsContent>
-
-        {/* Tab Phiếu bảo hành */}
-        <TabsContent value="warranties">
-          {isLoading ? (
-            <div className="space-y-4">
-              {[...Array(3)].map((_, index) => (
-                <Skeleton key={index} className="h-12 w-full rounded-md" />
-              ))}
+                  </div>
+                </>
+              )}
             </div>
-          ) : filteredWarranties.length === 0 ? (
-            <p className="text-center text-gray-500">
-              {searchTerm
-                ? "Không tìm thấy phiếu bảo hành nào."
-                : "Không có phiếu bảo hành nào."}
-            </p>
-          ) : (
-            <>
-              {/* Hiển thị dạng bảng trên màn hình lớn (PC, tablet) */}
-              <div className="hidden md:block overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-xs sm:text-sm">ID</TableHead>
-                      <TableHead className="text-xs sm:text-sm">
-                        Sản phẩm
-                      </TableHead>
-                      <TableHead className="text-xs sm:text-sm">IMEI</TableHead>
-                      <TableHead className="text-xs sm:text-sm">
-                        Số lần bảo hành
-                      </TableHead>
-                      <TableHead className="text-xs sm:text-sm">
-                        Người dùng
-                      </TableHead>
-                      <TableHead className="text-xs sm:text-sm">
-                        Trạng thái
-                      </TableHead>
-                      <TableHead className="text-xs sm:text-sm">
-                        Ngày bắt đầu
-                      </TableHead>
-                      <TableHead className="text-xs sm:text-sm">
-                        Hành động
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
+          </TabsContent>
+
+          {/* Tab Phiếu bảo hành */}
+          <TabsContent value="warranties">
+            <div className="mt-6">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-semibold text-gray-800 border-b pb-2">
+                  Danh sách phiếu bảo hành
+                </h2>
+                <Select
+                  value={warrantyStatusFilter}
+                  onValueChange={setWarrantyStatusFilter}
+                >
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="Lọc theo trạng thái" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Tất cả</SelectItem>
+                    <SelectItem value="Requested">Đã yêu cầu</SelectItem>
+                    <SelectItem value="Processing">Đang xử lý</SelectItem>
+                    <SelectItem value="Repairing">Đang sửa chữa</SelectItem>
+                    <SelectItem value="Repaired">Đã sửa xong</SelectItem>
+                    <SelectItem value="Returned">Đã trả máy</SelectItem>
+                    <SelectItem value="Canceled">Đã hủy</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {isLoading ? (
+                <div className="space-y-4">
+                  {[...Array(3)].map((_, index) => (
+                    <Skeleton key={index} className="h-12 w-full rounded-md" />
+                  ))}
+                </div>
+              ) : filteredWarranties.length === 0 ? (
+                <p className="text-center text-gray-500">
+                  {searchTerm
+                    ? "Không tìm thấy phiếu bảo hành nào."
+                    : "Không có phiếu bảo hành nào."}
+                </p>
+              ) : (
+                <>
+                  {/* Hiển thị dạng bảng trên màn hình lớn (PC, tablet) */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-gray-50">
+                          <TableHead className="text-gray-700 font-semibold">
+                            Sản phẩm
+                          </TableHead>
+                          <TableHead className="text-gray-700 font-semibold">
+                            IMEI
+                          </TableHead>
+                          <TableHead className="text-gray-700 font-semibold">
+                            Người dùng
+                          </TableHead>
+                          <TableHead className="text-gray-700 font-semibold">
+                            Thời gian bảo hành
+                          </TableHead>
+                          <TableHead className="text-gray-700 font-semibold">
+                            Trạng thái
+                          </TableHead>
+                          <TableHead className="text-gray-700 font-semibold">
+                            Ngày bắt đầu
+                          </TableHead>
+                          <TableHead className="text-gray-700 font-semibold">
+                            Hành động
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredWarranties.map((warranty) => (
+                          <TableRow
+                            key={warranty.id}
+                            className="hover:bg-blue-50 transition-colors"
+                          >
+                            <TableCell className="font-medium text-gray-800">
+                              {warranty.productIdentity.product.name}
+                            </TableCell>
+                            <TableCell className="text-gray-600">
+                              {warranty.productIdentity.imei || "Không có"}
+                            </TableCell>
+                            <TableCell className="text-gray-600">
+                              {warranty.user.fullName}
+                            </TableCell>
+                            <TableCell className="text-gray-600">
+                              {new Date(warranty.startDate).toLocaleDateString(
+                                "vi-VN"
+                              )}{" "}
+                              -{" "}
+                              {new Date(warranty.endDate).toLocaleDateString(
+                                "vi-VN"
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <span
+                                className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                  warranty.status === "Requested"
+                                    ? "bg-yellow-100 text-yellow-800"
+                                    : warranty.status === "Processing"
+                                    ? "bg-blue-100 text-blue-800"
+                                    : warranty.status === "Repairing"
+                                    ? "bg-purple-100 text-purple-800"
+                                    : warranty.status === "Repaired"
+                                    ? "bg-orange-100 text-orange-800"
+                                    : warranty.status === "Returned"
+                                    ? "bg-green-100 text-green-800"
+                                    : "bg-red-100 text-red-800"
+                                }`}
+                              >
+                                {translateWarrantyStatus(warranty.status)}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-gray-600">
+                              {new Date(warranty.startDate).toLocaleDateString(
+                                "vi-VN"
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex space-x-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    handleViewWarrantyDetail(warranty.id)
+                                  }
+                                  disabled={isLoading}
+                                >
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() =>
+                                    handleOpenWarrantyEdit(warranty.id)
+                                  }
+                                  disabled={isLoading}
+                                >
+                                  <Edit className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+
+                  {/* Hiển thị dạng danh sách trên mobile */}
+                  <div className="block md:hidden space-y-4">
                     {filteredWarranties.map((warranty) => (
-                      <TableRow key={warranty.id}>
-                        <TableCell className="text-xs sm:text-sm">
-                          {warranty.id}
-                        </TableCell>
-                        <TableCell className="text-xs sm:text-sm">
-                          {warranty.productIdentity.product.name}
-                        </TableCell>
-                        <TableCell className="text-xs sm:text-sm">
-                          {warranty.productIdentity.imei}
-                        </TableCell>
-                        <TableCell className="text-xs sm:text-sm">
-                          {warranty.productIdentity.warrantyCount || 0}
-                        </TableCell>
-                        <TableCell className="text-xs sm:text-sm">
-                          {warranty.user.fullName}
-                        </TableCell>
-                        <TableCell className="text-xs sm:text-sm">
-                          {warranty.status}
-                        </TableCell>
-                        <TableCell className="text-xs sm:text-sm">
-                          {new Date(warranty.startDate).toLocaleDateString()}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex space-x-2">
+                      <Card key={warranty.id} className="shadow-sm">
+                        <CardHeader>
+                          <CardTitle className="text-sm font-medium">
+                            {warranty.productIdentity.product.name}
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="text-xs space-y-2">
+                          <p>
+                            <strong>IMEI:</strong>{" "}
+                            {warranty.productIdentity.imei || "Không có"}
+                          </p>
+                          <p>
+                            <strong>Người dùng:</strong>{" "}
+                            {warranty.user.fullName}
+                          </p>
+                          <p>
+                            <strong>Thời gian bảo hành:</strong>{" "}
+                            {new Date(warranty.startDate).toLocaleDateString(
+                              "vi-VN"
+                            )}{" "}
+                            -{" "}
+                            {new Date(warranty.endDate).toLocaleDateString(
+                              "vi-VN"
+                            )}
+                          </p>
+                          <p>
+                            <strong>Trạng thái:</strong>{" "}
+                            <span
+                              className={`px-2 py-1 rounded-full text-xs font-medium ${
+                                warranty.status === "Requested"
+                                  ? "bg-yellow-100 text-yellow-800"
+                                  : warranty.status === "Processing"
+                                  ? "bg-blue-100 text-blue-800"
+                                  : warranty.status === "Repairing"
+                                  ? "bg-purple-100 text-purple-800"
+                                  : warranty.status === "Repaired"
+                                  ? "bg-orange-100 text-orange-800"
+                                  : warranty.status === "Returned"
+                                  ? "bg-green-100 text-green-800"
+                                  : "bg-red-100 text-red-800"
+                              }`}
+                            >
+                              {translateWarrantyStatus(warranty.status)}
+                            </span>
+                          </p>
+                          <p>
+                            <strong>Ngày bắt đầu:</strong>{" "}
+                            {new Date(warranty.startDate).toLocaleDateString(
+                              "vi-VN"
+                            )}
+                          </p>
+                          <div className="flex space-x-2 pt-2">
                             <Button
-                              variant="ghost"
+                              variant="outline"
                               size="sm"
                               onClick={() =>
                                 handleViewWarrantyDetail(warranty.id)
                               }
                               disabled={isLoading}
                             >
-                              <Eye className="h-4 w-4" />
+                              <Eye className="h-4 w-4 mr-1" />
+                              Xem
                             </Button>
                             <Button
-                              variant="ghost"
+                              variant="outline"
                               size="sm"
                               onClick={() =>
                                 handleOpenWarrantyEdit(warranty.id)
                               }
                               disabled={isLoading}
                             >
-                              <Edit className="h-4 w-4" />
+                              <Edit className="h-4 w-4 mr-1" />
+                              Sửa
                             </Button>
                           </div>
-                        </TableCell>
-                      </TableRow>
+                        </CardContent>
+                      </Card>
                     ))}
-                  </TableBody>
-                </Table>
-              </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </TabsContent>
+        </Tabs>
 
-              {/* Hiển thị dạng danh sách trên mobile */}
-              <div className="block md:hidden space-y-4">
-                {filteredWarranties.map((warranty) => (
-                  <Card key={warranty.id} className="shadow-sm">
-                    <CardHeader>
-                      <CardTitle className="text-sm font-medium">
-                        {warranty.productIdentity.product.name}
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-xs space-y-2">
-                      <p>
-                        <strong>ID:</strong> {warranty.id}
-                      </p>
-                      <p>
-                        <strong>IMEI:</strong> {warranty.productIdentity.imei}
-                      </p>
-                      <p>
-                        <strong>S RESOURCE lần bảo hành:</strong>{" "}
-                        {warranty.productIdentity.warrantyCount || 0}
-                      </p>
-                      <p>
-                        <strong>Người dùng:</strong> {warranty.user.fullName}
-                      </p>
-                      <p>
-                        <strong>Trạng thái:</strong> {warranty.status}
-                      </p>
-                      <p>
-                        <strong>Ngày bắt đầu:</strong>{" "}
-                        {new Date(warranty.startDate).toLocaleDateString()}
-                      </p>
-                      <div className="flex space-x-2 pt-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleViewWarrantyDetail(warranty.id)}
-                          disabled={isLoading}
-                        >
-                          <Eye className="h-4 w-4 mr-1" />
-                          Xem
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleOpenWarrantyEdit(warranty.id)}
-                          disabled={isLoading}
-                        >
-                          <Edit className="h-4 w-4 mr-1" />
-                          Sửa
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </>
-          )}
-        </TabsContent>
-      </Tabs>
+        {/* Modal Cập nhật trạng thái yêu cầu bảo hành */}
+        <WarrantyRequestForm
+          open={isWarrantyRequestEditOpen}
+          onOpenChange={setIsWarrantyRequestEditOpen}
+          onSubmit={handleUpdateWarrantyRequestStatus}
+          initialData={selectedWarrantyRequest || undefined}
+          isLoading={isEditingWarrantyRequest}
+        />
 
-      {/* Modal Cập nhật trạng thái yêu cầu bảo hành */}
-      <WarrantyRequestForm
-        open={isWarrantyRequestEditOpen}
-        onOpenChange={setIsWarrantyRequestEditOpen}
-        onSubmit={handleUpdateWarrantyRequestStatus}
-        initialData={selectedWarrantyRequest || undefined}
-        isLoading={isEditingWarrantyRequest}
-      />
+        {/* Modal Xem chi tiết yêu cầu bảo hành */}
+        <WarrantyRequestDetail
+          open={isWarrantyRequestDetailOpen}
+          onOpenChange={setIsWarrantyRequestDetailOpen}
+          warrantyRequest={selectedWarrantyRequest}
+        />
 
-      {/* Modal Xem chi tiết yêu cầu bảo hành */}
-      <WarrantyRequestDetail
-        open={isWarrantyRequestDetailOpen}
-        onOpenChange={setIsWarrantyRequestDetailOpen}
-        warrantyRequest={selectedWarrantyRequest}
-      />
+        {/* Modal Cập nhật trạng thái phiếu bảo hành */}
+        <WarrantyForm
+          open={isWarrantyEditOpen}
+          onOpenChange={setIsWarrantyEditOpen}
+          onSubmit={handleUpdateWarrantyStatus}
+          initialData={selectedWarranty || undefined}
+          isLoading={isEditingWarranty}
+        />
 
-      {/* Modal Cập nhật trạng thái phiếu bảo hành */}
-      <WarrantyForm
-        open={isWarrantyEditOpen}
-        onOpenChange={setIsWarrantyEditOpen}
-        onSubmit={handleUpdateWarrantyStatus}
-        initialData={selectedWarranty || undefined}
-        isLoading={isEditingWarranty}
-      />
-
-      {/* Modal Xem chi tiết phiếu bảo hành */}
-      <WarrantyDetail
-        open={isWarrantyDetailOpen}
-        onOpenChange={setIsWarrantyDetailOpen}
-        warranty={selectedWarranty}
-      />
-    </div>
+        {/* Modal Xem chi tiết phiếu bảo hành */}
+        <WarrantyDetail
+          open={isWarrantyDetailOpen}
+          onOpenChange={setIsWarrantyDetailOpen}
+          warranty={selectedWarranty}
+        />
+      </div>
+    </Card>
   );
 }

@@ -36,7 +36,7 @@ export class WarrantyService {
     }
 
     // Kiểm tra quyền sở hữu: productIdentity chỉ liên kết với 1 OrderDetail
-    const orderDetail = productIdentity.orderDetail[0]; // Lấy OrderDetail đầu tiên
+    const orderDetail = productIdentity.orderDetail[0];
     if (!orderDetail || orderDetail.order.userId !== userId) {
       throw new BadRequestException(
         'Bạn không có quyền yêu cầu bảo hành cho sản phẩm này'
@@ -58,11 +58,34 @@ export class WarrantyService {
         productIdentityId,
         status: { in: ['Pending', 'Approved'] },
       },
+      include: {
+        warranty: true, // Bao gồm thông tin phiếu bảo hành liên quan (nếu có)
+      },
     });
-
-    if (existingRequest) {
+    if (
+      existingRequest &&
+      (!existingRequest.warranty ||
+        !['Returned', 'Canceled'].includes(
+          (existingRequest.warranty as any)?.status
+        ))
+    ) {
       throw new BadRequestException(
         'Sản phẩm này đã có yêu cầu bảo hành đang xử lý'
+      );
+    }
+
+    // Kiểm tra phiếu bảo hành trước đó (nếu có)
+    const existingWarranty = await this.prisma.warranty.findFirst({
+      where: {
+        productIdentityId,
+        status: { not: 'Canceled' },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (existingWarranty && existingWarranty.status !== 'Returned') {
+      throw new BadRequestException(
+        'Không thể tạo yêu cầu bảo hành mới. Phiếu bảo hành trước đó chưa hoàn tất (chưa ở trạng thái Đã trả máy).'
       );
     }
 
@@ -98,18 +121,11 @@ export class WarrantyService {
     requesterId: number,
     newStatus: string
   ) {
-    const validStatuses = [
-      'Pending',
-      'Approved',
-      'Rejected',
-      'Completed',
-      'Canceled',
-    ] as const;
+    const validStatuses = ['Pending', 'Approved', 'Rejected'] as const;
     if (!validStatuses.includes(newStatus as any)) {
       throw new BadRequestException('Trạng thái không hợp lệ');
     }
 
-    // Kiểm tra quyền của người yêu cầu
     const requester = await this.prisma.user.findUnique({
       where: { id: requesterId },
       include: { role: true },
@@ -128,7 +144,6 @@ export class WarrantyService {
       );
     }
 
-    // Kiểm tra yêu cầu bảo hành
     const warrantyRequest = await this.prisma.warrantyRequest.findUnique({
       where: { id: requestId },
       include: {
@@ -147,13 +162,10 @@ export class WarrantyService {
       throw new NotFoundException('Yêu cầu bảo hành không tồn tại');
     }
 
-    // Kiểm tra chuyển đổi trạng thái hợp lệ
     const validTransitions: { [key: string]: string[] } = {
-      Pending: ['Approved', 'Rejected', 'Canceled'],
-      Approved: ['Completed', 'Canceled'],
+      Pending: ['Approved', 'Rejected'],
+      Approved: [],
       Rejected: [],
-      Completed: [],
-      Canceled: [],
     };
 
     if (!validTransitions[warrantyRequest.status].includes(newStatus)) {
@@ -162,12 +174,10 @@ export class WarrantyService {
       );
     }
 
-    // Cập nhật trạng thái trong giao dịch
     const updatedRequest = await this.prisma.$transaction(async tx => {
       let updatedWarrantyRequest;
 
       if (newStatus === 'Approved') {
-        // Kiểm tra xem đã có phiếu bảo hành nào cho sản phẩm này chưa
         const existingWarranty = await tx.warranty.findFirst({
           where: {
             productIdentityId: warrantyRequest.productIdentityId,
@@ -181,15 +191,13 @@ export class WarrantyService {
           );
         }
 
-        // Tăng số lần bảo hành của ProductIdentity
         await tx.productIdentity.update({
           where: { id: warrantyRequest.productIdentityId },
           data: {
-            warrantyCount: { increment: 1 }, // Tăng warrantyCount lên 1
+            warrantyCount: { increment: 1 },
           },
         });
 
-        // Sử dụng thời hạn bảo hành từ ProductIdentity thay vì tạo mới
         const productIdentity = await tx.productIdentity.findUnique({
           where: { id: warrantyRequest.productIdentityId },
         });
@@ -203,23 +211,21 @@ export class WarrantyService {
           );
         }
 
-        // Tạo phiếu bảo hành mới với trạng thái ban đầu là "Requested" và lưu warrantyRequestId
         await tx.warranty.create({
           data: {
             userId: warrantyRequest.userId,
             productIdentityId: warrantyRequest.productIdentityId,
-            startDate: productIdentity.warrantyStartDate, // Sử dụng ngày bắt đầu từ ProductIdentity
-            endDate: productIdentity.warrantyEndDate, // Sử dụng ngày kết thúc từ ProductIdentity
-            status: 'Requested', // Trạng thái ban đầu: Đã tiếp nhận
-            note: warrantyRequest.reason, // Sử dụng lý do từ yêu cầu bảo hành
-            warrantyRequestId: requestId, // Lưu ID của warrantyRequest
+            startDate: productIdentity.warrantyStartDate,
+            endDate: productIdentity.warrantyEndDate,
+            status: 'Requested',
+            note: warrantyRequest.reason,
+            warrantyRequestId: requestId,
           },
         });
 
-        // Cập nhật trạng thái yêu cầu bảo hành thành "Completed"
         updatedWarrantyRequest = await tx.warrantyRequest.update({
           where: { id: requestId },
-          data: { status: 'Completed' },
+          data: { status: 'Approved' },
           include: {
             user: { select: { id: true, fullName: true } },
             productIdentity: {
@@ -228,7 +234,6 @@ export class WarrantyService {
           },
         });
       } else {
-        // Nếu trạng thái là "Rejected" hoặc "Canceled", chỉ cập nhật trạng thái yêu cầu bảo hành
         updatedWarrantyRequest = await tx.warrantyRequest.update({
           where: { id: requestId },
           data: { status: newStatus as any },
@@ -296,7 +301,10 @@ export class WarrantyService {
       include: {
         user: { select: { id: true, fullName: true } },
         productIdentity: {
-          include: { product: { select: { id: true, name: true } } },
+          include: {
+            color: true,
+            product: { select: { id: true, name: true } },
+          },
         },
       },
     });
@@ -490,6 +498,7 @@ export class WarrantyService {
             color: { select: { id: true, name: true } },
           },
         },
+        warrantyRequest: true, // Bao gồm warrantyRequest để cập nhật trạng thái
       },
     });
 
@@ -512,18 +521,41 @@ export class WarrantyService {
       );
     }
 
-    const updatedWarranty = await this.prisma.warranty.update({
-      where: { id: warrantyId },
-      data: { status: newStatus as any },
-      include: {
-        user: { select: { id: true, fullName: true } },
-        productIdentity: {
-          include: {
-            product: { select: { id: true, name: true } },
-            color: { select: { id: true, name: true } },
+    // Cập nhật trạng thái trong giao dịch
+    const updatedWarranty = await this.prisma.$transaction(async tx => {
+      // Cập nhật trạng thái của phiếu bảo hành
+      const updated = await tx.warranty.update({
+        where: { id: warrantyId },
+        data: { status: newStatus as any },
+        include: {
+          user: { select: { id: true, fullName: true } },
+          productIdentity: {
+            include: {
+              product: { select: { id: true, name: true } },
+              color: { select: { id: true, name: true } },
+            },
           },
+          warrantyRequest: true,
         },
-      },
+      });
+
+      // Nếu trạng thái mới là Returned, cập nhật trạng thái của warrantyRequest
+      if (newStatus === 'Returned' && warranty.warrantyRequestId) {
+        await tx.warrantyRequest.update({
+          where: { id: warranty.warrantyRequestId },
+          data: { status: 'Completed' }, // Đánh dấu yêu cầu bảo hành đã hoàn tất
+        });
+      }
+
+      // Nếu trạng thái mới là Canceled, cập nhật trạng thái của warrantyRequest
+      if (newStatus === 'Canceled' && warranty.warrantyRequestId) {
+        await tx.warrantyRequest.update({
+          where: { id: warranty.warrantyRequestId },
+          data: { status: 'Rejected' }, // Đánh dấu yêu cầu bảo hành bị hủy
+        });
+      }
+
+      return updated;
     });
 
     return {
