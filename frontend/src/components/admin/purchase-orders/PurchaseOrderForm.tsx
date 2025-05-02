@@ -295,8 +295,8 @@ export function PurchaseOrderForm({
                                       key={product.id}
                                       value={product.id}
                                     >
-                                      {product.name} ({product.model.name} -{" "}
-                                      {product.model.brand.name})
+                                      {product.name} -{" "}
+                                      {product.price.toLocaleString()} VNĐ
                                     </SelectItem>
                                   ))}
                                 </SelectContent>

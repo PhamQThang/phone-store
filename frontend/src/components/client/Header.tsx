@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Menu, ShoppingCart, User, ChevronDown, Search } from "lucide-react";
+import { Menu, User, ChevronDown, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -20,7 +20,7 @@ import {
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { toast } from "sonner";
 import Image from "next/image";
-import { getCartItems } from "@/api/cart/cartApi";
+// import { getCartItems } from "@/api/cart/cartApi";
 import { getBrands } from "@/api/admin/brandsApi";
 
 interface Category {
@@ -33,7 +33,7 @@ export default function Header() {
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [fullName, setFullName] = useState<string | null>(null);
-  const [cartCount, setCartCount] = useState(0);
+  // const [cartCount, setCartCount] = useState(0);
   const [searchTerm, setSearchTerm] = useState("");
   const [isAccountOpen, setIsAccountOpen] = useState(false);
   const [isProductsOpen, setIsProductsOpen] = useState(false);
@@ -78,41 +78,41 @@ export default function Header() {
       setFullName(null);
     }
 
-    const fetchCartCount = async () => {
-      const cartId = localStorage.getItem("cartId");
-      if (!cartId) {
-        setCartCount(0);
-        return;
-      }
+    // const fetchCartCount = async () => {
+    //   const cartId = localStorage.getItem("cartId");
+    //   if (!cartId) {
+    //     setCartCount(0);
+    //     return;
+    //   }
 
-      try {
-        const cartItems = await getCartItems(cartId);
-        const totalItems = cartItems.reduce(
-          (sum: number, item: { quantity: number }) => sum + item.quantity,
-          0
-        );
-        setCartCount(totalItems);
-      } catch (error: any) {
-        console.error("Không thể lấy giỏ hàng:", error);
-        setCartCount(0);
-      }
-    };
+    //   try {
+    //     const cartItems = await getCartItems(cartId);
+    //     const totalItems = cartItems.reduce(
+    //       (sum: number, item: { quantity: number }) => sum + item.quantity,
+    //       0
+    //     );
+    //     setCartCount(totalItems);
+    //   } catch (error: any) {
+    //     console.error("Không thể lấy giỏ hàng:", error);
+    //     setCartCount(0);
+    //   }
+    // };
 
-    fetchCartCount();
+    // fetchCartCount();
   }, []);
 
   const handleLogout = () => {
     localStorage.clear();
     setIsLoggedIn(false);
     setFullName(null);
-    setCartCount(0);
+    // setCartCount(0);
     toast.success("Đăng xuất thành công!");
     router.push("/client");
   };
 
-  const handleCartClick = () => {
-    router.push("/client/cart");
-  };
+  // const handleCartClick = () => {
+  //   router.push("/client/cart");
+  // };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -146,6 +146,7 @@ export default function Header() {
     { name: "Trang chủ", href: "/client" },
     { name: "Sản phẩm", href: "/client/products", hasDropdown: true },
     { name: "Tin tức", href: "/client/newsPage" },
+    { name: "Giỏ hàng", href: "/client/cart" },
     { name: "Đơn hàng", href: "/client/orders" },
     { name: "Bảo hành", href: "/client/warranties" },
     { name: "Đổi trả", href: "/client/returns" },
@@ -153,10 +154,8 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-50 bg-white shadow-md">
-      {/* Top Header: Logo, Search, Icons */}
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
         <div className="flex items-center justify-between">
-          {/* Logo */}
           <Link href="/client">
             <Image
               src="/images/logo.png"
@@ -167,7 +166,6 @@ export default function Header() {
             />
           </Link>
 
-          {/* Search Bar (Desktop) */}
           <div className="hidden md:flex w-full max-w-md mx-6">
             <form onSubmit={handleSearch} className="relative w-full">
               <Input
@@ -181,9 +179,7 @@ export default function Header() {
             </form>
           </div>
 
-          {/* Icons: Search (Mobile), Account, Cart, Menu */}
           <div className="flex items-center gap-2">
-            {/* Search Icon (Mobile) */}
             <Sheet>
               <SheetTrigger asChild>
                 <Button
@@ -216,7 +212,6 @@ export default function Header() {
               </SheetContent>
             </Sheet>
 
-            {/* Account Popover */}
             <Popover open={isAccountOpen} onOpenChange={setIsAccountOpen}>
               <PopoverTrigger asChild>
                 <Button
@@ -281,8 +276,7 @@ export default function Header() {
               </PopoverContent>
             </Popover>
 
-            {/* Cart Icon */}
-            <Button
+            {/* <Button
               variant="ghost"
               size="icon"
               onClick={handleCartClick}
@@ -294,9 +288,8 @@ export default function Header() {
                   {cartCount}
                 </span>
               )}
-            </Button>
+            </Button> */}
 
-            {/* Menu Icon (Mobile) */}
             <Sheet>
               <SheetTrigger asChild>
                 <Button
@@ -369,12 +362,12 @@ export default function Header() {
         </div>
       </div>
 
-      {/* Navigation Bar (Desktop) */}
       <nav className="hidden md:flex bg-red-600 py-1 px-4 justify-center">
         <div className="flex gap-8">
           {navItems.map((item) =>
             item.hasDropdown ? (
-              <div
+              <Link
+                href={item.href}
                 key={item.name}
                 className="relative top-2"
                 onMouseEnter={handleMouseEnter}
@@ -411,7 +404,7 @@ export default function Header() {
                     </div>
                   </div>
                 )}
-              </div>
+              </Link>
             ) : (
               <Link
                 key={item.name}

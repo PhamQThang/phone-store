@@ -371,7 +371,7 @@ const OrderDetailsPage = ({
           <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-8 tracking-tight">
             Chi tiết đơn hàng #{order.id.substring(0, 8)}...
           </h1>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+          <div className="flex flex-col gap-4">
             <div className="space-y-6">
               <h2 className="text-2xl font-semibold text-gray-900 border-b-2 border-indigo-100 pb-3">
                 Thông tin đơn hàng
