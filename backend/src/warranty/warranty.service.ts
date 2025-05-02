@@ -43,8 +43,28 @@ export class WarrantyService {
       );
     }
 
-    // Kiểm tra thời hạn bảo hành
+    // Kiểm tra trạng thái đơn hàng
+    if (orderDetail.order.status !== 'Delivered') {
+      throw new BadRequestException(
+        'Đơn hàng chưa được giao, không thể yêu cầu bảo hành'
+      );
+    }
+
+    // Kiểm tra thời gian đổi trả (7 ngày đầu kể từ ngày giao hàng)
+    const deliveredDate = orderDetail.order.updatedAt; // Thời điểm trạng thái chuyển sang Delivered
     const currentDate = new Date();
+    const daysSinceDelivered = Math.floor(
+      (currentDate.getTime() - deliveredDate.getTime()) / (1000 * 60 * 60 * 24)
+    );
+    const returnWindowDays = parseInt(process.env.RETURN_WINDOW_DAYS) || 7;
+
+    if (daysSinceDelivered <= returnWindowDays) {
+      throw new BadRequestException(
+        `Sản phẩm vẫn trong thời gian đổi trả (${returnWindowDays} ngày đầu kể từ ngày giao hàng). Vui lòng sử dụng chính sách đổi trả.`
+      );
+    }
+
+    // Kiểm tra thời hạn bảo hành
     if (
       productIdentity.warrantyEndDate &&
       currentDate > productIdentity.warrantyEndDate
@@ -59,7 +79,7 @@ export class WarrantyService {
         status: { in: ['Pending', 'Approved'] },
       },
       include: {
-        warranty: true, // Bao gồm thông tin phiếu bảo hành liên quan (nếu có)
+        warranty: true,
       },
     });
     if (

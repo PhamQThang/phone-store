@@ -64,7 +64,7 @@ const items = [
   },
   {
     title: "Quản lý bảo hành",
-    url: "/admin/warrantys",
+    url: "/admin/warranties",
     icon: Sliders,
     allowedRoles: ["Admin", "Employee"],
   },

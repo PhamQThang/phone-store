@@ -29,7 +29,18 @@ import {
   getWarrantyRequests,
   getWarranties,
 } from "@/api/warrantyApi";
-import { Order, WarrantyRequest, Warranty } from "@/lib/types";
+import {
+  Order,
+  WarrantyRequest,
+  Warranty,
+  ProductReturn,
+  ReturnTicket,
+} from "@/lib/types";
+import {
+  createReturnRequest,
+  getReturns,
+  getReturnTickets,
+} from "@/api/returnsApi";
 
 const OrderDetailsPage = ({
   params,
@@ -41,6 +52,8 @@ const OrderDetailsPage = ({
     []
   );
   const [warranties, setWarranties] = useState<Warranty[]>([]);
+  const [returns, setReturns] = useState<ProductReturn[]>([]);
+  const [returnTickets, setReturnTickets] = useState<ReturnTicket[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -51,8 +64,10 @@ const OrderDetailsPage = ({
   const user = localStorage.getItem("fullName");
   const userEmail = localStorage.getItem("userEmail");
   const userPhone = localStorage.getItem("phoneNumber");
+  const userAddress = localStorage.getItem("address");
 
   const [isWarrantyModalOpen, setIsWarrantyModalOpen] = useState(false);
+  const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
   const [selectedProductIdentityId, setSelectedProductIdentityId] = useState<
     string | null
   >(null);
@@ -62,18 +77,33 @@ const OrderDetailsPage = ({
     phoneNumber: userPhone || "",
     email: userEmail || "",
   });
+  const [returnForm, setReturnForm] = useState({
+    reason: "",
+    fullName: user || "",
+    phoneNumber: userPhone || "",
+    address: userAddress || "",
+  });
 
   const fetchData = useCallback(async () => {
     try {
-      const orderData = await getOrderDetails(orderId);
-      setOrder(orderData);
-
-      const [warrantyRequestsData, warrantiesData] = await Promise.all([
+      const [
+        orderData,
+        warrantyRequestsData,
+        warrantiesData,
+        returnsData,
+        returnTicketsData,
+      ] = await Promise.all([
+        getOrderDetails(orderId),
         getWarrantyRequests(),
         getWarranties(),
+        getReturns(),
+        getReturnTickets(),
       ]);
+      setOrder(orderData);
       setWarrantyRequests(warrantyRequestsData);
       setWarranties(warrantiesData);
+      setReturns(returnsData);
+      setReturnTickets(returnTicketsData);
     } catch (error: any) {
       setError(
         error.response?.data?.message || "Không thể lấy chi tiết đơn hàng"
@@ -97,7 +127,6 @@ const OrderDetailsPage = ({
     fetchData();
   }, [user, orderId, router, fetchData]);
 
-  // Làm mới dữ liệu khi người dùng quay lại trang
   useEffect(() => {
     const handleFocus = () => {
       fetchData();
@@ -116,6 +145,7 @@ const OrderDetailsPage = ({
       Shipping: "Đang giao",
       Delivered: "Đã giao",
       Canceled: "Đã hủy",
+      Returned: "Đã đổi trả",
     };
     return statusMap[status] || status;
   };
@@ -129,9 +159,7 @@ const OrderDetailsPage = ({
     }
 
     try {
-      const response = await updateOrderStatus(orderId, {
-        status: "Canceled",
-      });
+      const response = await updateOrderStatus(orderId, { status: "Canceled" });
       setOrder(response);
       toast.success("Hủy đơn hàng thành công", { duration: 2000 });
     } catch (error: any) {
@@ -150,22 +178,56 @@ const OrderDetailsPage = ({
   };
 
   const hasPendingWarrantyRequest = (productIdentityId: string) => {
-    // Lấy tất cả warrantyRequest liên quan đến productIdentityId
     const relatedRequests = warrantyRequests.filter(
       (request) => request.productIdentityId === productIdentityId
     );
-
-    // Nếu không có warrantyRequest nào, cho phép tạo yêu cầu mới
-    if (!relatedRequests.length) {
-      return false;
-    }
-
-    // Kiểm tra xem có bất kỳ warrantyRequest nào không ở trạng thái Completed hoặc Rejected không
-    const hasUnfinishedRequest = relatedRequests.some(
+    return relatedRequests.some(
       (request) => !["Completed", "Rejected"].includes(request.status)
     );
+  };
 
-    return hasUnfinishedRequest;
+  const hasPendingReturnRequest = (productIdentityId: string) => {
+    const relatedReturns = returns.filter(
+      (ret) => ret.productIdentityId === productIdentityId
+    );
+    return relatedReturns.some(
+      (ret) => !["Completed", "Rejected"].includes(ret.status)
+    );
+  };
+
+  const hasBeenReturned = (productIdentityId: string) => {
+    const relatedReturnTickets = returnTickets.filter(
+      (ticket) => ticket.productIdentityId === productIdentityId
+    );
+    return relatedReturnTickets.some((ticket) => ticket.status === "Returned");
+  };
+
+  const canReturn = (
+    orderUpdatedAt: string | undefined,
+    status: string
+  ): boolean => {
+    if (!orderUpdatedAt || status !== "Delivered") return false;
+    const deliveredDate = new Date(orderUpdatedAt);
+    const currentDate = new Date();
+    const daysSinceDelivered = Math.floor(
+      (currentDate.getTime() - deliveredDate.getTime()) / (1000 * 60 * 60 * 24)
+    );
+    const returnWindowDays = 2;
+    return daysSinceDelivered <= returnWindowDays;
+  };
+
+  const canRequestWarranty = (
+    orderUpdatedAt: string | undefined,
+    status: string
+  ): boolean => {
+    if (!orderUpdatedAt || status !== "Delivered") return false;
+    const deliveredDate = new Date(orderUpdatedAt);
+    const currentDate = new Date();
+    const daysSinceDelivered = Math.floor(
+      (currentDate.getTime() - deliveredDate.getTime()) / (1000 * 60 * 60 * 24)
+    );
+    const returnWindowDays = 7;
+    return daysSinceDelivered > returnWindowDays;
   };
 
   const handleOpenWarrantyModal = (productIdentityId: string) => {
@@ -179,9 +241,25 @@ const OrderDetailsPage = ({
     setIsWarrantyModalOpen(true);
   };
 
+  const handleOpenReturnModal = (productIdentityId: string) => {
+    setSelectedProductIdentityId(productIdentityId);
+    setReturnForm({
+      reason: "",
+      fullName: user || "",
+      phoneNumber: userPhone || "",
+      address: userAddress || "",
+    });
+    setIsReturnModalOpen(true);
+  };
+
   const handleWarrantyFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setWarrantyForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleReturnFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setReturnForm((prev) => ({ ...prev, [name]: value }));
   };
 
   const handleSubmitWarrantyRequest = async () => {
@@ -200,7 +278,6 @@ const OrderDetailsPage = ({
       setWarrantyRequests((prev) => [...prev, response]);
       setIsWarrantyModalOpen(false);
       toast.success("Tạo yêu cầu bảo hành thành công", { duration: 2000 });
-
       await fetchData();
     } catch (error: any) {
       toast.error("Lỗi", {
@@ -211,12 +288,38 @@ const OrderDetailsPage = ({
     }
   };
 
+  const handleSubmitReturnRequest = async () => {
+    if (!selectedProductIdentityId) return;
+
+    try {
+      const returnRequestData = {
+        productIdentityId: selectedProductIdentityId,
+        reason: returnForm.reason,
+        fullName: returnForm.fullName,
+        phoneNumber: returnForm.phoneNumber,
+        address: returnForm.address,
+      };
+
+      const response = await createReturnRequest(returnRequestData);
+      setReturns((prev) => [...prev, response]);
+      setIsReturnModalOpen(false);
+      toast.success("Tạo yêu cầu đổi trả thành công", { duration: 2000 });
+      await fetchData();
+    } catch (error: any) {
+      toast.error("Lỗi", {
+        description:
+          error.response?.data?.message || "Không thể tạo yêu cầu đổi trả",
+        duration: 2000,
+      });
+    }
+  };
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-50">
-        <div className="text-gray-600 text-lg flex items-center">
+      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+        <div className="text-gray-700 text-xl flex items-center gap-3 bg-white p-6 rounded-xl shadow-lg">
           <svg
-            className="animate-spin h-6 w-6 mr-2 text-blue-500"
+            className="animate-spin h-7 w-7 text-indigo-600"
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
@@ -228,14 +331,14 @@ const OrderDetailsPage = ({
               r="10"
               stroke="currentColor"
               strokeWidth="4"
-            ></circle>
+            />
             <path
               className="opacity-75"
               fill="currentColor"
               d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-            ></path>
+            />
           </svg>
-          Đang tải...
+          Đang tải dữ liệu...
         </div>
       </div>
     );
@@ -243,8 +346,8 @@ const OrderDetailsPage = ({
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-50">
-        <div className="text-red-600 text-lg bg-white p-6 rounded-lg shadow-md">
+      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+        <div className="text-red-600 text-xl bg-white p-8 rounded-xl shadow-lg border border-red-200">
           {error}
         </div>
       </div>
@@ -253,8 +356,8 @@ const OrderDetailsPage = ({
 
   if (!order) {
     return (
-      <div className="flex items-center justify-center h-screen bg-gray-50">
-        <div className="text-gray-600 text-lg bg-white p-6 rounded-lg shadow-md">
+      <div className="flex items-center justify-center h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+        <div className="text-gray-700 text-xl bg-white p-8 rounded-xl shadow-lg border border-gray-200">
           Không tìm thấy đơn hàng.
         </div>
       </div>
@@ -262,58 +365,58 @@ const OrderDetailsPage = ({
   }
 
   return (
-    <div className="container mx-auto py-12 px-4 sm:px-6 lg:px-8 bg-gray-50 min-h-screen">
-      <Card className="max-w-4xl mx-auto shadow-lg border border-gray-100 rounded-xl bg-white relative">
-        <div className="p-6 sm:p-8">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-800 mb-6">
+    <div className="container mx-auto py-12 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-gray-50 to-gray-100 min-h-screen">
+      <Card className="max-w-5xl mx-auto shadow-2xl border border-gray-200 rounded-2xl bg-white relative overflow-hidden">
+        <div className="p-6 sm:p-10">
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-8 tracking-tight">
             Chi tiết đơn hàng #{order.id.substring(0, 8)}...
           </h1>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
             <div className="space-y-6">
-              <h2 className="text-xl font-semibold text-gray-800 border-b pb-2">
+              <h2 className="text-2xl font-semibold text-gray-900 border-b-2 border-indigo-100 pb-3">
                 Thông tin đơn hàng
               </h2>
-              <div className="space-y-3">
-                <p className="text-gray-700">
-                  <strong className="font-medium text-gray-800">
+              <div className="space-y-4">
+                <p className="text-gray-700 text-lg">
+                  <strong className="font-medium text-gray-900">
                     Mã đơn hàng:
                   </strong>{" "}
-                  {order.id}
+                  <span className="text-indigo-600">{order.id}</span>
                 </p>
-                <p className="text-gray-700">
-                  <strong className="font-medium text-gray-800">
+                <p className="text-gray-700 text-lg">
+                  <strong className="font-medium text-gray-900">
                     Địa chỉ:
                   </strong>{" "}
                   {order.address}
                 </p>
-                <p className="text-gray-700">
-                  <strong className="font-medium text-gray-800">
+                <p className="text-gray-700 text-lg">
+                  <strong className="font-medium text-gray-900">
                     Số điện thoại:
                   </strong>{" "}
                   {order.phoneNumber || "Không có"}
                 </p>
-                <p className="text-gray-700">
-                  <strong className="font-medium text-gray-800">
+                <p className="text-gray-700 text-lg">
+                  <strong className="font-medium text-gray-900">
                     Tổng tiền:
                   </strong>{" "}
-                  <span className="text-blue-600 font-semibold">
+                  <span className="text-indigo-600 font-semibold">
                     {order.totalAmount.toLocaleString("vi-VN")} VNĐ
                   </span>
                 </p>
-                <p className="text-gray-700">
-                  <strong className="font-medium text-gray-800">
+                <p className="text-gray-700 text-lg">
+                  <strong className="font-medium text-gray-900">
                     Phương thức thanh toán:
                   </strong>{" "}
                   {order.paymentMethod === "COD"
                     ? "Thanh toán khi nhận hàng"
                     : "Thanh toán trực tuyến"}
                 </p>
-                <p className="text-gray-700">
-                  <strong className="font-medium text-gray-800">
+                <p className="text-gray-700 text-lg">
+                  <strong className="font-medium text-gray-900">
                     Trạng thái thanh toán:
                   </strong>{" "}
                   <span
-                    className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    className={`px-3 py-1 rounded-full text-sm font-medium shadow-sm transition-all duration-300 ${
                       order.paymentStatus === "Completed"
                         ? "bg-green-100 text-green-800"
                         : order.paymentStatus === "Pending"
@@ -328,12 +431,12 @@ const OrderDetailsPage = ({
                       : "Thanh toán thất bại"}
                   </span>
                 </p>
-                <p className="text-gray-700">
-                  <strong className="font-medium text-gray-800">
+                <p className="text-gray-700 text-lg">
+                  <strong className="font-medium text-gray-900">
                     Trạng thái:
                   </strong>{" "}
                   <span
-                    className={`px-2 py-1 rounded-full text-xs font-medium ${
+                    className={`px-3 py-1 rounded-full text-sm font-medium shadow-sm transition-all duration-300 ${
                       order.status === "Pending"
                         ? "bg-yellow-100 text-yellow-800"
                         : order.status === "Confirmed"
@@ -342,50 +445,60 @@ const OrderDetailsPage = ({
                         ? "bg-purple-100 text-purple-800"
                         : order.status === "Delivered"
                         ? "bg-green-100 text-green-800"
+                        : order.status === "Returned"
+                        ? "bg-red-100 text-red-800"
                         : "bg-red-100 text-red-800"
                     }`}
                   >
                     {translateStatus(order.status)}
                   </span>
                 </p>
-                <p className="text-gray-700">
-                  <strong className="font-medium text-gray-800">
+                <p className="text-gray-700 text-lg">
+                  <strong className="font-medium text-gray-900">
                     Ngày tạo:
                   </strong>{" "}
                   {new Date(order.createdAt).toLocaleDateString("vi-VN")}
                 </p>
+                {order.status === "Delivered" && (
+                  <p className="text-gray-700 text-lg">
+                    <strong className="font-medium text-gray-900">
+                      Ngày giao hàng:
+                    </strong>{" "}
+                    {new Date(order.updatedAt).toLocaleDateString("vi-VN")}
+                  </p>
+                )}
               </div>
             </div>
 
             <div className="space-y-6">
-              <h2 className="text-xl font-semibold text-gray-800 border-b pb-2">
+              <h2 className="text-2xl font-semibold text-gray-900 border-b-2 border-indigo-100 pb-3">
                 Sản phẩm trong đơn hàng
               </h2>
               {order.orderDetails.length === 0 ? (
-                <p className="text-gray-600 py-4">
+                <p className="text-gray-600 py-4 text-lg">
                   Không có sản phẩm nào trong đơn hàng này.
                 </p>
               ) : (
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
                   <Table>
                     <TableHeader>
-                      <TableRow className="bg-gray-50">
-                        <TableHead className="text-gray-700 font-semibold">
+                      <TableRow className="bg-indigo-50">
+                        <TableHead className="text-gray-800 font-semibold py-4">
                           Sản phẩm
                         </TableHead>
-                        <TableHead className="text-gray-700 font-semibold">
+                        <TableHead className="text-gray-800 font-semibold py-4">
                           Màu sắc
                         </TableHead>
-                        <TableHead className="text-gray-700 font-semibold">
+                        <TableHead className="text-gray-800 font-semibold py-4">
                           Giá
                         </TableHead>
-                        <TableHead className="text-gray-700 font-semibold">
+                        <TableHead className="text-gray-800 font-semibold py-4">
                           Thời hạn bảo hành
                         </TableHead>
-                        <TableHead className="text-gray-700 font-semibold">
+                        <TableHead className="text-gray-800 font-semibold py-4">
                           Số lần bảo hành
                         </TableHead>
-                        <TableHead className="text-gray-700 font-semibold">
+                        <TableHead className="text-gray-800 font-semibold py-4">
                           Hành động
                         </TableHead>
                       </TableRow>
@@ -398,21 +511,34 @@ const OrderDetailsPage = ({
                         const hasWarrantyRequest = hasPendingWarrantyRequest(
                           item.productIdentityId
                         );
+                        const hasReturnRequest = hasPendingReturnRequest(
+                          item.productIdentityId
+                        );
+                        const hasReturned = hasBeenReturned(
+                          item.productIdentityId
+                        );
                         const isOrderDelivered = order.status === "Delivered";
+                        const orderUpdatedAt = order.updatedAt;
+                        const isReturnable =
+                          isOrderDelivered &&
+                          canReturn(orderUpdatedAt, order.status);
+                        const isWarrantyRequestable =
+                          isOrderDelivered &&
+                          canRequestWarranty(orderUpdatedAt, order.status);
 
                         return (
                           <TableRow
                             key={index}
-                            className="hover:bg-blue-50 transition-colors"
+                            className="hover:bg-indigo-50 transition-colors duration-200"
                           >
-                            <TableCell className="font-medium text-gray-800">
+                            <TableCell className="font-medium text-gray-800 py-4">
                               {item.product.name}
                             </TableCell>
-                            <TableCell className="text-gray-600">
+                            <TableCell className="text-gray-600 py-4">
                               {item.color.name}
                             </TableCell>
-                            <TableCell className="text-gray-800">
-                              <span className="font-semibold text-blue-600">
+                            <TableCell className="text-gray-800 py-4">
+                              <span className="font-semibold text-indigo-600">
                                 {item.discountedPrice?.toLocaleString("vi-VN")}{" "}
                                 VNĐ
                               </span>
@@ -425,7 +551,7 @@ const OrderDetailsPage = ({
                                   </span>
                                 )}
                             </TableCell>
-                            <TableCell className="text-gray-600">
+                            <TableCell className="text-gray-600 py-4">
                               {item.productIdentity.warrantyEndDate ? (
                                 withinWarranty ? (
                                   <span className="text-green-600">
@@ -446,121 +572,259 @@ const OrderDetailsPage = ({
                                 "Không có"
                               )}
                             </TableCell>
-                            <TableCell className="text-gray-600">
+                            <TableCell className="text-gray-600 py-4">
                               {item.productIdentity.warrantyCount || 0} lần
                             </TableCell>
-                            <TableCell>
-                              {withinWarranty &&
-                              !hasWarrantyRequest &&
-                              isOrderDelivered ? (
-                                <Dialog
-                                  open={isWarrantyModalOpen}
-                                  onOpenChange={setIsWarrantyModalOpen}
-                                >
-                                  <DialogTrigger asChild>
-                                    <Button
-                                      onClick={() =>
-                                        handleOpenWarrantyModal(
-                                          item.productIdentityId
-                                        )
-                                      }
-                                      className="bg-blue-600 hover:bg-blue-700 text-white"
-                                    >
-                                      Yêu cầu bảo hành
-                                    </Button>
-                                  </DialogTrigger>
-                                  <DialogContent className="sm:max-w-[425px]">
-                                    <DialogHeader>
-                                      <DialogTitle>
-                                        Yêu cầu bảo hành
-                                      </DialogTitle>
-                                    </DialogHeader>
-                                    <div className="grid gap-4 py-4">
-                                      <div className="grid grid-cols-4 items-center gap-4">
-                                        <Label
-                                          htmlFor="reason"
-                                          className="text-right"
-                                        >
-                                          Lý do
-                                        </Label>
-                                        <Input
-                                          id="reason"
-                                          name="reason"
-                                          value={warrantyForm.reason}
-                                          onChange={handleWarrantyFormChange}
-                                          className="col-span-3"
-                                          required
-                                        />
-                                      </div>
-                                      <div className="grid grid-cols-4 items-center gap-4">
-                                        <Label
-                                          htmlFor="fullName"
-                                          className="text-right"
-                                        >
-                                          Họ tên
-                                        </Label>
-                                        <Input
-                                          id="fullName"
-                                          name="fullName"
-                                          value={warrantyForm.fullName}
-                                          onChange={handleWarrantyFormChange}
-                                          className="col-span-3"
-                                          required
-                                        />
-                                      </div>
-                                      <div className="grid grid-cols-4 items-center gap-4">
-                                        <Label
-                                          htmlFor="phoneNumber"
-                                          className="text-right"
-                                        >
-                                          Số điện thoại
-                                        </Label>
-                                        <Input
-                                          id="phoneNumber"
-                                          name="phoneNumber"
-                                          value={warrantyForm.phoneNumber}
-                                          onChange={handleWarrantyFormChange}
-                                          className="col-span-3"
-                                          required
-                                        />
-                                      </div>
-                                      <div className="grid grid-cols-4 items-center gap-4">
-                                        <Label
-                                          htmlFor="email"
-                                          className="text-right"
-                                        >
-                                          Email
-                                        </Label>
-                                        <Input
-                                          id="email"
-                                          name="email"
-                                          type="email"
-                                          value={warrantyForm.email}
-                                          onChange={handleWarrantyFormChange}
-                                          className="col-span-3"
-                                          required
-                                        />
-                                      </div>
-                                    </div>
-                                    <Button
-                                      onClick={handleSubmitWarrantyRequest}
-                                      className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                                    >
-                                      Gửi yêu cầu
-                                    </Button>
-                                  </DialogContent>
-                                </Dialog>
-                              ) : hasWarrantyRequest ? (
-                                <span className="text-yellow-600">
-                                  Đang xử lý bảo hành
-                                </span>
-                              ) : !isOrderDelivered ? (
-                                <span className="text-gray-600">
-                                  Đơn hàng chưa được giao
-                                </span>
+                            <TableCell className="py-4">
+                              {isOrderDelivered ? (
+                                hasReturned ? (
+                                  <span className="text-red-600 font-medium">
+                                    Đã đổi trả
+                                  </span>
+                                ) : (
+                                  <>
+                                    {isReturnable && !hasReturnRequest ? (
+                                      <Dialog
+                                        open={isReturnModalOpen}
+                                        onOpenChange={setIsReturnModalOpen}
+                                      >
+                                        <DialogTrigger asChild>
+                                          <Button
+                                            onClick={() =>
+                                              handleOpenReturnModal(
+                                                item.productIdentityId
+                                              )
+                                            }
+                                            className="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-all duration-300"
+                                          >
+                                            Yêu cầu đổi trả
+                                          </Button>
+                                        </DialogTrigger>
+                                        <DialogContent className="sm:max-w-[425px] rounded-xl bg-white p-6 shadow-2xl">
+                                          <DialogHeader>
+                                            <DialogTitle className="text-2xl font-semibold text-gray-900">
+                                              Yêu cầu đổi trả
+                                            </DialogTitle>
+                                          </DialogHeader>
+                                          <div className="grid gap-5 py-5">
+                                            <div className="grid grid-cols-4 items-center gap-4">
+                                              <Label
+                                                htmlFor="reason"
+                                                className="text-right font-medium text-gray-700"
+                                              >
+                                                Lý do
+                                              </Label>
+                                              <Input
+                                                id="reason"
+                                                name="reason"
+                                                value={returnForm.reason}
+                                                onChange={
+                                                  handleReturnFormChange
+                                                }
+                                                className="col-span-3 border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                                                required
+                                              />
+                                            </div>
+                                            <div className="grid grid-cols-4 items-center gap-4">
+                                              <Label
+                                                htmlFor="fullName"
+                                                className="text-right font-medium text-gray-700"
+                                              >
+                                                Họ tên
+                                              </Label>
+                                              <Input
+                                                id="fullName"
+                                                name="fullName"
+                                                value={returnForm.fullName}
+                                                onChange={
+                                                  handleReturnFormChange
+                                                }
+                                                className="col-span-3 border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                                                required
+                                              />
+                                            </div>
+                                            <div className="grid grid-cols-4 items-center gap-4">
+                                              <Label
+                                                htmlFor="phoneNumber"
+                                                className="text-right font-medium text-gray-700"
+                                              >
+                                                Số điện thoại
+                                              </Label>
+                                              <Input
+                                                id="phoneNumber"
+                                                name="phoneNumber"
+                                                value={returnForm.phoneNumber}
+                                                onChange={
+                                                  handleReturnFormChange
+                                                }
+                                                className="col-span-3 border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                                                required
+                                              />
+                                            </div>
+                                            <div className="grid grid-cols-4 items-center gap-4">
+                                              <Label
+                                                htmlFor="address"
+                                                className="text-right font-medium text-gray-700"
+                                              >
+                                                Địa chỉ
+                                              </Label>
+                                              <Input
+                                                id="address"
+                                                name="address"
+                                                value={returnForm.address}
+                                                onChange={
+                                                  handleReturnFormChange
+                                                }
+                                                className="col-span-3 border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                                                required
+                                              />
+                                            </div>
+                                          </div>
+                                          <Button
+                                            onClick={handleSubmitReturnRequest}
+                                            className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-2 rounded-lg shadow-md transition-all duration-300"
+                                          >
+                                            Gửi yêu cầu
+                                          </Button>
+                                        </DialogContent>
+                                      </Dialog>
+                                    ) : hasReturnRequest ? (
+                                      <span className="text-yellow-600 font-medium">
+                                        Đang xử lý đổi trả
+                                      </span>
+                                    ) : isWarrantyRequestable &&
+                                      withinWarranty &&
+                                      !hasWarrantyRequest ? (
+                                      <Dialog
+                                        open={isWarrantyModalOpen}
+                                        onOpenChange={setIsWarrantyModalOpen}
+                                      >
+                                        <DialogTrigger asChild>
+                                          <Button
+                                            onClick={() =>
+                                              handleOpenWarrantyModal(
+                                                item.productIdentityId
+                                              )
+                                            }
+                                            className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-all duration-300"
+                                          >
+                                            Yêu cầu bảo hành
+                                          </Button>
+                                        </DialogTrigger>
+                                        <DialogContent className="sm:max-w-[425px] rounded-xl bg-white p-6 shadow-2xl">
+                                          <DialogHeader>
+                                            <DialogTitle className="text-2xl font-semibold text-gray-900">
+                                              Yêu cầu bảo hành
+                                            </DialogTitle>
+                                          </DialogHeader>
+                                          <div className="grid gap-5 py-5">
+                                            <div className="grid grid-cols-4 items-center gap-4">
+                                              <Label
+                                                htmlFor="reason"
+                                                className="text-right font-medium text-gray-700"
+                                              >
+                                                Lý do
+                                              </Label>
+                                              <Input
+                                                id="reason"
+                                                name="reason"
+                                                value={warrantyForm.reason}
+                                                onChange={
+                                                  handleWarrantyFormChange
+                                                }
+                                                className="col-span-3 border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                                                required
+                                              />
+                                            </div>
+                                            <div className="grid grid-cols-4 items-center gap-4">
+                                              <Label
+                                                htmlFor="fullName"
+                                                className="text-right font-medium text-gray-700"
+                                              >
+                                                Họ tên
+                                              </Label>
+                                              <Input
+                                                id="fullName"
+                                                name="fullName"
+                                                value={warrantyForm.fullName}
+                                                onChange={
+                                                  handleWarrantyFormChange
+                                                }
+                                                className="col-span-3 border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                                                required
+                                              />
+                                            </div>
+                                            <div className="grid grid-cols-4 items-center gap-4">
+                                              <Label
+                                                htmlFor="phoneNumber"
+                                                className="text-right font-medium text-gray-700"
+                                              >
+                                                Số điện thoại
+                                              </Label>
+                                              <Input
+                                                id="phoneNumber"
+                                                name="phoneNumber"
+                                                value={warrantyForm.phoneNumber}
+                                                onChange={
+                                                  handleWarrantyFormChange
+                                                }
+                                                className="col-span-3 border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                                                required
+                                              />
+                                            </div>
+                                            <div className="grid grid-cols-4 items-center gap-4">
+                                              <Label
+                                                htmlFor="email"
+                                                className="text-right font-medium text-gray-700"
+                                              >
+                                                Email
+                                              </Label>
+                                              <Input
+                                                id="email"
+                                                name="email"
+                                                type="email"
+                                                value={warrantyForm.email}
+                                                onChange={
+                                                  handleWarrantyFormChange
+                                                }
+                                                className="col-span-3 border-gray-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500"
+                                                required
+                                              />
+                                            </div>
+                                          </div>
+                                          <Button
+                                            onClick={
+                                              handleSubmitWarrantyRequest
+                                            }
+                                            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 rounded-lg shadow-md transition-all duration-300"
+                                          >
+                                            Gửi yêu cầu
+                                          </Button>
+                                        </DialogContent>
+                                      </Dialog>
+                                    ) : hasWarrantyRequest ? (
+                                      <span className="text-yellow-600 font-medium">
+                                        Đang xử lý bảo hành
+                                      </span>
+                                    ) : !isReturnable &&
+                                      !isWarrantyRequestable ? (
+                                      <span className="text-gray-600 font-medium">
+                                        Trong thời gian đổi trả
+                                      </span>
+                                    ) : !withinWarranty ? (
+                                      <span className="text-gray-600 font-medium">
+                                        Hết thời hạn bảo hành
+                                      </span>
+                                    ) : (
+                                      <span className="text-gray-600 font-medium">
+                                        Không thể yêu cầu
+                                      </span>
+                                    )}
+                                  </>
+                                )
                               ) : (
-                                <span className="text-gray-600">
-                                  Không thể yêu cầu
+                                <span className="text-gray-600 font-medium">
+                                  Đơn hàng chưa được giao
                                 </span>
                               )}
                             </TableCell>
@@ -575,10 +839,10 @@ const OrderDetailsPage = ({
           </div>
 
           {order.status === "Pending" && (
-            <div className="mt-6 lg:absolute lg:bottom-8 lg:right-8 lg:w-auto">
+            <div className="mt-8 lg:absolute lg:bottom-10 lg:right-10 lg:w-auto">
               <Button
                 onClick={handleUpdateStatus}
-                className="w-full lg:w-auto bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-6 rounded-lg transition-colors"
+                className="w-full lg:w-auto bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition-all duration-300"
               >
                 Hủy đơn hàng
               </Button>

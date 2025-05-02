@@ -19,6 +19,7 @@ import { PromotionsModule } from './promotions/promotions.module';
 import { OrderModule } from './order/order.module';
 import { StatisticsModule } from './statistics/statistics.module';
 import { WarrantyModule } from './warranty/warranty.module';
+import { ReturnsModule } from './returns/returns.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { WarrantyModule } from './warranty/warranty.module';
     OrderModule,
     StatisticsModule,
     WarrantyModule,
+    ReturnsModule,
   ],
 })
 export class AppModule {}

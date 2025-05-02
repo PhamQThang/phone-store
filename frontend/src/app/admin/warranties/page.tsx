@@ -11,7 +11,7 @@ import {
   getWarrantyRequestDetails,
   getWarrantyDetails,
 } from "@/api/warrantyApi";
-import ClientModals from "@/components/admin/warrantys/ClientModals";
+import ClientModals from "@/components/admin/warranties/ClientModals";
 import { getAuthData, clearAuthData } from "@/lib/authUtils";
 import { Loader2 } from "lucide-react";
 

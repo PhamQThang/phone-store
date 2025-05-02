@@ -147,6 +147,8 @@ export default function Header() {
     { name: "Sản phẩm", href: "/client/products", hasDropdown: true },
     { name: "Tin tức", href: "/client/newsPage" },
     { name: "Đơn hàng", href: "/client/orders" },
+    { name: "Bảo hành", href: "/client/warranties" },
+    { name: "Đổi trả", href: "/client/returns" },
   ];
 
   return (

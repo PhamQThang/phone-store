@@ -13,14 +13,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Edit, Eye, Search, X } from "lucide-react";
-import { Warranty, WarrantyRequest } from "@/lib/types";
+import { ProductReturn, ReturnTicket } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { WarrantyRequestForm } from "@/components/admin/warrantys/WarrantyRequestForm";
-import { WarrantyRequestDetail } from "@/components/admin/warrantys/WarrantyRequestDetail";
+import { ReturnForm } from "@/components/admin/returns/ReturnForm";
+import { ReturnDetail } from "@/components/admin/returns/ReturnDetail";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { WarrantyDetail } from "./WarrantyDetail";
-import { WarrantyForm } from "./WarrantyForm";
+
 import {
   Select,
   SelectContent,
@@ -28,53 +27,50 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ReturnTicketForm } from "./ReturnTicketForm";
+import { ReturnTicketDetail } from "./ReturnTicketDetail";
 
 interface ClientModalsProps {
-  warrantyRequests: WarrantyRequest[];
-  warranties: Warranty[];
+  returns: ProductReturn[];
+  returnTickets: ReturnTicket[];
   role: string;
-  updateWarrantyRequestStatusAction: (
-    requestId: string,
+  updateReturnStatusAction: (returnId: string, status: string) => Promise<any>;
+  updateReturnTicketStatusAction: (
+    returnTicketId: string,
     status: string
   ) => Promise<any>;
-  updateWarrantyStatusAction: (
-    warrantyId: string,
-    status: string
-  ) => Promise<any>;
-  getWarrantyRequestDetailAction: (requestId: string) => Promise<any>;
-  getWarrantyDetailAction: (warrantyId: string) => Promise<any>;
+  getReturnDetailAction: (returnId: string) => Promise<any>;
+  getReturnTicketDetailAction: (returnTicketId: string) => Promise<any>;
 }
 
 export default function ClientModals({
-  warrantyRequests,
-  warranties,
+  returns,
+  returnTickets,
   role,
-  updateWarrantyRequestStatusAction,
-  updateWarrantyStatusAction,
-  getWarrantyRequestDetailAction,
-  getWarrantyDetailAction,
+  updateReturnStatusAction,
+  updateReturnTicketStatusAction,
+  getReturnDetailAction,
+  getReturnTicketDetailAction,
 }: ClientModalsProps) {
-  const [isWarrantyRequestEditOpen, setIsWarrantyRequestEditOpen] =
+  const [isReturnEditOpen, setIsReturnEditOpen] = useState(false);
+  const [isReturnDetailOpen, setIsReturnDetailOpen] = useState(false);
+  const [isReturnTicketEditOpen, setIsReturnTicketEditOpen] = useState(false);
+  const [isReturnTicketDetailOpen, setIsReturnTicketDetailOpen] =
     useState(false);
-  const [isWarrantyRequestDetailOpen, setIsWarrantyRequestDetailOpen] =
-    useState(false);
-  const [isWarrantyEditOpen, setIsWarrantyEditOpen] = useState(false);
-  const [isWarrantyDetailOpen, setIsWarrantyDetailOpen] = useState(false);
-  const [selectedWarrantyRequest, setSelectedWarrantyRequest] =
-    useState<WarrantyRequest | null>(null);
-  const [selectedWarranty, setSelectedWarranty] = useState<Warranty | null>(
+  const [selectedReturn, setSelectedReturn] = useState<ProductReturn | null>(
     null
   );
-  const [isEditingWarrantyRequest, setIsEditingWarrantyRequest] =
-    useState(false);
-  const [isEditingWarranty, setIsEditingWarranty] = useState(false);
+  const [selectedReturnTicket, setSelectedReturnTicket] =
+    useState<ReturnTicket | null>(null);
+  const [isEditingReturn, setIsEditingReturn] = useState(false);
+  const [isEditingReturnTicket, setIsEditingReturnTicket] = useState(false);
   const [isViewing, setIsViewing] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [requestStatusFilter, setRequestStatusFilter] = useState<string>("all");
-  const [warrantyStatusFilter, setWarrantyStatusFilter] =
+  const [returnStatusFilter, setReturnStatusFilter] = useState<string>("all");
+  const [returnTicketStatusFilter, setReturnTicketStatusFilter] =
     useState<string>("all");
 
-  const translateWarrantyRequestStatus = (status: string) => {
+  const translateReturnStatus = (status: string) => {
     const statusMap: { [key: string]: string } = {
       Pending: "Đang chờ",
       Approved: "Đã duyệt",
@@ -84,67 +80,64 @@ export default function ClientModals({
     return statusMap[status] || status;
   };
 
-  const translateWarrantyStatus = (status: string) => {
+  const translateReturnTicketStatus = (status: string) => {
     const statusMap: { [key: string]: string } = {
       Requested: "Đã yêu cầu",
       Processing: "Đang xử lý",
-      Repairing: "Đang sửa chữa",
-      Repaired: "Đã sửa xong",
-      Returned: "Đã trả máy",
+      Processed: "Đã xử lý",
+      Returned: "Đã trả hàng",
       Canceled: "Đã hủy",
     };
     return statusMap[status] || status;
   };
 
-  // Lọc danh sách yêu cầu bảo hành dựa trên từ khóa tìm kiếm và trạng thái
-  const filteredWarrantyRequests = useMemo(() => {
-    return warrantyRequests.filter((request) => {
+  // Lọc danh sách yêu cầu đổi trả dựa trên từ khóa tìm kiếm và trạng thái
+  const filteredReturns = useMemo(() => {
+    return returns.filter((returnItem) => {
       const matchesSearch = [
-        request.productIdentity.product.name,
-        request.user.fullName,
-        request.reason,
-        request.status,
+        returnItem.productIdentity.product.name,
+        returnItem.user.fullName,
+        returnItem.reason,
+        returnItem.status,
       ]
         .join(" ")
         .toLowerCase()
         .includes(searchTerm.toLowerCase());
       const matchesStatus =
-        requestStatusFilter === "all" || request.status === requestStatusFilter;
+        returnStatusFilter === "all" ||
+        returnItem.status === returnStatusFilter;
       return matchesSearch && matchesStatus;
     });
-  }, [warrantyRequests, searchTerm, requestStatusFilter]);
+  }, [returns, searchTerm, returnStatusFilter]);
 
-  // Lọc danh sách phiếu bảo hành dựa trên từ khóa tìm kiếm và trạng thái
-  const filteredWarranties = useMemo(() => {
-    return warranties.filter((warranty) => {
+  // Lọc danh sách phiếu đổi trả dựa trên từ khóa tìm kiếm và trạng thái
+  const filteredReturnTickets = useMemo(() => {
+    return returnTickets.filter((returnTicket) => {
       const matchesSearch = [
-        warranty.productIdentity.product.name,
-        warranty.user.fullName,
-        warranty.status,
-        warranty.productIdentity.imei,
+        returnTicket.productIdentity.product.name,
+        returnTicket.user.fullName,
+        returnTicket.status,
+        returnTicket.productIdentityId,
       ]
         .join(" ")
         .toLowerCase()
         .includes(searchTerm.toLowerCase());
       const matchesStatus =
-        warrantyStatusFilter === "all" ||
-        warranty.status === warrantyStatusFilter;
+        returnTicketStatusFilter === "all" ||
+        returnTicket.status === returnTicketStatusFilter;
       return matchesSearch && matchesStatus;
     });
-  }, [warranties, searchTerm, warrantyStatusFilter]);
+  }, [returnTickets, searchTerm, returnTicketStatusFilter]);
 
-  // Cập nhật trạng thái yêu cầu bảo hành
-  const handleUpdateWarrantyRequestStatus = async (status: string) => {
-    if (!selectedWarrantyRequest) return;
-    setIsEditingWarrantyRequest(true);
+  // Cập nhật trạng thái yêu cầu đổi trả
+  const handleUpdateReturnStatus = async (status: string) => {
+    if (!selectedReturn) return;
+    setIsEditingReturn(true);
     try {
-      const result = await updateWarrantyRequestStatusAction(
-        selectedWarrantyRequest.id,
-        status
-      );
+      const result = await updateReturnStatusAction(selectedReturn.id, status);
       if (result.success) {
         toast.success(result.message);
-        setIsWarrantyRequestEditOpen(false);
+        setIsReturnEditOpen(false);
       } else {
         toast.error("Cập nhật trạng thái thất bại", {
           description: result.error || "Vui lòng thử lại sau.",
@@ -157,22 +150,22 @@ export default function ClientModals({
         duration: 2000,
       });
     } finally {
-      setIsEditingWarrantyRequest(false);
+      setIsEditingReturn(false);
     }
   };
 
-  // Cập nhật trạng thái phiếu bảo hành
-  const handleUpdateWarrantyStatus = async (status: string) => {
-    if (!selectedWarranty) return;
-    setIsEditingWarranty(true);
+  // Cập nhật trạng thái phiếu đổi trả
+  const handleUpdateReturnTicketStatus = async (status: string) => {
+    if (!selectedReturnTicket) return;
+    setIsEditingReturnTicket(true);
     try {
-      const result = await updateWarrantyStatusAction(
-        selectedWarranty.id,
+      const result = await updateReturnTicketStatusAction(
+        selectedReturnTicket.id,
         status
       );
       if (result.success) {
         toast.success(result.message);
-        setIsWarrantyEditOpen(false);
+        setIsReturnTicketEditOpen(false);
       } else {
         toast.error("Cập nhật trạng thái thất bại", {
           description: result.error || "Vui lòng thử lại sau.",
@@ -185,27 +178,27 @@ export default function ClientModals({
         duration: 2000,
       });
     } finally {
-      setIsEditingWarranty(false);
+      setIsEditingReturnTicket(false);
     }
   };
 
-  // Xem chi tiết yêu cầu bảo hành
-  const handleViewWarrantyRequestDetail = async (requestId: string) => {
+  // Xem chi tiết yêu cầu đổi trả
+  const handleViewReturnDetail = async (returnId: string) => {
     setIsViewing(true);
     try {
-      const result = await getWarrantyRequestDetailAction(requestId);
+      const result = await getReturnDetailAction(returnId);
       if (result.success) {
-        setSelectedWarrantyRequest(result.request);
-        setIsWarrantyRequestDetailOpen(true);
-        toast.success("Tải chi tiết yêu cầu bảo hành thành công");
+        setSelectedReturn(result.returnDetail);
+        setIsReturnDetailOpen(true);
+        toast.success("Tải chi tiết yêu cầu đổi trả thành công");
       } else {
-        toast.error("Lỗi khi lấy chi tiết yêu cầu bảo hành", {
+        toast.error("Lỗi khi lấy chi tiết yêu cầu đổi trả", {
           description: result.error || "Vui lòng thử lại sau.",
           duration: 2000,
         });
       }
     } catch (error: any) {
-      toast.error("Lỗi khi lấy chi tiết yêu cầu bảo hành", {
+      toast.error("Lỗi khi lấy chi tiết yêu cầu đổi trả", {
         description: error.message || "Vui lòng thử lại sau.",
         duration: 2000,
       });
@@ -214,23 +207,23 @@ export default function ClientModals({
     }
   };
 
-  // Xem chi tiết phiếu bảo hành
-  const handleViewWarrantyDetail = async (warrantyId: string) => {
+  // Xem chi tiết phiếu đổi trả
+  const handleViewReturnTicketDetail = async (returnTicketId: string) => {
     setIsViewing(true);
     try {
-      const result = await getWarrantyDetailAction(warrantyId);
+      const result = await getReturnTicketDetailAction(returnTicketId);
       if (result.success) {
-        setSelectedWarranty(result.warranty);
-        setIsWarrantyDetailOpen(true);
-        toast.success("Tải chi tiết phiếu bảo hành thành công");
+        setSelectedReturnTicket(result.returnTicket);
+        setIsReturnTicketDetailOpen(true);
+        toast.success("Tải chi tiết phiếu đổi trả thành công");
       } else {
-        toast.error("Lỗi khi lấy chi tiết phiếu bảo hành", {
+        toast.error("Lỗi khi lấy chi tiết phiếu đổi trả", {
           description: result.error || "Vui lòng thử lại sau.",
           duration: 2000,
         });
       }
     } catch (error: any) {
-      toast.error("Lỗi khi lấy chi tiết phiếu bảo hành", {
+      toast.error("Lỗi khi lấy chi tiết phiếu đổi trả", {
         description: error.message || "Vui lòng thử lại sau.",
         duration: 2000,
       });
@@ -239,23 +232,23 @@ export default function ClientModals({
     }
   };
 
-  // Mở form chỉnh sửa trạng thái yêu cầu bảo hành
-  const handleOpenWarrantyRequestEdit = async (requestId: string) => {
+  // Mở form chỉnh sửa trạng thái yêu cầu đổi trả
+  const handleOpenReturnEdit = async (returnId: string) => {
     setIsViewing(true);
     try {
-      const result = await getWarrantyRequestDetailAction(requestId);
+      const result = await getReturnDetailAction(returnId);
       if (result.success) {
-        setSelectedWarrantyRequest(result.request);
-        setIsWarrantyRequestEditOpen(true);
-        toast.success("Tải thông tin yêu cầu bảo hành thành công");
+        setSelectedReturn(result.returnDetail);
+        setIsReturnEditOpen(true);
+        toast.success("Tải thông tin yêu cầu đổi trả thành công");
       } else {
-        toast.error("Lỗi khi lấy thông tin yêu cầu bảo hành", {
+        toast.error("Lỗi khi lấy thông tin yêu cầu đổi trả", {
           description: result.error || "Vui lòng thử lại sau.",
           duration: 2000,
         });
       }
     } catch (error: any) {
-      toast.error("Lỗi khi lấy thông tin yêu cầu bảo hành", {
+      toast.error("Lỗi khi lấy thông tin yêu cầu đổi trả", {
         description: error.message || "Vui lòng thử lại sau.",
         duration: 2000,
       });
@@ -264,23 +257,23 @@ export default function ClientModals({
     }
   };
 
-  // Mở form chỉnh sửa trạng thái phiếu bảo hành
-  const handleOpenWarrantyEdit = async (warrantyId: string) => {
+  // Mở form chỉnh sửa trạng thái phiếu đổi trả
+  const handleOpenReturnTicketEdit = async (returnTicketId: string) => {
     setIsViewing(true);
     try {
-      const result = await getWarrantyDetailAction(warrantyId);
+      const result = await getReturnTicketDetailAction(returnTicketId);
       if (result.success) {
-        setSelectedWarranty(result.warranty);
-        setIsWarrantyEditOpen(true);
-        toast.success("Tải thông tin phiếu bảo hành thành công");
+        setSelectedReturnTicket(result.returnTicket);
+        setIsReturnTicketEditOpen(true);
+        toast.success("Tải thông tin phiếu đổi trả thành công");
       } else {
-        toast.error("Lỗi khi lấy thông tin phiếu bảo hành", {
+        toast.error("Lỗi khi lấy thông tin phiếu đổi trả", {
           description: result.error || "Vui lòng thử lại sau.",
           duration: 2000,
         });
       }
     } catch (error: any) {
-      toast.error("Lỗi khi lấy thông tin phiếu bảo hành", {
+      toast.error("Lỗi khi lấy thông tin phiếu đổi trả", {
         description: error.message || "Vui lòng thử lại sau.",
         duration: 2000,
       });
@@ -289,14 +282,14 @@ export default function ClientModals({
     }
   };
 
-  const isLoading = isEditingWarrantyRequest || isEditingWarranty || isViewing;
+  const isLoading = isEditingReturn || isEditingReturnTicket || isViewing;
 
   return (
     <Card className="max-w-5xl mx-auto shadow-lg border border-gray-100 rounded-xl bg-white">
       <div className="p-6 sm:p-8">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 sm:mb-6 gap-4">
           <h2 className="text-2xl sm:text-3xl font-bold text-gray-800">
-            Quản lý bảo hành
+            Quản lý đổi trả
           </h2>
           <div className="relative flex-1 sm:flex-none sm:w-64">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -319,22 +312,22 @@ export default function ClientModals({
           </div>
         </div>
 
-        <Tabs defaultValue="requests" className="w-full">
+        <Tabs defaultValue="returns" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="requests">Yêu cầu bảo hành</TabsTrigger>
-            <TabsTrigger value="warranties">Phiếu bảo hành</TabsTrigger>
+            <TabsTrigger value="returns">Yêu cầu đổi trả</TabsTrigger>
+            <TabsTrigger value="returnTickets">Phiếu đổi trả</TabsTrigger>
           </TabsList>
 
-          {/* Tab Yêu cầu bảo hành */}
-          <TabsContent value="requests">
+          {/* Tab Yêu cầu đổi trả */}
+          <TabsContent value="returns">
             <div className="mt-6">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold text-gray-800 border-b pb-2">
-                  Danh sách yêu cầu bảo hành
+                  Danh sách yêu cầu đổi trả
                 </h2>
                 <Select
-                  value={requestStatusFilter}
-                  onValueChange={setRequestStatusFilter}
+                  value={returnStatusFilter}
+                  onValueChange={setReturnStatusFilter}
                 >
                   <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="Lọc theo trạng thái" />
@@ -354,11 +347,11 @@ export default function ClientModals({
                     <Skeleton key={index} className="h-12 w-full rounded-md" />
                   ))}
                 </div>
-              ) : filteredWarrantyRequests.length === 0 ? (
+              ) : filteredReturns.length === 0 ? (
                 <p className="text-center text-gray-500">
                   {searchTerm
-                    ? "Không tìm thấy yêu cầu bảo hành nào."
-                    : "Không có yêu cầu bảo hành nào."}
+                    ? "Không tìm thấy yêu cầu đổi trả nào."
+                    : "Không có yêu cầu đổi trả nào."}
                 </p>
               ) : (
                 <>
@@ -391,42 +384,42 @@ export default function ClientModals({
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredWarrantyRequests.map((request) => (
+                        {filteredReturns.map((returnItem) => (
                           <TableRow
-                            key={request.id}
+                            key={returnItem.id}
                             className="hover:bg-blue-50 transition-colors"
                           >
                             <TableCell className="font-medium text-gray-800">
-                              {request.productIdentity.product.name}
+                              {returnItem.productIdentity.product.name}
                             </TableCell>
                             <TableCell className="text-gray-600">
-                              {request.productIdentity.imei || "Không có"}
+                              {returnItem.productIdentity.imei || "Không có"}
                             </TableCell>
                             <TableCell className="text-gray-600">
-                              {request.user.fullName}
+                              {returnItem.user.fullName}
                             </TableCell>
                             <TableCell className="text-gray-600">
-                              {request.reason}
+                              {returnItem.reason}
                             </TableCell>
                             <TableCell>
                               <span
                                 className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                  request.status === "Pending"
+                                  returnItem.status === "Pending"
                                     ? "bg-yellow-100 text-yellow-800"
-                                    : request.status === "Approved"
+                                    : returnItem.status === "Approved"
                                     ? "bg-blue-100 text-blue-800"
-                                    : request.status === "Rejected"
+                                    : returnItem.status === "Rejected"
                                     ? "bg-red-100 text-red-800"
                                     : "bg-green-100 text-green-800"
                                 }`}
                               >
-                                {translateWarrantyRequestStatus(request.status)}
+                                {translateReturnStatus(returnItem.status)}
                               </span>
                             </TableCell>
                             <TableCell className="text-gray-600">
-                              {new Date(request.requestDate).toLocaleDateString(
-                                "vi-VN"
-                              )}
+                              {new Date(
+                                returnItem.returnDate
+                              ).toLocaleDateString("vi-VN")}
                             </TableCell>
                             <TableCell>
                               <div className="flex space-x-2">
@@ -434,7 +427,7 @@ export default function ClientModals({
                                   variant="ghost"
                                   size="sm"
                                   onClick={() =>
-                                    handleViewWarrantyRequestDetail(request.id)
+                                    handleViewReturnDetail(returnItem.id)
                                   }
                                   disabled={isLoading}
                                 >
@@ -444,7 +437,7 @@ export default function ClientModals({
                                   variant="ghost"
                                   size="sm"
                                   onClick={() =>
-                                    handleOpenWarrantyRequestEdit(request.id)
+                                    handleOpenReturnEdit(returnItem.id)
                                   }
                                   disabled={isLoading}
                                 >
@@ -460,44 +453,44 @@ export default function ClientModals({
 
                   {/* Hiển thị dạng danh sách trên mobile */}
                   <div className="block md:hidden space-y-4">
-                    {filteredWarrantyRequests.map((request) => (
-                      <Card key={request.id} className="shadow-sm">
+                    {filteredReturns.map((returnItem) => (
+                      <Card key={returnItem.id} className="shadow-sm">
                         <CardHeader>
                           <CardTitle className="text-sm font-medium">
-                            {request.productIdentity.product.name}
+                            {returnItem.productIdentity.product.name}
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="text-xs space-y-2">
                           <p>
                             <strong>IMEI:</strong>{" "}
-                            {request.productIdentity.imei || "Không có"}
+                            {returnItem.productIdentity.imei || "Không có"}
                           </p>
                           <p>
                             <strong>Người yêu cầu:</strong>{" "}
-                            {request.user.fullName}
+                            {returnItem.user.fullName}
                           </p>
                           <p>
-                            <strong>Lý do:</strong> {request.reason}
+                            <strong>Lý do:</strong> {returnItem.reason}
                           </p>
                           <p>
                             <strong>Trạng thái:</strong>{" "}
                             <span
                               className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                request.status === "Pending"
+                                returnItem.status === "Pending"
                                   ? "bg-yellow-100 text-yellow-800"
-                                  : request.status === "Approved"
+                                  : returnItem.status === "Approved"
                                   ? "bg-blue-100 text-blue-800"
-                                  : request.status === "Rejected"
+                                  : returnItem.status === "Rejected"
                                   ? "bg-red-100 text-red-800"
                                   : "bg-green-100 text-green-800"
                               }`}
                             >
-                              {translateWarrantyRequestStatus(request.status)}
+                              {translateReturnStatus(returnItem.status)}
                             </span>
                           </p>
                           <p>
                             <strong>Ngày yêu cầu:</strong>{" "}
-                            {new Date(request.requestDate).toLocaleDateString(
+                            {new Date(returnItem.returnDate).toLocaleDateString(
                               "vi-VN"
                             )}
                           </p>
@@ -506,7 +499,7 @@ export default function ClientModals({
                               variant="outline"
                               size="sm"
                               onClick={() =>
-                                handleViewWarrantyRequestDetail(request.id)
+                                handleViewReturnDetail(returnItem.id)
                               }
                               disabled={isLoading}
                             >
@@ -517,7 +510,7 @@ export default function ClientModals({
                               variant="outline"
                               size="sm"
                               onClick={() =>
-                                handleOpenWarrantyRequestEdit(request.id)
+                                handleOpenReturnEdit(returnItem.id)
                               }
                               disabled={isLoading}
                             >
@@ -534,16 +527,16 @@ export default function ClientModals({
             </div>
           </TabsContent>
 
-          {/* Tab Phiếu bảo hành */}
-          <TabsContent value="warranties">
+          {/* Tab Phiếu đổi trả */}
+          <TabsContent value="returnTickets">
             <div className="mt-6">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold text-gray-800 border-b pb-2">
-                  Danh sách phiếu bảo hành
+                  Danh sách phiếu đổi trả
                 </h2>
                 <Select
-                  value={warrantyStatusFilter}
-                  onValueChange={setWarrantyStatusFilter}
+                  value={returnTicketStatusFilter}
+                  onValueChange={setReturnTicketStatusFilter}
                 >
                   <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="Lọc theo trạng thái" />
@@ -552,9 +545,8 @@ export default function ClientModals({
                     <SelectItem value="all">Tất cả</SelectItem>
                     <SelectItem value="Requested">Đã yêu cầu</SelectItem>
                     <SelectItem value="Processing">Đang xử lý</SelectItem>
-                    <SelectItem value="Repairing">Đang sửa chữa</SelectItem>
-                    <SelectItem value="Repaired">Đã sửa xong</SelectItem>
-                    <SelectItem value="Returned">Đã trả máy</SelectItem>
+                    <SelectItem value="Processed">Đã xử lý</SelectItem>
+                    <SelectItem value="Returned">Đã trả hàng</SelectItem>
                     <SelectItem value="Canceled">Đã hủy</SelectItem>
                   </SelectContent>
                 </Select>
@@ -565,11 +557,11 @@ export default function ClientModals({
                     <Skeleton key={index} className="h-12 w-full rounded-md" />
                   ))}
                 </div>
-              ) : filteredWarranties.length === 0 ? (
+              ) : filteredReturnTickets.length === 0 ? (
                 <p className="text-center text-gray-500">
                   {searchTerm
-                    ? "Không tìm thấy phiếu bảo hành nào."
-                    : "Không có phiếu bảo hành nào."}
+                    ? "Không tìm thấy phiếu đổi trả nào."
+                    : "Không có phiếu đổi trả nào."}
                 </p>
               ) : (
                 <>
@@ -588,7 +580,7 @@ export default function ClientModals({
                             Người dùng
                           </TableHead>
                           <TableHead className="text-gray-700 font-semibold">
-                            Thời gian bảo hành
+                            Thời gian đổi trả
                           </TableHead>
                           <TableHead className="text-gray-700 font-semibold">
                             Trạng thái
@@ -602,52 +594,52 @@ export default function ClientModals({
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {filteredWarranties.map((warranty) => (
+                        {filteredReturnTickets.map((returnTicket) => (
                           <TableRow
-                            key={warranty.id}
+                            key={returnTicket.id}
                             className="hover:bg-blue-50 transition-colors"
                           >
                             <TableCell className="font-medium text-gray-800">
-                              {warranty.productIdentity.product.name}
+                              {returnTicket.productIdentity.product.name}
                             </TableCell>
                             <TableCell className="text-gray-600">
-                              {warranty.productIdentity.imei || "Không có"}
+                              {returnTicket.productIdentity.imei || "Không có"}
                             </TableCell>
                             <TableCell className="text-gray-600">
-                              {warranty.user.fullName}
+                              {returnTicket.user.fullName}
                             </TableCell>
                             <TableCell className="text-gray-600">
-                              {new Date(warranty.startDate).toLocaleDateString(
-                                "vi-VN"
-                              )}{" "}
+                              {new Date(
+                                returnTicket.startDate
+                              ).toLocaleDateString("vi-VN")}{" "}
                               -{" "}
-                              {new Date(warranty.endDate).toLocaleDateString(
-                                "vi-VN"
-                              )}
+                              {new Date(
+                                returnTicket.endDate
+                              ).toLocaleDateString("vi-VN")}
                             </TableCell>
                             <TableCell>
                               <span
                                 className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                  warranty.status === "Requested"
+                                  returnTicket.status === "Requested"
                                     ? "bg-yellow-100 text-yellow-800"
-                                    : warranty.status === "Processing"
+                                    : returnTicket.status === "Processing"
                                     ? "bg-blue-100 text-blue-800"
-                                    : warranty.status === "Repairing"
+                                    : returnTicket.status === "Processed"
                                     ? "bg-purple-100 text-purple-800"
-                                    : warranty.status === "Repaired"
-                                    ? "bg-orange-100 text-orange-800"
-                                    : warranty.status === "Returned"
+                                    : returnTicket.status === "Returned"
                                     ? "bg-green-100 text-green-800"
                                     : "bg-red-100 text-red-800"
                                 }`}
                               >
-                                {translateWarrantyStatus(warranty.status)}
+                                {translateReturnTicketStatus(
+                                  returnTicket.status
+                                )}
                               </span>
                             </TableCell>
                             <TableCell className="text-gray-600">
-                              {new Date(warranty.startDate).toLocaleDateString(
-                                "vi-VN"
-                              )}
+                              {new Date(
+                                returnTicket.startDate
+                              ).toLocaleDateString("vi-VN")}
                             </TableCell>
                             <TableCell>
                               <div className="flex space-x-2">
@@ -655,7 +647,9 @@ export default function ClientModals({
                                   variant="ghost"
                                   size="sm"
                                   onClick={() =>
-                                    handleViewWarrantyDetail(warranty.id)
+                                    handleViewReturnTicketDetail(
+                                      returnTicket.id
+                                    )
                                   }
                                   disabled={isLoading}
                                 >
@@ -665,7 +659,7 @@ export default function ClientModals({
                                   variant="ghost"
                                   size="sm"
                                   onClick={() =>
-                                    handleOpenWarrantyEdit(warranty.id)
+                                    handleOpenReturnTicketEdit(returnTicket.id)
                                   }
                                   disabled={isLoading}
                                 >
@@ -681,29 +675,29 @@ export default function ClientModals({
 
                   {/* Hiển thị dạng danh sách trên mobile */}
                   <div className="block md:hidden space-y-4">
-                    {filteredWarranties.map((warranty) => (
-                      <Card key={warranty.id} className="shadow-sm">
+                    {filteredReturnTickets.map((returnTicket) => (
+                      <Card key={returnTicket.id} className="shadow-sm">
                         <CardHeader>
                           <CardTitle className="text-sm font-medium">
-                            {warranty.productIdentity.product.name}
+                            {returnTicket.productIdentity.product.name}
                           </CardTitle>
                         </CardHeader>
                         <CardContent className="text-xs space-y-2">
                           <p>
                             <strong>IMEI:</strong>{" "}
-                            {warranty.productIdentity.imei || "Không có"}
+                            {returnTicket.productIdentity.imei || "Không có"}
                           </p>
                           <p>
                             <strong>Người dùng:</strong>{" "}
-                            {warranty.user.fullName}
+                            {returnTicket.user.fullName}
                           </p>
                           <p>
-                            <strong>Thời gian bảo hành:</strong>{" "}
-                            {new Date(warranty.startDate).toLocaleDateString(
-                              "vi-VN"
-                            )}{" "}
+                            <strong>Thời gian đổi trả:</strong>{" "}
+                            {new Date(
+                              returnTicket.startDate
+                            ).toLocaleDateString("vi-VN")}{" "}
                             -{" "}
-                            {new Date(warranty.endDate).toLocaleDateString(
+                            {new Date(returnTicket.endDate).toLocaleDateString(
                               "vi-VN"
                             )}
                           </p>
@@ -711,34 +705,32 @@ export default function ClientModals({
                             <strong>Trạng thái:</strong>{" "}
                             <span
                               className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                warranty.status === "Requested"
+                                returnTicket.status === "Requested"
                                   ? "bg-yellow-100 text-yellow-800"
-                                  : warranty.status === "Processing"
+                                  : returnTicket.status === "Processing"
                                   ? "bg-blue-100 text-blue-800"
-                                  : warranty.status === "Repairing"
+                                  : returnTicket.status === "Processed"
                                   ? "bg-purple-100 text-purple-800"
-                                  : warranty.status === "Repaired"
-                                  ? "bg-orange-100 text-orange-800"
-                                  : warranty.status === "Returned"
+                                  : returnTicket.status === "Returned"
                                   ? "bg-green-100 text-green-800"
                                   : "bg-red-100 text-red-800"
                               }`}
                             >
-                              {translateWarrantyStatus(warranty.status)}
+                              {translateReturnTicketStatus(returnTicket.status)}
                             </span>
                           </p>
                           <p>
                             <strong>Ngày bắt đầu:</strong>{" "}
-                            {new Date(warranty.startDate).toLocaleDateString(
-                              "vi-VN"
-                            )}
+                            {new Date(
+                              returnTicket.startDate
+                            ).toLocaleDateString("vi-VN")}
                           </p>
                           <div className="flex space-x-2 pt-2">
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() =>
-                                handleViewWarrantyDetail(warranty.id)
+                                handleViewReturnTicketDetail(returnTicket.id)
                               }
                               disabled={isLoading}
                             >
@@ -749,7 +741,7 @@ export default function ClientModals({
                               variant="outline"
                               size="sm"
                               onClick={() =>
-                                handleOpenWarrantyEdit(warranty.id)
+                                handleOpenReturnTicketEdit(returnTicket.id)
                               }
                               disabled={isLoading}
                             >
@@ -767,36 +759,36 @@ export default function ClientModals({
           </TabsContent>
         </Tabs>
 
-        {/* Modal Cập nhật trạng thái yêu cầu bảo hành */}
-        <WarrantyRequestForm
-          open={isWarrantyRequestEditOpen}
-          onOpenChange={setIsWarrantyRequestEditOpen}
-          onSubmit={handleUpdateWarrantyRequestStatus}
-          initialData={selectedWarrantyRequest || undefined}
-          isLoading={isEditingWarrantyRequest}
+        {/* Modal Cập nhật trạng thái yêu cầu đổi trả */}
+        <ReturnForm
+          open={isReturnEditOpen}
+          onOpenChange={setIsReturnEditOpen}
+          onSubmit={handleUpdateReturnStatus}
+          initialData={selectedReturn || undefined}
+          isLoading={isEditingReturn}
         />
 
-        {/* Modal Xem chi tiết yêu cầu bảo hành */}
-        <WarrantyRequestDetail
-          open={isWarrantyRequestDetailOpen}
-          onOpenChange={setIsWarrantyRequestDetailOpen}
-          warrantyRequest={selectedWarrantyRequest}
+        {/* Modal Xem chi tiết yêu cầu đổi trả */}
+        <ReturnDetail
+          open={isReturnDetailOpen}
+          onOpenChange={setIsReturnDetailOpen}
+          returnDetail={selectedReturn}
         />
 
-        {/* Modal Cập nhật trạng thái phiếu bảo hành */}
-        <WarrantyForm
-          open={isWarrantyEditOpen}
-          onOpenChange={setIsWarrantyEditOpen}
-          onSubmit={handleUpdateWarrantyStatus}
-          initialData={selectedWarranty || undefined}
-          isLoading={isEditingWarranty}
+        {/* Modal Cập nhật trạng thái phiếu đổi trả */}
+        <ReturnTicketForm
+          open={isReturnTicketEditOpen}
+          onOpenChange={setIsReturnTicketEditOpen}
+          onSubmit={handleUpdateReturnTicketStatus}
+          initialData={selectedReturnTicket || undefined}
+          isLoading={isEditingReturnTicket}
         />
 
-        {/* Modal Xem chi tiết phiếu bảo hành */}
-        <WarrantyDetail
-          open={isWarrantyDetailOpen}
-          onOpenChange={setIsWarrantyDetailOpen}
-          warranty={selectedWarranty}
+        {/* Modal Xem chi tiết phiếu đổi trả */}
+        <ReturnTicketDetail
+          open={isReturnTicketDetailOpen}
+          onOpenChange={setIsReturnTicketDetailOpen}
+          returnTicket={selectedReturnTicket}
         />
       </div>
     </Card>
