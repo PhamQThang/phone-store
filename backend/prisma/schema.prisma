@@ -8,24 +8,31 @@ datasource db {
 }
 
 model User {
-  id             Int             @id @default(autoincrement())
-  email          String          @unique
-  password       String
-  roleId         Int
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @default(now()) @updatedAt
-  address        String?
-  phoneNumber    String?
-  isActive       Boolean?        @default(true)
-  deletedAt      DateTime?       @db.Timestamp(6)
-  fullName       String?
-  cart           Cart?           @relation("UserCart")
-  orders         Order[]
-  returns        ProductReturn[]
-  reviews        ProductReview[]
-  purchaseOrders PurchaseOrder[] @relation("CreatedBy")
-  role           Role            @relation(fields: [roleId], references: [id])
-  warranties     Warranty[]
+  id              Int               @id @default(autoincrement())
+  email           String            @unique
+  password        String
+  roleId          Int
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @default(now()) @updatedAt
+  address         String?
+  phoneNumber     String?
+  isActive        Boolean?          @default(true)
+  deletedAt       DateTime?         @db.Timestamp(6)
+  fullName        String?
+  cart            Cart?             @relation("UserCart")
+  orders          Order[]
+  returns         ProductReturn[]
+  reviews         ProductReview[]
+  purchaseOrders  PurchaseOrder[]   @relation("CreatedBy")
+  returnTicket    ReturnTicket[]
+  role            Role              @relation(fields: [roleId], references: [id])
+  warranties      Warranty[]
+  warrantyRequest WarrantyRequest[]
+
+  @@index([createdAt])
+  @@index([email])
+  @@index([roleId])
+  @@index([updatedAt])
 }
 
 model Role {
@@ -34,6 +41,10 @@ model Role {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
   users     User[]
+
+  @@index([createdAt])
+  @@index([name])
+  @@index([updatedAt])
 }
 
 model Supplier {
@@ -45,6 +56,10 @@ model Supplier {
   createdAt      DateTime        @default(now())
   updatedAt      DateTime        @default(now()) @updatedAt
   purchaseOrders PurchaseOrder[]
+
+  @@index([createdAt])
+  @@index([phone])
+  @@index([updatedAt])
 }
 
 model PurchaseOrder {
@@ -60,6 +75,12 @@ model PurchaseOrder {
   createdBy            User?                 @relation("CreatedBy", fields: [createdById], references: [id])
   supplier             Supplier              @relation(fields: [supplierId], references: [id])
   purchaseOrderDetails PurchaseOrderDetail[]
+
+  @@index([createdAt])
+  @@index([createdById])
+  @@index([status])
+  @@index([supplierId])
+  @@index([updatedAt])
 }
 
 model PurchaseOrderDetail {
@@ -76,6 +97,13 @@ model PurchaseOrderDetail {
   import            PurchaseOrder    @relation(fields: [importId], references: [id])
   product           Product          @relation(fields: [productId], references: [id])
   productIdentity   ProductIdentity? @relation(fields: [productIdentityId], references: [id])
+
+  @@index([colorId])
+  @@index([createdAt])
+  @@index([importId])
+  @@index([productId])
+  @@index([productIdentityId])
+  @@index([updatedAt])
 }
 
 model ProductIdentity {
@@ -86,14 +114,21 @@ model ProductIdentity {
   isSold              Boolean              @default(false) @map("is_sold")
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @default(now()) @updatedAt
+  warrantyStartDate   DateTime?            @db.Timestamp(6)
+  warrantyEndDate     DateTime?            @db.Timestamp(6)
+  warrantyCount       Int                  @default(0)
   orderDetail         OrderDetail[]
   color               Color                @relation(fields: [colorId], references: [id])
   product             Product              @relation(fields: [productId], references: [id])
   returns             ProductReturn[]
   purchaseOrderDetail PurchaseOrderDetail?
+  returnTicket        ReturnTicket[]
   warranties          Warranty[]
+  warrantyRequest     WarrantyRequest[]
 
   @@index([imei], map: "idx_product_identity_imei")
+  @@index([colorId])
+  @@index([productId])
 }
 
 model Product {
@@ -110,6 +145,7 @@ model Product {
   modelId              String
   createdAt            DateTime              @default(now())
   updatedAt            DateTime              @default(now()) @updatedAt
+  warrantyPeriod       Int?                  @default(12)
   cartItems            CartItem[]
   orderDetails         OrderDetail[]
   model                Model                 @relation(fields: [modelId], references: [id])
@@ -118,6 +154,11 @@ model Product {
   promotions           ProductPromotion[]
   reviews              ProductReview[]
   purchaseOrderDetails PurchaseOrderDetail[]
+
+  @@index([createdAt])
+  @@index([modelId])
+  @@index([slug])
+  @@index([updatedAt])
 }
 
 model Model {
@@ -131,6 +172,10 @@ model Model {
   products  Product[]
 
   @@unique([name, brandId])
+  @@index([brandId])
+  @@index([createdAt])
+  @@index([slug])
+  @@index([updatedAt])
 }
 
 model Brand {
@@ -140,6 +185,11 @@ model Brand {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
   models    Model[]
+
+  @@index([createdAt])
+  @@index([name])
+  @@index([slug])
+  @@index([updatedAt])
 }
 
 model Color {
@@ -151,6 +201,10 @@ model Color {
   orderDetails         OrderDetail[]
   productIdentities    ProductIdentity[]
   purchaseOrderDetails PurchaseOrderDetail[]
+
+  @@index([createdAt])
+  @@index([name])
+  @@index([updatedAt])
 }
 
 model File {
@@ -164,6 +218,10 @@ model File {
   updatedAt    DateTime       @default(now()) @updatedAt
   productFiles ProductFiles[]
   slides       Slide[]
+
+  @@index([createdAt])
+  @@index([public_id])
+  @@index([updatedAt])
 }
 
 model ProductFiles {
@@ -176,13 +234,17 @@ model ProductFiles {
   product   Product  @relation(fields: [productId], references: [id])
 
   @@id([productId, fileId])
+  @@index([createdAt])
+  @@index([fileId])
+  @@index([productId])
+  @@index([updatedAt])
 }
 
 model Order {
   id            String        @id @default(uuid())
   userId        Int
   address       String
-  status        order_status
+  status        order_status  @default(Pending)
   totalAmount   Int           @map("total_amount")
   note          String?
   createdAt     DateTime      @default(now())
@@ -193,6 +255,12 @@ model Order {
   user          User          @relation(fields: [userId], references: [id])
   orderDetails  OrderDetail[]
   payment       Payment?
+
+  @@index([createdAt])
+  @@index([paymentStatus])
+  @@index([status])
+  @@index([updatedAt])
+  @@index([userId])
 }
 
 model OrderDetail {
@@ -205,12 +273,18 @@ model OrderDetail {
   updatedAt         DateTime        @default(now()) @updatedAt
   originalPrice     Float?
   discountedPrice   Float?
+  returnStatus      Boolean         @default(false)
   color             Color           @relation(fields: [colorId], references: [id])
   order             Order           @relation(fields: [orderId], references: [id])
   product           Product         @relation(fields: [productId], references: [id])
   productIdentity   ProductIdentity @relation(fields: [productIdentityId], references: [id])
 
   @@index([productIdentityId])
+  @@index([colorId])
+  @@index([createdAt])
+  @@index([orderId])
+  @@index([productId])
+  @@index([updatedAt])
 }
 
 model Slide {
@@ -223,6 +297,8 @@ model Slide {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @default(now()) @updatedAt
   image        File     @relation(fields: [imageId], references: [id])
+
+  @@index([imageId])
 }
 
 model BlacklistToken {
@@ -230,6 +306,9 @@ model BlacklistToken {
   token     String   @unique
   expiresAt DateTime
   createdAt DateTime @default(now())
+
+  @@index([expiresAt])
+  @@index([token])
 }
 
 model Cart {
@@ -239,6 +318,10 @@ model Cart {
   updatedAt DateTime   @default(now()) @updatedAt
   user      User       @relation("UserCart", fields: [userId], references: [id])
   cartItems CartItem[] @relation("CartItems")
+
+  @@index([createdAt])
+  @@index([updatedAt])
+  @@index([userId])
 }
 
 model CartItem {
@@ -254,6 +337,11 @@ model CartItem {
   product   Product  @relation(fields: [productId], references: [id])
 
   @@unique([cartId, productId, colorId])
+  @@index([cartId])
+  @@index([colorId])
+  @@index([createdAt])
+  @@index([productId])
+  @@index([updatedAt])
 }
 
 model ProductReview {
@@ -266,6 +354,11 @@ model ProductReview {
   updatedAt DateTime @default(now()) @updatedAt
   product   Product  @relation(fields: [productId], references: [id])
   user      User     @relation(fields: [userId], references: [id])
+
+  @@index([createdAt])
+  @@index([productId])
+  @@index([updatedAt])
+  @@index([userId])
 }
 
 model Promotion {
@@ -279,6 +372,10 @@ model Promotion {
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @default(now()) @updatedAt
   products    ProductPromotion[]
+
+  @@index([code])
+  @@index([endDate])
+  @@index([startDate])
 }
 
 model ProductPromotion {
@@ -290,32 +387,56 @@ model ProductPromotion {
   promotion   Promotion @relation(fields: [promotionId], references: [id])
 
   @@id([productId, promotionId])
+  @@index([createdAt])
+  @@index([productId])
+  @@index([promotionId])
+  @@index([updatedAt])
 }
 
 model Warranty {
-  id                String          @id @default(uuid())
+  id                String           @id @default(uuid())
   userId            Int
   productIdentityId String
-  startDate         DateTime        @default(now())
+  startDate         DateTime         @default(now())
   endDate           DateTime
-  status            String          @default("Active")
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @default(now()) @updatedAt
-  productIdentity   ProductIdentity @relation(fields: [productIdentityId], references: [id])
-  user              User            @relation(fields: [userId], references: [id])
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @default(now()) @updatedAt
+  status            warranty_status?
+  note              String?
+  warrantyRequestId String?
+  productIdentity   ProductIdentity  @relation(fields: [productIdentityId], references: [id])
+  user              User             @relation(fields: [userId], references: [id])
+  warrantyRequest   WarrantyRequest? @relation(fields: [warrantyRequestId], references: [id])
+
+  @@index([createdAt])
+  @@index([productIdentityId])
+  @@index([status])
+  @@index([updatedAt])
+  @@index([userId])
+  @@index([warrantyRequestId])
 }
 
 model ProductReturn {
-  id                String          @id @default(uuid())
+  id                String          @id @default(dbgenerated("gen_random_uuid()"))
   userId            Int
   productIdentityId String
   reason            String
-  status            String          @default("Pending")
   returnDate        DateTime        @default(now())
-  createdAt         DateTime        @default(now())
-  updatedAt         DateTime        @default(now()) @updatedAt
+  createdAt         DateTime        @default(now()) @db.Timestamp(6)
+  updatedAt         DateTime        @default(now()) @db.Timestamp(6)
+  status            return_status?  @default(Pending)
+  fullName          String?
+  phoneNumber       String?
+  address           String?
   productIdentity   ProductIdentity @relation(fields: [productIdentityId], references: [id])
   user              User            @relation(fields: [userId], references: [id])
+  returnTicket      ReturnTicket[]
+
+  @@index([createdAt])
+  @@index([productIdentityId])
+  @@index([status])
+  @@index([updatedAt])
+  @@index([userId])
 }
 
 model Payment {
@@ -329,6 +450,64 @@ model Payment {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @default(now()) @updatedAt
   order           Order     @relation(fields: [orderId], references: [id])
+
+  @@index([createdAt])
+  @@index([orderId])
+  @@index([status])
+  @@index([updatedAt])
+}
+
+model WarrantyRequest {
+  id                String                   @id @default(dbgenerated("gen_random_uuid()"))
+  userId            Int
+  productIdentityId String
+  reason            String
+  fullName          String
+  phoneNumber       String                   @db.VarChar(15)
+  email             String
+  requestDate       DateTime                 @default(now())
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @default(now())
+  status            warranty_request_status? @default(Pending)
+  warranty          Warranty[]
+  productIdentity   ProductIdentity          @relation(fields: [productIdentityId], references: [id])
+  user              User                     @relation(fields: [userId], references: [id])
+
+  @@index([createdAt])
+  @@index([productIdentityId])
+  @@index([status])
+  @@index([updatedAt])
+  @@index([userId])
+}
+
+model ReturnTicket {
+  id                String              @id @default(dbgenerated("gen_random_uuid()"))
+  userId            Int
+  productIdentityId String
+  startDate         DateTime            @db.Timestamp(6)
+  endDate           DateTime            @db.Timestamp(6)
+  status            returnticket_status @default(Requested)
+  note              String?
+  createdAt         DateTime            @default(now()) @db.Timestamp(6)
+  updatedAt         DateTime            @default(now()) @db.Timestamp(6)
+  productReturnId   String
+  originalPrice     Float?
+  discountedPrice   Float?
+  paymentMethod     String?
+  paymentStatus     String?
+  fullName          String?
+  phoneNumber       String?
+  address           String?
+  productIdentity   ProductIdentity     @relation(fields: [productIdentityId], references: [id])
+  productReturn     ProductReturn       @relation(fields: [productReturnId], references: [id])
+  user              User                @relation(fields: [userId], references: [id])
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([productIdentityId])
+  @@index([productReturnId])
+  @@index([updatedAt])
+  @@index([userId])
 }
 
 enum order_status {
@@ -336,5 +515,37 @@ enum order_status {
   Confirmed
   Shipping
   Delivered
+  Canceled
+  Returned
+}
+
+enum warranty_status {
+  Requested
+  Processing
+  Repairing
+  Repaired
+  Returned
+  Canceled
+}
+
+enum warranty_request_status {
+  Pending
+  Approved
+  Rejected
+  Completed
+}
+
+enum return_status {
+  Pending
+  Approved
+  Rejected
+  Completed
+}
+
+enum returnticket_status {
+  Requested
+  Processing
+  Processed
+  Returned
   Canceled
 }

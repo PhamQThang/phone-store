@@ -407,9 +407,6 @@ export default function ProductDetailPage() {
                 </>
               )}
             </Button>
-            <Button className="flex-1 bg-blue-600 hover:bg-blue-700 h-14 text-lg font-medium">
-              Mua ngay
-            </Button>
           </div>
 
           {/* Delivery Info */}

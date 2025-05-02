@@ -63,6 +63,18 @@ const items = [
     allowedRoles: ["Admin", "Employee"],
   },
   {
+    title: "Quản lý bảo hành",
+    url: "/admin/warranties",
+    icon: Sliders,
+    allowedRoles: ["Admin", "Employee"],
+  },
+  {
+    title: "Quản lý đổi trả",
+    url: "/admin/returns",
+    icon: Sliders,
+    allowedRoles: ["Admin", "Employee"],
+  },
+  {
     title: "Quản lý khuyến mãi",
     url: "/admin/promotions",
     icon: Sliders,

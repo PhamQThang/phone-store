@@ -353,7 +353,18 @@ export class OrderService {
   ) {
     const order = await this.prisma.order.findUnique({
       where: { id: orderId },
-      include: { orderDetails: true, user: { include: { role: true } } },
+      include: {
+        orderDetails: {
+          include: {
+            productIdentity: {
+              include: {
+                product: true, // Lấy thông tin sản phẩm để lấy warranty_period
+              },
+            },
+          },
+        },
+        user: { include: { role: true } },
+      },
     });
 
     if (!order) {
@@ -468,6 +479,40 @@ export class OrderService {
           },
         });
 
+        // Khi trạng thái đơn hàng là "Delivered", cập nhật ngày bảo hành cho các ProductIdentity
+        if (newStatus === 'Delivered') {
+          const productIdentityUpdates = order.orderDetails.map(
+            async detail => {
+              const productIdentity = detail.productIdentity;
+              const product = detail.productIdentity.product;
+
+              if (!productIdentity) {
+                throw new BadRequestException(
+                  `Không tìm thấy ProductIdentity cho OrderDetail ${detail.id}`
+                );
+              }
+
+              const warrantyStartDate = new Date(); // Ngày hiện tại (ngày giao hàng thành công)
+              const warrantyPeriod = product.warrantyPeriod || 12; // Mặc định 12 tháng nếu không có warranty_period
+              const warrantyEndDate = new Date(warrantyStartDate);
+              warrantyEndDate.setMonth(
+                warrantyEndDate.getMonth() + warrantyPeriod
+              );
+
+              await tx.productIdentity.update({
+                where: { id: productIdentity.id },
+                data: {
+                  warrantyStartDate: warrantyStartDate,
+                  warrantyEndDate: warrantyEndDate,
+                },
+              });
+            }
+          );
+
+          await Promise.all(productIdentityUpdates);
+        }
+
+        // Khi trạng thái đơn hàng là "Canceled", đặt lại trạng thái isSold và thời hạn bảo hành
         if (newStatus === 'Canceled') {
           const productIdentityIds = order.orderDetails.map(
             detail => detail.productIdentityId
@@ -476,7 +521,11 @@ export class OrderService {
           if (productIdentityIds.length > 0) {
             await tx.productIdentity.updateMany({
               where: { id: { in: productIdentityIds } },
-              data: { isSold: false },
+              data: {
+                isSold: false,
+                warrantyStartDate: null, // Đặt lại thời hạn bảo hành
+                warrantyEndDate: null, // Đặt lại thời hạn bảo hành
+              },
             });
           }
         }

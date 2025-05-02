@@ -60,6 +60,8 @@ export default function LoginPage() {
     setLoading(true);
     try {
       const response = await login(values);
+      console.log("Login response:", response); // Log the response for debugging
+
       setAuthData({
         accessToken: response.accessToken,
         id: response.user.id,
