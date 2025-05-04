@@ -20,7 +20,7 @@ export default function ClientHomePage() {
     const fetchData = async () => {
       try {
         const [productsData, slidesData] = await Promise.all([
-          getProducts(),
+          getProducts(undefined, undefined, 1, 12),
           getSlides(),
         ]);
         setProducts(productsData.data);

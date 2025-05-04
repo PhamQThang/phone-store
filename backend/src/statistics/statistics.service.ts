@@ -78,7 +78,7 @@ export class StatisticsService {
       include: {
         orderDetails: {
           where: {
-            returnStatus: false, // Chỉ lấy các OrderDetail chưa được đổi trả
+            returnStatus: false,
           },
           include: {
             product: {
@@ -162,7 +162,7 @@ export class StatisticsService {
       include: {
         orderDetails: {
           where: {
-            returnStatus: false, // Chỉ lấy các OrderDetail chưa được đổi trả
+            returnStatus: false,
           },
           include: {
             product: true,
@@ -192,7 +192,6 @@ export class StatisticsService {
       let orderSellingPrice = 0;
       let orderProfit = 0;
 
-      // Chỉ tính các OrderDetail chưa được đổi trả
       order.orderDetails.forEach(detail => {
         const sellingPrice =
           detail.discountedPrice || detail.originalPrice || 0;
@@ -206,7 +205,6 @@ export class StatisticsService {
         orderProfit += profit;
       });
 
-      // Chỉ tăng orderCount nếu đơn hàng có OrderDetail hợp lệ (chưa đổi trả)
       if (order.orderDetails.length > 0) {
         monthlyStats[month].revenue += orderRevenue;
         monthlyStats[month].importPrice += orderImportPrice;
@@ -219,6 +217,16 @@ export class StatisticsService {
     return {
       message: `Thống kê doanh thu, giá nhập, giá bán theo tháng trong năm ${year} thành công`,
       data: monthlyStats,
+    };
+  }
+
+  async getUserStats() {
+    const userCount = await this.prisma.user.count();
+    return {
+      message: 'Thống kê số lượng người dùng thành công',
+      data: {
+        totalUsers: userCount,
+      },
     };
   }
 }

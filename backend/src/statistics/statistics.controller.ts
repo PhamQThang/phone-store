@@ -36,7 +36,9 @@ export class StatisticsController {
   @Roles('Admin')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
-  @ApiOperation({ summary: 'Thống kê doanh thu và lợi nhuận' })
+  @ApiOperation({
+    summary: 'Thống kê doanh thu, giá nhập, giá bán và lợi nhuận',
+  })
   @ApiResponse({ status: 200, description: 'Thống kê doanh thu thành công' })
   @ApiResponse({ status: 401, description: 'Không được phép' })
   @ApiResponse({
@@ -52,7 +54,7 @@ export class StatisticsController {
   @Roles('Admin')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
-  @ApiOperation({ summary: 'Thống kê doanh thu theo tháng' })
+  @ApiOperation({ summary: 'Thống kê doanh thu, giá nhập, giá bán theo tháng' })
   @ApiResponse({
     status: 200,
     description: 'Thống kê doanh thu theo tháng thành công',
@@ -64,5 +66,24 @@ export class StatisticsController {
   })
   async getMonthlyRevenueStats(@Param('year') year: string) {
     return this.statisticsService.getMonthlyRevenueStats(parseInt(year));
+  }
+
+  @Get('users')
+  @UseGuards(RoleGuard)
+  @Roles('Admin')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Thống kê số lượng người dùng' })
+  @ApiResponse({
+    status: 200,
+    description: 'Thống kê số lượng người dùng thành công',
+  })
+  @ApiResponse({ status: 401, description: 'Không được phép' })
+  @ApiResponse({
+    status: 403,
+    description: 'Bạn không có quyền thực hiện hành động này',
+  })
+  async getUserStats() {
+    return this.statisticsService.getUserStats();
   }
 }

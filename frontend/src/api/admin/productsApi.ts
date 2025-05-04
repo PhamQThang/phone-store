@@ -22,7 +22,7 @@ export const getProducts = async (
   brandSlug?: string,
   modelSlug?: string,
   page: number = 1,
-  limit: number = 12
+  limit: number = 500
 ): Promise<ProductsResponse> => {
   const response = await axiosInstance.get("/products", {
     params: { brandSlug, modelSlug, page, limit },
