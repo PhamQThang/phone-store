@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, UseGuards } from '@nestjs/common';
 import { StatisticsService } from './statistics.service';
 import {
   ApiTags,
@@ -45,5 +45,24 @@ export class StatisticsController {
   })
   async getRevenueStats() {
     return this.statisticsService.getRevenueStats();
+  }
+
+  @Get('revenue/monthly/:year')
+  @UseGuards(RoleGuard)
+  @Roles('Admin')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Thống kê doanh thu theo tháng' })
+  @ApiResponse({
+    status: 200,
+    description: 'Thống kê doanh thu theo tháng thành công',
+  })
+  @ApiResponse({ status: 401, description: 'Không được phép' })
+  @ApiResponse({
+    status: 403,
+    description: 'Bạn không có quyền thực hiện hành động này',
+  })
+  async getMonthlyRevenueStats(@Param('year') year: string) {
+    return this.statisticsService.getMonthlyRevenueStats(parseInt(year));
   }
 }

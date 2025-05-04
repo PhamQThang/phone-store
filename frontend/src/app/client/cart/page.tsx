@@ -111,16 +111,37 @@ export default function CartPage() {
   const selectedTotalAmount = cartItems
     .filter((item) => selectedItems.includes(item.id))
     .reduce(
-      (sum, item) => sum + item.product.discountedPrice * item.quantity,
+      (sum, item) => sum + (item.product.discountedPrice ?? 0) * item.quantity,
       0
     );
 
-  const handleCheckout = () => {
+  const handleCheckout = async () => {
     if (selectedItems.length === 0) {
       toast.error("Vui lòng chọn ít nhất một sản phẩm để thanh toán");
       return;
     }
 
+    // Kiểm tra số lượng tồn kho dựa trên productIdentities
+    const outOfStockItems = cartItems
+      .filter((item) => selectedItems.includes(item.id))
+      .filter((item) => {
+        const availableStock = item.product.productIdentities?.filter(
+          (pi) => pi.colorId === item.color.id && !pi.isSold
+        ).length; // Đếm số lượng chưa bán
+        return availableStock === undefined || item.quantity > availableStock;
+      });
+
+    if (outOfStockItems.length > 0) {
+      const outOfStockNames = outOfStockItems
+        .map((item) => item.product.name)
+        .join(", ");
+      toast.error(
+        `Số lượng không đủ cho các sản phẩm: ${outOfStockNames}. Vui lòng kiểm tra lại!`
+      );
+      return;
+    }
+
+    // Nếu tồn kho đủ, tiếp tục quy trình thanh toán
     localStorage.setItem("selectedCartItems", JSON.stringify(selectedItems));
     localStorage.setItem("cartIdForCheckout", cartId!);
     router.push("/client/checkout");

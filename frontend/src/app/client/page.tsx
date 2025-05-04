@@ -6,6 +6,7 @@ import HomeCarousel from "@/components/client/homes/HomeCarousel";
 import ProductCard from "@/components/client/ProductCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Product, Slide } from "@/lib/types";
+import Link from "next/link";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
@@ -22,7 +23,7 @@ export default function ClientHomePage() {
           getProducts(),
           getSlides(),
         ]);
-        setProducts(productsData);
+        setProducts(productsData.data);
         const activeSlides = slidesData
           .filter((slide) => slide.isActive)
           .sort((a, b) => a.displayOrder - b.displayOrder);
@@ -93,9 +94,18 @@ export default function ClientHomePage() {
         </div>
       )}
       <div className="container mx-auto px-3 py-3 mt-5">
-        <div className="text-3xl font-bold mt-5 mb-8 uppercase text-black">
-          Tất cả sản phẩm
+        <div className="flex items-center justify-between mb-5">
+          <div className="text-3xl font-bold mt-5 mb-8 uppercase text-black">
+            Sản phẩm nổi bật
+          </div>
+          <Link
+            href="/client/products"
+            className="hover:font-semibold text-destructive"
+          >
+            Xem tất cả
+          </Link>
         </div>
+
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
           {products.map((product) => (
             <ProductCard key={product.id} product={product} />

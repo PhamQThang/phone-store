@@ -156,7 +156,7 @@ export default function ProductDetailPage() {
     return <div className="text-center mt-10">Sản phẩm không tồn tại</div>;
   }
 
-  // Lọc màu sắc không trùng lặp
+  // Lọc màu sắc không trùng lặp và tính số lượng tồn kho
   const uniqueColorIds = new Set<string>();
   const availableColors = product.productIdentities
     .filter((pi) => {
@@ -166,8 +166,14 @@ export default function ProductDetailPage() {
       }
       return false;
     })
-    .map((pi) => colors.find((c) => c.id === pi.colorId))
-    .filter(Boolean) as Color[];
+    .map((pi) => {
+      const color = colors.find((c) => c.id === pi.colorId);
+      const stockCount = product.productIdentities.filter(
+        (identity) => identity.colorId === pi.colorId && !identity.isSold
+      ).length;
+      return { ...color, stockCount };
+    })
+    .filter(Boolean) as (Color & { stockCount: number })[];
 
   // Kiểm tra trạng thái còn hàng
   const isInStock = product.productIdentities.some((pi) => !pi.isSold);
@@ -350,7 +356,7 @@ export default function ProductDetailPage() {
                   {selectedColorId === color.id && (
                     <Check className="w-4 h-4 absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5" />
                   )}
-                  {color.name}
+                  {color.name} ({color.stockCount} sản phẩm)
                 </button>
               ))}
             </div>

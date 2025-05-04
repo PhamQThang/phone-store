@@ -43,7 +43,7 @@ export default function PromotionsPage() {
           ]);
           if (isMounted) {
             setPromotions(promotionsData);
-            setProducts(productsData);
+            setProducts(productsData.data);
           }
         } catch (error) {
           console.error("Lỗi khi lấy dữ liệu:", error);

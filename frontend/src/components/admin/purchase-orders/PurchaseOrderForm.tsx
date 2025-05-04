@@ -44,7 +44,7 @@ const purchaseOrderDetailSchema = z.object({
 
 const purchaseOrderSchema = z.object({
   supplierId: z.string().min(1, "Vui lòng chọn nhà cung cấp"),
-  note: z.string().optional(),
+  note: z.string().min(1, "Ghi chú không được để trống"),
   details: z.array(purchaseOrderDetailSchema).optional(),
 });
 
@@ -102,7 +102,7 @@ export function PurchaseOrderForm({
         ]);
         if (isMounted) {
           setSuppliers(suppliersData);
-          setProducts(productsData);
+          setProducts(productsData.data);
           setColors(colorsData);
         }
       } catch (error: any) {
@@ -241,7 +241,7 @@ export function PurchaseOrderForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel className="text-sm sm:text-base">
-                      Ghi chú (không bắt buộc)
+                      Ghi chú
                     </FormLabel>
                     <FormControl>
                       <Input

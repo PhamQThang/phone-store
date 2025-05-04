@@ -52,6 +52,7 @@ export default function ProductCard({ product }: ProductCardProps) {
             width={0}
             height={0}
             sizes="100vw"
+            as="image"
             className="w-full h-40 object-contain transition-transform duration-300 ease-in-out group-hover:scale-105"
             priority
           />

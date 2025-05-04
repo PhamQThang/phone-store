@@ -16,7 +16,6 @@ export class ReturnsService {
     const { productIdentityId, reason, fullName, phoneNumber, address } =
       createReturnDto;
 
-    // Kiểm tra productIdentity
     const productIdentity = await this.prisma.productIdentity.findUnique({
       where: { id: productIdentityId },
       include: {
@@ -45,7 +44,6 @@ export class ReturnsService {
       throw new BadRequestException('Sản phẩm này chưa được bán');
     }
 
-    // Kiểm tra quyền sở hữu
     const orderDetail = productIdentity.orderDetail?.[0];
     if (!orderDetail || orderDetail.order.userId !== userId) {
       throw new BadRequestException(
@@ -53,14 +51,12 @@ export class ReturnsService {
       );
     }
 
-    // Kiểm tra trạng thái đơn hàng
     if (orderDetail.order.status !== 'Delivered') {
       throw new BadRequestException(
         'Đơn hàng chưa được giao, không thể yêu cầu đổi trả'
       );
     }
 
-    // Kiểm tra thời gian đổi trả
     const deliveredDate = orderDetail.order.updatedAt;
     const currentDate = new Date();
     const daysSinceDelivered = Math.floor(
@@ -74,7 +70,6 @@ export class ReturnsService {
       );
     }
 
-    // Kiểm tra xem sản phẩm đã có yêu cầu đổi trả nào đang xử lý chưa
     const existingReturn = await this.prisma.productReturn.findFirst({
       where: {
         productIdentityId,
@@ -87,7 +82,6 @@ export class ReturnsService {
       );
     }
 
-    // Kiểm tra xem sản phẩm có yêu cầu bảo hành đang xử lý không
     const existingWarrantyRequests = await this.prisma.warrantyRequest.findMany(
       {
         where: {
@@ -112,18 +106,17 @@ export class ReturnsService {
       );
     }
 
-    // Tạo yêu cầu đổi trả
     const productReturn = await this.prisma.productReturn.create({
       data: {
-        id: uuidv4(), // Generate UUID for the id
+        id: uuidv4(),
         user: { connect: { id: userId } },
         productIdentity: { connect: { id: productIdentityId } },
         reason,
         status: 'Pending',
         returnDate: new Date(),
-        fullName, // Lưu họ tên
-        phoneNumber, // Lưu số điện thoại
-        address, // Lưu địa chỉ
+        fullName,
+        phoneNumber,
+        address,
       },
       include: {
         user: { select: { id: true, fullName: true } },
@@ -143,7 +136,6 @@ export class ReturnsService {
       },
     });
 
-    // Since productIdentity is included in the query, it should be available
     const mainImage =
       productReturn.productIdentity?.product?.productFiles?.[0]?.file?.url ||
       null;
@@ -248,7 +240,6 @@ export class ReturnsService {
     }
 
     try {
-      // Kiểm tra dữ liệu trước khi bắt đầu giao dịch
       let orderDetail;
       let existingReturnTicket;
 
@@ -272,10 +263,8 @@ export class ReturnsService {
         }
       }
 
-      // Bắt đầu giao dịch
       const updatedReturn = await this.prisma.$transaction(
         async tx => {
-          // Cập nhật trạng thái yêu cầu đổi trả
           const updated = await tx.productReturn.update({
             where: { id: returnId },
             data: { status: newStatus },
@@ -309,7 +298,6 @@ export class ReturnsService {
             },
           });
 
-          // Nếu trạng thái là Approved, tạo phiếu đổi trả
           if (newStatus === 'Approved') {
             const returnWindowDays =
               parseInt(process.env.RETURN_WINDOW_DAYS) || 7;
@@ -321,7 +309,6 @@ export class ReturnsService {
             const endDate = new Date(startDate);
             endDate.setDate(startDate.getDate() + returnWindowDays);
 
-            // Đặt paymentStatus mặc định là Pending vì trạng thái ban đầu là Requested
             const paymentStatus = 'Pending';
 
             await tx.returnTicket.create({
@@ -345,7 +332,6 @@ export class ReturnsService {
             });
           }
 
-          // Nếu trạng thái là Rejected, cập nhật phiếu đổi trả liên quan (nếu có)
           if (newStatus === 'Rejected') {
             const returnTicket = await tx.returnTicket.findFirst({
               where: {
@@ -378,7 +364,7 @@ export class ReturnsService {
           };
         },
         {
-          timeout: 10000, // Tăng thời gian chờ giao dịch lên 10 giây
+          timeout: 10000,
         }
       );
 
@@ -440,6 +426,11 @@ export class ReturnsService {
           include: {
             product: { select: { id: true, name: true } },
             color: { select: { id: true, name: true } },
+            orderDetail: {
+              include: {
+                order: true,
+              },
+            },
           },
         },
         productReturn: true,
@@ -468,11 +459,9 @@ export class ReturnsService {
 
     try {
       const updatedReturnTicket = await this.prisma.$transaction(async tx => {
-        // Logic cập nhật paymentStatus dựa trên newStatus
         const paymentStatus =
           newStatus === 'Returned' ? 'Completed' : 'Pending';
 
-        // Cập nhật trạng thái phiếu đổi trả và paymentStatus
         const updated = await tx.returnTicket.update({
           where: { id: returnTicketId },
           data: {
@@ -485,6 +474,11 @@ export class ReturnsService {
               include: {
                 product: { select: { id: true, name: true } },
                 color: { select: { id: true, name: true } },
+                orderDetail: {
+                  include: {
+                    order: true,
+                  },
+                },
               },
             },
             productReturn: true,
@@ -492,13 +486,11 @@ export class ReturnsService {
         });
 
         if (newStatus === 'Returned' && returnTicket.productReturnId) {
-          // Cập nhật trạng thái của ProductReturn thành Completed
           await tx.productReturn.update({
             where: { id: returnTicket.productReturnId },
             data: { status: 'Completed' },
           });
 
-          // Reset các thông tin bảo hành trong ProductIdentity và đặt isSold thành false
           await tx.productIdentity.update({
             where: { id: returnTicket.productIdentityId },
             data: {
@@ -508,6 +500,15 @@ export class ReturnsService {
               warrantyCount: 0,
             },
           });
+
+          // Cập nhật returnStatus của OrderDetail thành true
+          const orderDetail = returnTicket.productIdentity.orderDetail?.[0];
+          if (orderDetail) {
+            await tx.orderDetail.update({
+              where: { id: orderDetail.id },
+              data: { returnStatus: true },
+            });
+          }
         } else if (newStatus === 'Canceled' && returnTicket.productReturnId) {
           await tx.productReturn.update({
             where: { id: returnTicket.productReturnId },

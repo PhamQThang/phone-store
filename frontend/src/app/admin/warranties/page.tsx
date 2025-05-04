@@ -17,9 +17,7 @@ import { Loader2 } from "lucide-react";
 
 export default function WarrantyManagementPage() {
   const router = useRouter();
-  const [warrantyRequests, setWarrantyRequests] = useState<WarrantyRequest[]>(
-    []
-  );
+  const [warrantyRequests, setWarrantyRequests] = useState<any[]>([]);
   const [warranties, setWarranties] = useState<Warranty[]>([]);
   const [role, setRole] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);

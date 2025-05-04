@@ -40,7 +40,7 @@ export default function ProductsPage() {
             getModels(),
           ]);
           if (isMounted) {
-            setProducts(productsData);
+            setProducts(productsData.data);
             setModels(modelsData);
           }
         } catch (error) {

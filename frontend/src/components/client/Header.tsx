@@ -366,8 +366,7 @@ export default function Header() {
         <div className="flex gap-8">
           {navItems.map((item) =>
             item.hasDropdown ? (
-              <Link
-                href={item.href}
+              <div
                 key={item.name}
                 className="relative top-2"
                 onMouseEnter={handleMouseEnter}
@@ -404,7 +403,7 @@ export default function Header() {
                     </div>
                   </div>
                 )}
-              </Link>
+              </div>
             ) : (
               <Link
                 key={item.name}

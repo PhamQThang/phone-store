@@ -389,7 +389,7 @@ export default function ClientPurchaseOrders({
                                 <Edit className="h-4 w-4" />
                               </Button>
                             )}
-                            <Button
+                            {/* <Button
                               variant="ghost"
                               size="sm"
                               onClick={() =>
@@ -398,7 +398,7 @@ export default function ClientPurchaseOrders({
                               disabled={isLoading}
                             >
                               <Trash className="h-4 w-4" />
-                            </Button>
+                            </Button> */}
                           </>
                         )}
                       </div>
@@ -482,7 +482,7 @@ export default function ClientPurchaseOrders({
                             Sửa
                           </Button>
                         )}
-                        <Button
+                        {/* <Button
                           variant="outline"
                           size="sm"
                           onClick={() => handleDeletePurchaseOrder(order.id)}
@@ -490,7 +490,7 @@ export default function ClientPurchaseOrders({
                         >
                           <Trash className="h-4 w-4 mr-1" />
                           Xóa
-                        </Button>
+                        </Button> */}
                       </>
                     )}
                   </div>

@@ -10,6 +10,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Checkbox } from "@/components/ui/checkbox";
 import { getProducts } from "@/api/admin/productsApi";
 import { Product } from "@/lib/types";
+import { Button } from "@/components/ui/button";
 
 export default function ProductsPage() {
   const [allProducts, setAllProducts] = useState<Product[]>([]);
@@ -17,6 +18,8 @@ export default function ProductsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const searchParams = useSearchParams();
 
   const brandSlug = searchParams.get("brand");
@@ -68,14 +71,17 @@ export default function ProductsPage() {
     selectedBatteries: [],
   });
 
-  const fetchData = async () => {
+  const fetchData = async (page: number) => {
     startTransition(async () => {
       try {
-        const [productsData] = await Promise.all([
-          getProducts(brandSlug || undefined, modelSlug || undefined),
-        ]);
-
-        setAllProducts(productsData);
+        const response = await getProducts(
+          brandSlug || undefined,
+          modelSlug || undefined,
+          page,
+          12
+        );
+        setAllProducts(response.data);
+        setTotalPages(response.pagination.totalPages);
       } catch (error: any) {
         setError(error.message || "Không thể lấy dữ liệu");
         toast.error("Lỗi", {
@@ -97,7 +103,8 @@ export default function ProductsPage() {
 
   useEffect(() => {
     setIsLoading(true);
-    fetchData();
+    setCurrentPage(1); // Reset về trang 1 khi brandSlug hoặc modelSlug thay đổi
+    fetchData(1);
   }, [brandSlug, modelSlug]);
 
   const applyFilters = (products: Product[]) => {
@@ -107,7 +114,6 @@ export default function ProductsPage() {
       return;
     }
 
-    // Kiểm tra xem có bộ lọc nào được chọn không
     const isFilterApplied = Object.values(filterValues).some(
       (filterArray) => Array.isArray(filterArray) && filterArray.length > 0
     );
@@ -118,13 +124,12 @@ export default function ProductsPage() {
     }
 
     const filtered = products.filter((product) => {
-      const price = product.price || 0;
+      const price = product.discountedPrice || product.price || 0;
       const screenSize = product.screenSize || 0;
       const ram = product.ram || 0;
       const storage = product.storage || 0;
       const battery = product.battery || 0;
 
-      // Lọc theo giá
       const priceMatch =
         filterValues.selectedPriceRanges.length === 0 ||
         filterValues.selectedPriceRanges.some((rangeLabel) => {
@@ -132,7 +137,6 @@ export default function ProductsPage() {
           return range && price >= range.min && price <= range.max;
         });
 
-      // Lọc theo kích thước màn hình
       const screenSizeMatch =
         filterValues.selectedScreenSizes.length === 0 ||
         filterValues.selectedScreenSizes.some((sizeLabel) => {
@@ -146,17 +150,14 @@ export default function ProductsPage() {
           );
         });
 
-      // Lọc theo RAM
       const ramMatch =
         filterValues.selectedRams.length === 0 ||
         filterValues.selectedRams.includes(ram);
 
-      // Lọc theo dung lượng lưu trữ
       const storageMatch =
         filterValues.selectedStorages.length === 0 ||
         filterValues.selectedStorages.includes(storage);
 
-      // Lọc theo dung lượng pin
       const batteryMatch =
         filterValues.selectedBatteries.length === 0 ||
         filterValues.selectedBatteries.some((batteryLabel) => {
@@ -201,6 +202,13 @@ export default function ProductsPage() {
       };
       return updatedFilters;
     });
+  };
+
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+      fetchData(page);
+    }
   };
 
   if (isLoading && !isPending) {
@@ -392,11 +400,39 @@ export default function ProductsPage() {
           Không tìm thấy sản phẩm nào.
         </p>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {filteredProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {filteredProducts.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+          <div className="mt-6 flex justify-center gap-2">
+            <Button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+              variant="link"
+            >
+              Previous
+            </Button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+              <Button
+                key={page}
+                onClick={() => handlePageChange(page)}
+                variant={currentPage === page ? "destructive" : "ghost"}
+                disabled={isPending}
+              >
+                {page}
+              </Button>
+            ))}
+            <Button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+              variant="link"
+            >
+              Next
+            </Button>
+          </div>
+        </>
       )}
     </div>
   );
