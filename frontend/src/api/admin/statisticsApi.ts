@@ -44,6 +44,16 @@ export type DailyProfitStatsResponse = {
   };
 };
 
+// Interface cho thống kê tổng quan của cửa hàng
+export interface StoreSummaryStats {
+  totalProducts: number;
+  totalProductsSold: number;
+  totalPurchaseAmount: number;
+  totalSellingPrice: number;
+  totalProfit: number;
+  totalOrders: number;
+}
+
 // Lấy thống kê đơn hàng và nhập hàng trong khoảng thời gian
 export const getOrderStats = async (
   startDate: string,
@@ -63,4 +73,10 @@ export const getDailyProfitStats = async (
     params: { date },
   });
   return response.data;
+};
+
+// Lấy thống kê tổng quan của cửa hàng
+export const getStoreSummaryStats = async (): Promise<StoreSummaryStats> => {
+  const response = await axiosInstance.get("/statistics/store-summary");
+  return response;
 };

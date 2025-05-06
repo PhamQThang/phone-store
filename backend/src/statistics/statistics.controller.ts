@@ -1,5 +1,9 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
-import { StatisticsService, DailyStat } from './statistics.service';
+import {
+  StatisticsService,
+  DailyStat,
+  StoreSummaryStats,
+} from './statistics.service';
 import {
   ApiTags,
   ApiOperation,
@@ -63,5 +67,21 @@ export class StatisticsController {
   })
   async getDailyProfitStats(@Query('date') date?: string) {
     return this.statisticsService.getDailyProfitStats(date);
+  }
+
+  @Get('store-summary')
+  @UseGuards(RoleGuard)
+  @Roles('Admin')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Thống kê tổng quan của cửa hàng' })
+  @ApiResponse({ status: 200, description: 'Thống kê thành công' })
+  @ApiResponse({ status: 401, description: 'Không được phép' })
+  @ApiResponse({
+    status: 403,
+    description: 'Bạn không có quyền thực hiện hành động này',
+  })
+  async getStoreSummaryStats(): Promise<StoreSummaryStats> {
+    return this.statisticsService.getStoreSummaryStats();
   }
 }

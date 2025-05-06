@@ -12,7 +12,11 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
-import { getOrderStats } from "@/api/admin/statisticsApi";
+import {
+  getOrderStats,
+  getStoreSummaryStats,
+  OrderStatsResponse,
+} from "@/api/admin/statisticsApi";
 
 // Đăng ký các thành phần cần thiết cho Chart.js
 ChartJS.register(
@@ -34,16 +38,17 @@ export default function DashboardPage() {
   };
 
   // State để lưu trữ dữ liệu tổng quan
-  const [totalProducts, setTotalProducts] = useState<number>(0);
-  const [totalRevenue, setTotalRevenue] = useState<number>(0);
-  const [totalUsers, setTotalUsers] = useState<number>(0);
+  const [storeSummary, setStoreSummary] = useState({
+    totalProducts: 0,
+    totalProductsSold: 0,
+    totalPurchaseAmount: 0,
+    totalSellingPrice: 0,
+    totalProfit: 0,
+    totalOrders: 0,
+  });
 
   // State cho dữ liệu biểu đồ
-  const [dailyStats, setDailyStats] = useState<any[]>([]);
-  const [selectedDatasets, setSelectedDatasets] = useState<string[]>([
-    "sellingPrice",
-    "profit",
-  ]);
+  const [dailyStats, setDailyStats] = useState<OrderStatsResponse[]>([]);
 
   // Mặc định: 1 tuần trước đến hiện tại
   const [startDate, setStartDate] = useState<string>(getOneWeekAgoDate());
@@ -78,28 +83,17 @@ export default function DashboardPage() {
           return;
         }
 
+        // Lấy thống kê tổng quan
+        const summaryResponse = await getStoreSummaryStats();
+        console.log("summaryResponse", summaryResponse);
+
+        setStoreSummary(summaryResponse);
+
         // Lấy thống kê theo khoảng thời gian đã chọn
         const orderStatsResponse = await getOrderStats(startDate, endDate);
-        const statsData = orderStatsResponse;
+        console.log("orderStatsResponse", orderStatsResponse);
 
-        // Tính tổng quan từ dữ liệu
-        setTotalProducts(
-          statsData.reduce(
-            (sum, stat) => sum + (stat.totalProductsSold || 0),
-            0
-          )
-        );
-        setTotalRevenue(
-          statsData.reduce(
-            (sum, stat) => sum + (stat.totalSellingPrice || 0),
-            0
-          )
-        );
-        setTotalUsers(
-          statsData.reduce((sum, stat) => sum + (stat.totalOrders || 0), 0)
-        );
-
-        setDailyStats(statsData);
+        setDailyStats(orderStatsResponse || []);
       } catch (err: any) {
         setError(err.response?.data?.message || "Lỗi khi lấy dữ liệu thống kê");
         setDailyStats([]);
@@ -111,8 +105,8 @@ export default function DashboardPage() {
     fetchData();
   }, [startDate, endDate]);
 
-  // Dữ liệu cho biểu đồ (giữ nguyên như trước)
-  const chartData = {
+  // Dữ liệu cho biểu đồ tài chính
+  const financialChartData = {
     labels: dailyStats.map((stat) => stat.date),
     datasets: [
       {
@@ -122,7 +116,6 @@ export default function DashboardPage() {
         backgroundColor: "rgba(255, 99, 132, 0.2)",
         tension: 0.1,
         borderWidth: 2,
-        hidden: !selectedDatasets.includes("purchaseAmount"),
       },
       {
         label: "Tiền bán hàng",
@@ -131,7 +124,6 @@ export default function DashboardPage() {
         backgroundColor: "rgba(54, 162, 235, 0.2)",
         tension: 0.1,
         borderWidth: 2,
-        hidden: !selectedDatasets.includes("sellingPrice"),
       },
       {
         label: "Lợi nhuận",
@@ -140,55 +132,63 @@ export default function DashboardPage() {
         backgroundColor: "rgba(255, 206, 86, 0.2)",
         tension: 0.1,
         borderWidth: 2,
-        hidden: !selectedDatasets.includes("profit"),
       },
+    ],
+  };
+
+  // Dữ liệu cho biểu đồ đơn hàng
+  const orderChartData = {
+    labels: dailyStats.map((stat) => stat.date),
+    datasets: [
       {
-        label: "Số đơn hàng",
+        label: "Tổng đơn hàng",
         data: dailyStats.map((stat) => stat.totalOrders || 0),
         borderColor: "rgba(75, 192, 192, 1)",
         backgroundColor: "rgba(75, 192, 192, 0.2)",
         tension: 0.1,
         borderWidth: 2,
-        hidden: !selectedDatasets.includes("orders"),
       },
       {
-        label: "Số sản phẩm bán",
-        data: dailyStats.map((stat) => stat.totalProductsSold || 0),
+        label: "Đơn đã giao",
+        data: dailyStats.map((stat) => stat.totalDelivered || 0),
         borderColor: "rgba(153, 102, 255, 1)",
         backgroundColor: "rgba(153, 102, 255, 0.2)",
         tension: 0.1,
         borderWidth: 2,
-        hidden: !selectedDatasets.includes("productsSold"),
+      },
+      {
+        label: "Đơn đang xử lý",
+        data: dailyStats.map((stat) => stat.totalProcessing || 0),
+        borderColor: "rgba(255, 159, 64, 1)",
+        backgroundColor: "rgba(255, 159, 64, 0.2)",
+        tension: 0.1,
+        borderWidth: 2,
+      },
+      {
+        label: "Đơn đã hủy",
+        data: dailyStats.map((stat) => stat.totalCancelled || 0),
+        borderColor: "rgba(255, 99, 132, 1)",
+        backgroundColor: "rgba(255, 99, 132, 0.2)",
+        tension: 0.1,
+        borderWidth: 2,
+      },
+      {
+        label: "Sản phẩm đã bán",
+        data: dailyStats.map((stat) => stat.totalProductsSold || 0),
+        borderColor: "rgba(54, 162, 235, 1)",
+        backgroundColor: "rgba(54, 162, 235, 0.2)",
+        tension: 0.1,
+        borderWidth: 2,
       },
     ],
   };
 
-  // Options cho biểu đồ (giữ nguyên)
-  const chartOptions = {
+  // Options chung cho cả 2 biểu đồ
+  const commonChartOptions = {
     responsive: true,
     plugins: {
       legend: {
         position: "top" as const,
-        onClick: (e: any, legendItem: any, legend: any) => {
-          const index = legendItem.datasetIndex;
-          const ci = legend.chart;
-          const meta = ci.getDatasetMeta(index);
-
-          meta.hidden = !meta.hidden;
-
-          const datasetLabel = ci.data.datasets[index].label
-            .toLowerCase()
-            .replace(/\s/g, "");
-          if (meta.hidden) {
-            setSelectedDatasets((prev) =>
-              prev.filter((item) => item !== datasetLabel)
-            );
-          } else {
-            setSelectedDatasets((prev) => [...prev, datasetLabel]);
-          }
-
-          ci.update();
-        },
         labels: {
           usePointStyle: true,
           pointStyle: "circle",
@@ -197,9 +197,6 @@ export default function DashboardPage() {
       },
       title: {
         display: true,
-        text: `Thống kê từ ${new Date(startDate).toLocaleDateString(
-          "vi-VN"
-        )} đến ${new Date(endDate).toLocaleDateString("vi-VN")}`,
         font: {
           size: 16,
         },
@@ -230,12 +227,8 @@ export default function DashboardPage() {
         beginAtZero: true,
         ticks: {
           callback: (value: any) => {
-            if (
-              selectedDatasets.some((ds) =>
-                ["purchaseAmount", "sellingPrice", "profit"].includes(ds)
-              )
-            ) {
-              return formatCurrency(value);
+            if (typeof value === "number" && value >= 1000) {
+              return value.toLocaleString();
             }
             return value;
           },
@@ -251,6 +244,43 @@ export default function DashboardPage() {
       },
     },
     maintainAspectRatio: false,
+  };
+
+  // Options riêng cho biểu đồ tài chính
+  const financialChartOptions = {
+    ...commonChartOptions,
+    plugins: {
+      ...commonChartOptions.plugins,
+      title: {
+        ...commonChartOptions.plugins.title,
+        text: `Thống kê tài chính từ ${new Date(startDate).toLocaleDateString(
+          "vi-VN"
+        )} đến ${new Date(endDate).toLocaleDateString("vi-VN")}`,
+      },
+    },
+    scales: {
+      ...commonChartOptions.scales,
+      y: {
+        ...commonChartOptions.scales.y,
+        ticks: {
+          callback: (value: any) => formatCurrency(value),
+        },
+      },
+    },
+  };
+
+  // Options riêng cho biểu đồ đơn hàng
+  const orderChartOptions = {
+    ...commonChartOptions,
+    plugins: {
+      ...commonChartOptions.plugins,
+      title: {
+        ...commonChartOptions.plugins.title,
+        text: `Thống kê đơn hàng từ ${new Date(startDate).toLocaleDateString(
+          "vi-VN"
+        )} đến ${new Date(endDate).toLocaleDateString("vi-VN")}`,
+      },
+    },
   };
 
   // Hàm xử lý thay đổi khoảng thời gian
@@ -278,12 +308,10 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">
-              Tổng sản phẩm đã bán
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Tổng sản phẩm</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">{totalProducts}</p>
+            <p className="text-3xl font-bold">{storeSummary.totalProducts}</p>
           </CardContent>
         </Card>
         <Card>
@@ -291,15 +319,19 @@ export default function DashboardPage() {
             <CardTitle className="text-sm font-medium">Doanh thu</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">{formatCurrency(totalRevenue)}</p>
+            <p className="text-3xl font-bold">
+              {formatCurrency(storeSummary.totalSellingPrice)}
+            </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Tổng đơn hàng</CardTitle>
+            <CardTitle className="text-sm font-medium">Lợi nhuận</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold">{totalUsers}</p>
+            <p className="text-3xl font-bold">
+              {formatCurrency(storeSummary.totalProfit)}
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -338,47 +370,26 @@ export default function DashboardPage() {
         </CardHeader>
       </Card>
 
-      {/* Biểu đồ */}
+      {/* Biểu đồ tài chính */}
       <Card className="mb-6">
         <CardHeader>
-          <CardTitle>Biểu đồ thống kê</CardTitle>
+          <CardTitle>Thống kê tài chính</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="h-[400px]">
-            <Line data={chartData} options={chartOptions} />
+            <Line data={financialChartData} options={financialChartOptions} />
           </div>
+        </CardContent>
+      </Card>
 
-          {/* Checkbox để chọn dataset hiển thị */}
-          <div className="flex flex-wrap gap-4 mt-4">
-            {chartData.datasets.map((dataset) => (
-              <div key={dataset.label} className="flex items-center">
-                <input
-                  type="checkbox"
-                  id={`toggle-${dataset.label}`}
-                  checked={selectedDatasets.includes(
-                    dataset.label.toLowerCase().replace(/\s/g, "")
-                  )}
-                  onChange={() => {
-                    const datasetLabel = dataset.label
-                      .toLowerCase()
-                      .replace(/\s/g, "");
-                    setSelectedDatasets((prev) =>
-                      prev.includes(datasetLabel)
-                        ? prev.filter((item) => item !== datasetLabel)
-                        : [...prev, datasetLabel]
-                    );
-                  }}
-                  className="mr-2 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                />
-                <label
-                  htmlFor={`toggle-${dataset.label}`}
-                  className="text-sm font-medium text-gray-700"
-                  style={{ color: dataset.borderColor }}
-                >
-                  {dataset.label}
-                </label>
-              </div>
-            ))}
+      {/* Biểu đồ đơn hàng */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Thống kê đơn hàng</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[400px]">
+            <Line data={orderChartData} options={orderChartOptions} />
           </div>
         </CardContent>
       </Card>
