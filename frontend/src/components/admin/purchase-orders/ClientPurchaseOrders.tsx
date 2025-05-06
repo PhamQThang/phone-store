@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Eye, Plus, Trash, Edit, Search, X } from "lucide-react";
+import { Eye, Plus, Edit, Search, X } from "lucide-react";
 import { PurchaseOrder } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -40,7 +40,6 @@ export default function ClientPurchaseOrders({
   role,
   addPurchaseOrderAction,
   editPurchaseOrderAction,
-  deletePurchaseOrderAction,
   getPurchaseOrderDetailAction,
 }: ClientPurchaseOrdersProps) {
   const [isAddOpen, setIsAddOpen] = useState(false);
@@ -50,7 +49,6 @@ export default function ClientPurchaseOrders({
     useState<PurchaseOrder | null>(null);
   const [isAdding, setIsAdding] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
   const [isViewing, setIsViewing] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
@@ -139,30 +137,6 @@ export default function ClientPurchaseOrders({
     }
   };
 
-  const handleDeletePurchaseOrder = async (id: string) => {
-    if (confirm("Bạn có chắc chắn muốn xóa đơn nhập hàng này?")) {
-      setIsDeleting(true);
-      try {
-        const result = await deletePurchaseOrderAction(id);
-        if (result.success) {
-          toast.success(result.message);
-        } else {
-          toast.error("Xóa đơn nhập hàng thất bại", {
-            description: result.error || "Vui lòng thử lại sau.",
-            duration: 2000,
-          });
-        }
-      } catch (error: any) {
-        toast.error("Xóa đơn nhập hàng thất bại", {
-          description: error.message || "Vui lòng thử lại sau.",
-          duration: 2000,
-        });
-      } finally {
-        setIsDeleting(false);
-      }
-    }
-  };
-
   const handleUpdateStatus = async (id: string, status: string) => {
     setIsEditing(true);
     try {
@@ -245,7 +219,7 @@ export default function ClientPurchaseOrders({
     }
   };
 
-  const isLoading = isAdding || isEditing || isDeleting || isViewing;
+  const isLoading = isAdding || isEditing || isViewing;
 
   return (
     <div className="relative">

@@ -8,10 +8,11 @@ interface OrderDetailStat {
   importPrice: number;
   sellingPrice: number;
   profit: number;
+  imei: string;
 }
 
 // Interface cho thống kê hàng ngày
-interface DailyStat {
+export interface DailyStat {
   date: string;
   totalPurchaseAmount: number;
   totalSellingPrice: number;
@@ -21,6 +22,10 @@ interface DailyStat {
   totalDelivered: number;
   totalCancelled: number;
   totalProductsSold: number;
+  totalReturnAmount: number;
+  totalReturnTickets: number;
+  totalProcessedReturnTickets: number;
+  totalPendingReturnTickets: number;
   orders: OrderDetailStat[];
 }
 
@@ -32,7 +37,12 @@ export type OrderStatsResponse = {
 
 // Interface cho phần summary trong thống kê lợi nhuận hàng ngày
 interface DailyProfitSummary {
+  totalPurchaseAmount: number;
+  totalSellingPrice: number;
   totalProfit: number;
+  totalRevenue: number;
+  totalReturnAmount: number;
+  netRevenue: number;
 }
 
 // Interface cho phản hồi từ API thống kê lợi nhuận hàng ngày
@@ -41,12 +51,24 @@ export type DailyProfitStatsResponse = {
   data: {
     summary: DailyProfitSummary;
     details: OrderDetailStat[];
+    returnTickets: {
+      id: string;
+      productIdentityId: string;
+      imei: string;
+      originalPrice: number | null;
+      discountedPrice: number | null;
+      status: string;
+      startDate: Date;
+      endDate: Date;
+      note: string | null;
+      createdAt: Date;
+    }[];
   };
 };
 
 // Interface cho thống kê tổng quan của cửa hàng
 export interface StoreSummaryStats {
-  totalProducts: number;
+  totalProducts: number; // Thêm tổng số sản phẩm (giả định từ totalProductsSold + tồn kho)
   totalProductsSold: number;
   totalPurchaseAmount: number;
   totalSellingPrice: number;
@@ -62,7 +84,7 @@ export const getOrderStats = async (
   const response = await axiosInstance.get("/statistics/order-stats", {
     params: { startDate, endDate },
   });
-  return response.data;
+  return response;
 };
 
 // Lấy thống kê lợi nhuận trong ngày
@@ -72,7 +94,7 @@ export const getDailyProfitStats = async (
   const response = await axiosInstance.get("/statistics/profit-daily", {
     params: { date },
   });
-  return response.data;
+  return response;
 };
 
 // Lấy thống kê tổng quan của cửa hàng

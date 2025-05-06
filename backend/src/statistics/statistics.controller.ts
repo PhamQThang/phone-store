@@ -59,7 +59,15 @@ export class StatisticsController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
   @ApiOperation({ summary: 'Thống kê lợi nhuận trong ngày' })
+  @ApiQuery({
+    name: 'date',
+    required: false,
+    type: String,
+    description:
+      'Ngày cần thống kê (YYYY-MM-DD). Mặc định là ngày hiện tại nếu không truyền.',
+  })
   @ApiResponse({ status: 200, description: 'Thống kê thành công' })
+  @ApiResponse({ status: 400, description: 'Ngày không hợp lệ' })
   @ApiResponse({ status: 401, description: 'Không được phép' })
   @ApiResponse({
     status: 403,

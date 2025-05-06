@@ -42,6 +42,9 @@ import {
   getReturnTickets,
 } from "@/api/returnsApi";
 
+// Biến quản lý số ngày cho phép đổi trả
+const RETURN_WINDOW_DAYS = 1; // Chỉ cho phép đổi trả trong ngày giao hàng (ngày 0)
+
 const OrderDetailsPage = ({
   params,
 }: {
@@ -123,7 +126,6 @@ const OrderDetailsPage = ({
       router.push("/auth/login");
       return;
     }
-
     fetchData();
   }, [user, orderId, router, fetchData]);
 
@@ -131,7 +133,6 @@ const OrderDetailsPage = ({
     const handleFocus = () => {
       fetchData();
     };
-
     window.addEventListener("focus", handleFocus);
     return () => {
       window.removeEventListener("focus", handleFocus);
@@ -157,7 +158,6 @@ const OrderDetailsPage = ({
       });
       return;
     }
-
     try {
       const response = await updateOrderStatus(orderId, { status: "Canceled" });
       setOrder(response);
@@ -207,13 +207,29 @@ const OrderDetailsPage = ({
     status: string
   ): boolean => {
     if (!orderUpdatedAt || status !== "Delivered") return false;
+
     const deliveredDate = new Date(orderUpdatedAt);
     const currentDate = new Date();
+
+    // Chuẩn hóa múi giờ về Asia/Ho_Chi_Minh
+    deliveredDate.setHours(0, 0, 0, 0);
+    currentDate.setHours(0, 0, 0, 0);
+
     const daysSinceDelivered = Math.floor(
       (currentDate.getTime() - deliveredDate.getTime()) / (1000 * 60 * 60 * 24)
     );
-    const returnWindowDays = 1;
-    return daysSinceDelivered <= returnWindowDays;
+
+    console.log(
+      "deliveredDate:",
+      deliveredDate.toLocaleString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" })
+    );
+    console.log(
+      "currentDate:",
+      currentDate.toLocaleString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" })
+    );
+    console.log("daysSinceDelivered:", daysSinceDelivered);
+
+    return daysSinceDelivered < RETURN_WINDOW_DAYS; // Thay đổi từ <= thành <
   };
 
   const canRequestWarranty = (
@@ -221,13 +237,19 @@ const OrderDetailsPage = ({
     status: string
   ): boolean => {
     if (!orderUpdatedAt || status !== "Delivered") return false;
+
     const deliveredDate = new Date(orderUpdatedAt);
     const currentDate = new Date();
+
+    // Chuẩn hóa múi giờ về Asia/Ho_Chi_Minh
+    deliveredDate.setHours(0, 0, 0, 0);
+    currentDate.setHours(0, 0, 0, 0);
+
     const daysSinceDelivered = Math.floor(
       (currentDate.getTime() - deliveredDate.getTime()) / (1000 * 60 * 60 * 24)
     );
-    const returnWindowDays = 1;
-    return daysSinceDelivered > returnWindowDays;
+
+    return daysSinceDelivered >= RETURN_WINDOW_DAYS; // Thay đổi từ > thành >=
   };
 
   const handleOpenWarrantyModal = (productIdentityId: string) => {
@@ -805,11 +827,6 @@ const OrderDetailsPage = ({
                                     ) : hasWarrantyRequest ? (
                                       <span className="text-yellow-600 font-medium">
                                         Đang xử lý bảo hành
-                                      </span>
-                                    ) : !isReturnable &&
-                                      !isWarrantyRequestable ? (
-                                      <span className="text-gray-600 font-medium">
-                                        Trong thời gian đổi trả
                                       </span>
                                     ) : !withinWarranty ? (
                                       <span className="text-gray-600 font-medium">

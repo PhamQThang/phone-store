@@ -79,8 +79,8 @@ export function PurchaseOrderForm({
   const form = useForm<z.infer<typeof purchaseOrderSchema>>({
     resolver: zodResolver(purchaseOrderSchema),
     defaultValues: {
-      supplierId: initialData?.supplierId || "",
-      note: initialData?.note || "",
+      supplierId: "",
+      note: "",
       details: [],
     },
   });
@@ -122,33 +122,37 @@ export function PurchaseOrderForm({
     };
   }, []);
 
+  // Reset form and state when dialog opens or initialData changes
   useEffect(() => {
-    if (initialData) {
-      const validDetails = (initialData.purchaseOrderDetails || []).map(
-        (detail) => ({
-          id: detail.id,
-          productId: detail.productId,
-          colorId: detail.colorId,
-          imei: detail.imei || "",
-          importPrice: detail.importPrice,
-        })
-      );
-      form.reset({
-        supplierId: initialData.supplierId,
-        note: initialData.note || "",
-        details: validDetails,
-      });
-      replace(validDetails);
-      setDetailsToDelete([]);
-    } else {
-      form.reset({
-        supplierId: "",
-        note: "",
-        details: [],
-      });
-      setDetailsToDelete([]);
+    if (open) {
+      if (initialData) {
+        const validDetails = (initialData.purchaseOrderDetails || []).map(
+          (detail) => ({
+            id: detail.id,
+            productId: detail.productId,
+            colorId: detail.colorId,
+            imei: detail.imei || "",
+            importPrice: detail.importPrice,
+          })
+        );
+        form.reset({
+          supplierId: initialData.supplierId,
+          note: initialData.note || "",
+          details: validDetails,
+        });
+        replace(validDetails);
+        setDetailsToDelete([]);
+      } else {
+        form.reset({
+          supplierId: "",
+          note: "",
+          details: [],
+        });
+        replace([]); // Ensure details array is cleared
+        setDetailsToDelete([]);
+      }
     }
-  }, [initialData, form, replace]);
+  }, [open, initialData, form, replace]);
 
   const handleDeleteDetail = (index: number) => {
     if (!confirm("Bạn có chắc chắn muốn xóa chi tiết này?")) return;
@@ -187,9 +191,23 @@ export function PurchaseOrderForm({
     }
   };
 
+  // Handle dialog close to ensure state is reset
+  const handleDialogClose = (open: boolean) => {
+    onOpenChange(open);
+    if (!open) {
+      form.reset({
+        supplierId: "",
+        note: "",
+        details: [],
+      });
+      replace([]); // Clear the details array
+      setDetailsToDelete([]);
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-full max-w-2xl p-4 sm:p-6 max-h-[80vh] overflow-y-auto">
+    <Dialog open={open} onOpenChange={handleDialogClose}>
+      <DialogContent className="w-full !max-w-4xl p-4 sm:p-6 max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-lg sm:text-xl">
             {initialData ? "Cập nhật đơn nhập hàng" : "Thêm đơn nhập hàng"}
@@ -267,7 +285,7 @@ export function PurchaseOrderForm({
                   fields.map((field, index) => (
                     <div
                       key={field.id}
-                      className="border p-4 rounded-md space-y-2"
+                      className="border p-4 rounded-md flex gap-4 items-end justify-center"
                     >
                       <FormField
                         control={form.control}
@@ -422,10 +440,7 @@ export function PurchaseOrderForm({
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => {
-                    onOpenChange(false);
-                    setDetailsToDelete([]);
-                  }}
+                  onClick={() => handleDialogClose(false)}
                   className="w-full sm:w-auto"
                   disabled={isLoading}
                 >

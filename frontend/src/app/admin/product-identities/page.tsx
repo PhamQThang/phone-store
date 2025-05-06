@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ProductIdentity } from "@/api/admin/productIdentitiesApi";
 import { getProductIdentities } from "@/api/admin/productIdentitiesApi";
 import { getAuthData, clearAuthData } from "@/lib/authUtils";
 import { Loader2 } from "lucide-react";
@@ -24,9 +23,12 @@ import {
 
 export default function ProductIdentitiesPage() {
   const router = useRouter();
-  const [productIdentities, setProductIdentities] = useState<ProductIdentity[]>(
-    []
-  );
+  const [productIdentities, setProductIdentities] = useState<any[]>([]);
+  const [summary, setSummary] = useState({
+    totalProducts: 0,
+    soldProducts: 0,
+    unsoldProducts: 0,
+  });
   const [role, setRole] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
@@ -58,9 +60,16 @@ export default function ProductIdentitiesPage() {
 
       startTransition(async () => {
         try {
-          const data = await getProductIdentities(soldFilter);
+          const response = await getProductIdentities(); // Fetch all data
           if (isMounted) {
-            setProductIdentities(data);
+            setProductIdentities(response.data || []);
+            setSummary(
+              response.summary || {
+                totalProducts: 0,
+                soldProducts: 0,
+                unsoldProducts: 0,
+              }
+            );
           }
         } catch (error) {
           console.error("Lỗi khi lấy danh sách product identity:", error);
@@ -75,7 +84,13 @@ export default function ProductIdentitiesPage() {
         isMounted = false;
       };
     }
-  }, [router, soldFilter]);
+  }, [router]);
+
+  // Lọc dữ liệu trên frontend
+  const filteredProductIdentities = productIdentities.filter((pi) => {
+    if (soldFilter === undefined) return true; // Show all if no filter
+    return pi.isSold === (soldFilter === "true");
+  });
 
   if (isLoading) {
     return (
@@ -88,7 +103,7 @@ export default function ProductIdentitiesPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Danh sách Product Identity</h1>
+        <h1 className="text-2xl font-bold">Thống kê số lượng sản phẩm</h1>
         <Select
           value={soldFilter ?? "all"}
           onValueChange={(value) =>
@@ -106,10 +121,28 @@ export default function ProductIdentitiesPage() {
         </Select>
       </div>
 
+      <div className="mb-6 bg-gray-100 py-4 rounded-md">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="p-2 bg-white rounded shadow">
+            <p className="text-sm text-gray-600">Tổng sản phẩm</p>
+            <p className="text-xl font-bold">{summary.totalProducts}</p>
+          </div>
+          <div className="p-2 bg-white rounded shadow">
+            <p className="text-sm text-gray-600">Sản phẩm đã bán</p>
+            <p className="text-xl font-bold">{summary.soldProducts}</p>
+          </div>
+          <div className="p-2 bg-white rounded shadow">
+            <p className="text-sm text-gray-600">Sản phẩm chưa bán</p>
+            <p className="text-xl font-bold">{summary.unsoldProducts}</p>
+          </div>
+        </div>
+      </div>
+
       <div className="border rounded-md">
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead>STT</TableHead>
               <TableHead>IMEI</TableHead>
               <TableHead>Tên sản phẩm</TableHead>
               <TableHead>Thương hiệu</TableHead>
@@ -117,35 +150,36 @@ export default function ProductIdentitiesPage() {
               <TableHead>Màu sắc</TableHead>
               <TableHead>Trạng thái bán</TableHead>
               <TableHead>Giá nhập</TableHead>
-              <TableHead>Trạng thái BH</TableHead>
               <TableHead>Ngày bắt đầu BH</TableHead>
               <TableHead>Ngày kết thúc BH</TableHead>
               <TableHead>Đơn hàng</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {productIdentities.length === 0 ? (
+            {filteredProductIdentities.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={14} className="text-center">
+                <TableCell colSpan={11} className="text-center">
                   Không có dữ liệu
                 </TableCell>
               </TableRow>
             ) : (
-              productIdentities.map((pi) => (
-                <TableRow key={pi.id}>
-                  <TableCell>{pi.imei}</TableCell>
-                  <TableCell>{pi.productName}</TableCell>
-                  <TableCell>{pi.brand}</TableCell>
-                  <TableCell>{pi.model}</TableCell>
-                  <TableCell>{pi.colorName}</TableCell>
-                  <TableCell>{pi.isSold ? "Đã bán" : "Chưa bán"}</TableCell>
-                  <TableCell>{formatCurrency(pi.importPrice)}</TableCell>
-                  <TableCell>{pi.warrantyStatus ?? "Chưa cập nhật"}</TableCell>
-                  <TableCell>{formatDate(pi.warrantyStartDate)}</TableCell>
-                  <TableCell>{formatDate(pi.warrantyEndDate)}</TableCell>
-                  <TableCell>{pi.orderId ?? "Chưa có"}</TableCell>
-                </TableRow>
-              ))
+              <>
+                {filteredProductIdentities.map((pi, index) => (
+                  <TableRow key={pi.id}>
+                    <TableCell>{index + 1}</TableCell>
+                    <TableCell>{pi.imei}</TableCell>
+                    <TableCell>{pi.productName}</TableCell>
+                    <TableCell>{pi.brand}</TableCell>
+                    <TableCell>{pi.model}</TableCell>
+                    <TableCell>{pi.colorName}</TableCell>
+                    <TableCell>{pi.isSold ? "Đã bán" : "Chưa bán"}</TableCell>
+                    <TableCell>{formatCurrency(pi.importPrice)}</TableCell>
+                    <TableCell>{formatDate(pi.warrantyStartDate)}</TableCell>
+                    <TableCell>{formatDate(pi.warrantyEndDate)}</TableCell>
+                    <TableCell>{pi.orderId ?? "Chưa có"}</TableCell>
+                  </TableRow>
+                ))}
+              </>
             )}
           </TableBody>
         </Table>

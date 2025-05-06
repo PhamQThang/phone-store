@@ -15,8 +15,14 @@ import Link from "next/link";
 // Menu items
 const items = [
   {
-    title: "Dashboard",
+    title: "Thống kê doanh thu",
     url: "/admin/dashboard",
+    icon: Package,
+    allowedRoles: ["Admin", "Employee"],
+  },
+  {
+    title: "Thống kê số lượng sản phẩm",
+    url: "/admin/product-identities",
     icon: Package,
     allowedRoles: ["Admin", "Employee"],
   },
@@ -45,18 +51,12 @@ const items = [
     allowedRoles: ["Admin", "Employee"],
   },
   {
-    title: "Quản lý sản phẩm",
+    title: "Quản lý thông tin sản phẩm",
     url: "/admin/products",
     icon: Package,
     allowedRoles: ["Admin", "Employee"],
   },
 
-  {
-    title: "Quản lý IMEI",
-    url: "/admin/product-identities",
-    icon: Package,
-    allowedRoles: ["Admin", "Employee"],
-  },
   {
     title: "Quản lý đơn nhập hàng",
     url: "/admin/purchase-orders",

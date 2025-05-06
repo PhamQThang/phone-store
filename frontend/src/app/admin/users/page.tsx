@@ -104,7 +104,7 @@ export default function UsersPage() {
         isActive: true,
         deletedAt: null,
       };
-      setUsers((prev) => [...prev, newUser]);
+      setUsers((prev) => [newUser, ...prev]);
       return {
         success: true,
         message: "Tạo người dùng thành công",

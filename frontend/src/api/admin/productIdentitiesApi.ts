@@ -43,15 +43,5 @@ export const getProductIdentities = async (
       params: { sold },
     }
   );
-  return response.data;
-};
-
-// Lấy chi tiết một ProductIdentity theo ID
-export const getProductIdentityById = async (
-  id: string
-): Promise<ProductIdentity> => {
-  const response = await axiosInstance.get<ProductIdentityResponse>(
-    `/product-identities/${id}`
-  );
-  return response.data;
+  return response;
 };

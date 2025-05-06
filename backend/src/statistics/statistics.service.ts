@@ -8,6 +8,20 @@ export interface OrderDetailStat {
   importPrice: number;
   sellingPrice: number;
   profit: number;
+  imei: string;
+}
+
+export interface ReturnTicketStat {
+  id: string;
+  productIdentityId: string;
+  imei: string;
+  originalPrice: number | null;
+  discountedPrice: number | null;
+  status: string;
+  startDate: Date;
+  endDate: Date;
+  note: string | null;
+  createdAt: Date;
 }
 
 export interface DailyStat {
@@ -20,14 +34,19 @@ export interface DailyStat {
   totalDelivered: number;
   totalCancelled: number;
   totalProductsSold: number;
+  totalReturnAmount: number;
+  totalReturnTickets: number;
+  totalProcessedReturnTickets: number;
+  totalPendingReturnTickets: number;
   orders: OrderDetailStat[];
 }
 
 export interface StoreSummaryStats {
-  totalProducts: number;
+  totalCustomers: number;
   totalProductsSold: number;
   totalPurchaseAmount: number;
   totalSellingPrice: number;
+  totalReturnAmount: number;
   totalProfit: number;
   totalOrders: number;
 }
@@ -37,7 +56,6 @@ export class StatisticsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async getOrderStats(startDate: string, endDate: string) {
-    // Kiểm tra và định dạng ngày
     const start = new Date(startDate);
     const end = new Date(endDate);
     if (isNaN(start.getTime()) || isNaN(end.getTime())) {
@@ -51,47 +69,11 @@ export class StatisticsService {
       );
     }
 
-    // Đặt thời gian cho start và end
     start.setHours(0, 0, 0, 0);
     end.setHours(23, 59, 59, 999);
 
-    // Tính số ngày trong khoảng thời gian (bao gồm cả ngày bắt đầu và kết thúc)
     const diffTime = end.getTime() - start.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-
-    // Lấy tất cả đơn nhập hàng và đơn hàng
-    const purchaseOrders = await this.prisma.purchaseOrder.findMany({
-      where: {
-        createdAt: {
-          gte: start,
-          lte: end,
-        },
-        status: 'Done',
-      },
-      select: {
-        createdAt: true,
-        totalCost: true,
-      },
-    });
-
-    const allOrders = await this.prisma.order.findMany({
-      where: {
-        createdAt: {
-          gte: start,
-          lte: end,
-        },
-      },
-      select: {
-        id: true,
-        status: true,
-        createdAt: true,
-        orderDetails: {
-          where: {
-            returnStatus: false,
-          },
-        },
-      },
-    });
 
     const deliveredOrders = await this.prisma.order.findMany({
       where: {
@@ -103,9 +85,6 @@ export class StatisticsService {
       },
       include: {
         orderDetails: {
-          where: {
-            returnStatus: false,
-          },
           include: {
             product: true,
             productIdentity: {
@@ -118,7 +97,40 @@ export class StatisticsService {
       },
     });
 
-    // Tạo mảng thống kê cho từng ngày
+    const returnTickets = await this.prisma.returnTicket.findMany({
+      where: {
+        createdAt: {
+          gte: start,
+          lte: end,
+        },
+        status: 'Returned',
+        productIdentity: {
+          orderDetail: {
+            some: {
+              order: {
+                createdAt: {
+                  gte: start,
+                  lte: end,
+                },
+              },
+            },
+          },
+        },
+      },
+      include: {
+        productIdentity: {
+          include: {
+            purchaseOrderDetail: true,
+            orderDetail: {
+              include: {
+                order: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
     const dailyStats: DailyStat[] = [];
     for (let i = 0; i < diffDays; i++) {
       const currentDate = new Date(start);
@@ -134,27 +146,72 @@ export class StatisticsService {
         totalDelivered: 0,
         totalCancelled: 0,
         totalProductsSold: 0,
+        totalReturnAmount: 0,
+        totalReturnTickets: 0,
+        totalProcessedReturnTickets: 0,
+        totalPendingReturnTickets: 0,
         orders: [],
       });
     }
 
-    // Hàm để lấy ngày (bỏ qua giờ) trong cùng timezone
     const getNormalizedDate = (date: Date): Date => {
       const normalized = new Date(date);
-      normalized.setHours(0, 0, 0, 0); // Đặt về đầu ngày
+      normalized.setHours(0, 0, 0, 0);
       return normalized;
     };
 
-    // Tính tổng số tiền nhập hàng hàng ngày
-    purchaseOrders.forEach(order => {
-      const orderDate = getNormalizedDate(order.createdAt);
-      const dayIndex = Math.floor(
-        (orderDate.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
-      );
-      dailyStats[dayIndex].totalPurchaseAmount += order.totalCost || 0;
+    const productIdentitiesSold = await this.prisma.productIdentity.findMany({
+      where: {
+        orderDetail: {
+          some: {
+            order: {
+              status: 'Delivered',
+              createdAt: {
+                gte: start,
+                lte: end,
+              },
+            },
+          },
+        },
+      },
+      include: {
+        purchaseOrderDetail: true,
+        orderDetail: {
+          include: {
+            order: true,
+          },
+        },
+      },
     });
 
-    // Tính số đơn hàng và số sản phẩm bán hàng ngày
+    const totalPurchaseAmountMap = new Map<string, number>();
+    productIdentitiesSold.forEach(pi => {
+      const orderDate = pi.orderDetail[0]?.order?.createdAt
+        ? getNormalizedDate(pi.orderDetail[0].order.createdAt)
+        : start;
+      const dateStr = orderDate.toISOString().split('T')[0];
+      const importPrice = pi.purchaseOrderDetail?.importPrice || 0;
+      totalPurchaseAmountMap.set(
+        dateStr,
+        (totalPurchaseAmountMap.get(dateStr) || 0) + importPrice
+      );
+    });
+
+    const allOrders = await this.prisma.order.findMany({
+      where: {
+        createdAt: {
+          gte: start,
+          lte: end,
+        },
+      },
+      select: {
+        id: true,
+        status: true,
+        createdAt: true,
+        orderDetails: true,
+      },
+    });
+
     allOrders.forEach(order => {
       const orderDate = getNormalizedDate(order.createdAt);
       const dayIndex = Math.floor(
@@ -164,43 +221,99 @@ export class StatisticsService {
 
       if (order.status === 'Delivered') {
         dailyStats[dayIndex].totalDelivered += 1;
+        dailyStats[dayIndex].totalProductsSold += order.orderDetails.length;
       } else if (['Pending', 'Confirmed', 'Shipping'].includes(order.status)) {
         dailyStats[dayIndex].totalProcessing += 1;
       } else if (order.status === 'Canceled') {
         dailyStats[dayIndex].totalCancelled += 1;
       }
-
-      if (order.status === 'Delivered') {
-        dailyStats[dayIndex].totalProductsSold += order.orderDetails.length;
-      }
     });
 
-    // Tính giá bán, giá nhập, lợi nhuận từ các đơn Delivered
     deliveredOrders.forEach(order => {
       const orderDate = getNormalizedDate(order.createdAt);
       const dayIndex = Math.floor(
         (orderDate.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
       );
+      const dateStr = orderDate.toISOString().split('T')[0];
 
       order.orderDetails.forEach(detail => {
-        const sellingPrice =
-          detail.discountedPrice || detail.originalPrice || 0;
+        const originalPrice = detail.originalPrice || 0;
+        const discountedPrice = detail.discountedPrice || 0;
+        let sellingPrice =
+          originalPrice === discountedPrice ? originalPrice : discountedPrice;
+
         const importPrice =
           detail.productIdentity?.purchaseOrderDetail?.importPrice || 0;
-        const profit = sellingPrice - importPrice;
 
         dailyStats[dayIndex].totalSellingPrice += sellingPrice;
-        dailyStats[dayIndex].totalProfit += profit;
-
         dailyStats[dayIndex].orders.push({
           orderId: order.id,
           productId: detail.productId,
           productName: detail.product.name,
           importPrice,
           sellingPrice,
-          profit,
+          profit: sellingPrice - importPrice,
+          imei: detail.productIdentity?.imei || 'Không có IMEI',
         });
       });
+
+      dailyStats[dayIndex].totalPurchaseAmount =
+        totalPurchaseAmountMap.get(dateStr) || 0;
+    });
+
+    const profitFromReturnedItemsMap = new Map<string, number>();
+    returnTickets.forEach(ticket => {
+      const ticketDate = getNormalizedDate(ticket.createdAt);
+      const dayIndex = Math.floor(
+        (ticketDate.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
+      );
+      const dateStr = ticketDate.toISOString().split('T')[0];
+
+      dailyStats[dayIndex].totalReturnTickets += 1;
+      const returnAmount = ticket.discountedPrice || ticket.originalPrice || 0;
+      dailyStats[dayIndex].totalReturnAmount += returnAmount;
+
+      if (ticket.status === 'Returned') {
+        dailyStats[dayIndex].totalProcessedReturnTickets += 1;
+
+        const productIdentity = ticket.productIdentity;
+        if (
+          productIdentity &&
+          productIdentity.orderDetail &&
+          productIdentity.orderDetail.length > 0
+        ) {
+          const orderDetail = productIdentity.orderDetail[0];
+          const orderDate = getNormalizedDate(orderDetail.order.createdAt);
+          const orderDayIndex = Math.floor(
+            (orderDate.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)
+          );
+          const sellingPrice =
+            orderDetail.discountedPrice || orderDetail.originalPrice || 0;
+          const importPrice =
+            productIdentity.purchaseOrderDetail?.importPrice || 0;
+          const profit = sellingPrice - importPrice;
+
+          // Gán lợi nhuận âm vào ngày của đơn hàng ban đầu
+          profitFromReturnedItemsMap.set(
+            dailyStats[orderDayIndex].date,
+            (profitFromReturnedItemsMap.get(dailyStats[orderDayIndex].date) ||
+              0) + profit
+          );
+        }
+      } else if (ticket.status === 'Processing') {
+        dailyStats[dayIndex].totalPendingReturnTickets += 1;
+      }
+    });
+
+    dailyStats.forEach(stat => {
+      const totalProfitBeforeReturns =
+        stat.totalSellingPrice - stat.totalPurchaseAmount;
+      const profitFromReturnedItems =
+        profitFromReturnedItemsMap.get(stat.date) || 0;
+      stat.totalProfit =
+        totalProfitBeforeReturns >= 0
+          ? totalProfitBeforeReturns - profitFromReturnedItems
+          : 0; // Đảm bảo totalProfit không âm nếu không có doanh thu
     });
 
     return {
@@ -210,24 +323,26 @@ export class StatisticsService {
   }
 
   async getDailyProfitStats(date?: string) {
-    const today = date ? new Date(date) : new Date();
-    today.setHours(0, 0, 0, 0);
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
+    const targetDate = date ? new Date(date) : new Date();
+    if (isNaN(targetDate.getTime())) {
+      throw new BadRequestException(
+        'Ngày không hợp lệ. Vui lòng sử dụng định dạng YYYY-MM-DD.'
+      );
+    }
+    targetDate.setHours(0, 0, 0, 0);
+    const nextDay = new Date(targetDate);
+    nextDay.setDate(nextDay.getDate() + 1);
 
     const deliveredOrders = await this.prisma.order.findMany({
       where: {
         status: 'Delivered',
         createdAt: {
-          gte: today,
-          lt: tomorrow,
+          gte: targetDate,
+          lt: nextDay,
         },
       },
       include: {
         orderDetails: {
-          where: {
-            returnStatus: false,
-          },
           include: {
             product: true,
             productIdentity: {
@@ -240,16 +355,39 @@ export class StatisticsService {
       },
     });
 
-    let totalProfit = 0;
+    const returnTickets = await this.prisma.returnTicket.findMany({
+      where: {
+        createdAt: {
+          gte: targetDate,
+          lt: nextDay,
+        },
+        status: 'Returned',
+      },
+      include: {
+        productIdentity: {
+          include: {
+            purchaseOrderDetail: true,
+            orderDetail: {
+              include: {
+                order: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    let totalSellingPrice = 0;
     const detailedStats = deliveredOrders.flatMap(order =>
       order.orderDetails.map(detail => {
+        const originalPrice = detail.originalPrice || 0;
+        const discountedPrice = detail.discountedPrice || 0;
         const sellingPrice =
-          detail.discountedPrice || detail.originalPrice || 0;
+          originalPrice === discountedPrice ? originalPrice : discountedPrice;
+        totalSellingPrice += sellingPrice;
+
         const importPrice =
           detail.productIdentity?.purchaseOrderDetail?.importPrice || 0;
-        const profit = sellingPrice - importPrice;
-
-        totalProfit += profit;
 
         return {
           orderId: order.id,
@@ -257,57 +395,119 @@ export class StatisticsService {
           productName: detail.product.name,
           importPrice,
           sellingPrice,
-          profit,
+          profit: sellingPrice - importPrice,
+          imei: detail.productIdentity?.imei || 'Không có IMEI',
         };
       })
     );
 
+    const productIdentitiesSold = await this.prisma.productIdentity.findMany({
+      where: {
+        orderDetail: {
+          some: {
+            order: {
+              status: 'Delivered',
+              createdAt: {
+                gte: targetDate,
+                lt: nextDay,
+              },
+            },
+          },
+        },
+      },
+      include: {
+        purchaseOrderDetail: true,
+      },
+    });
+
+    const totalPurchaseAmount = productIdentitiesSold.reduce((sum, pi) => {
+      return sum + (pi.purchaseOrderDetail?.importPrice || 0);
+    }, 0);
+
+    const totalReturnAmount = returnTickets.reduce((sum, ticket) => {
+      return sum + (ticket.discountedPrice || ticket.originalPrice || 0);
+    }, 0);
+
+    const totalRevenue = totalSellingPrice;
+    const netRevenue = totalSellingPrice - totalReturnAmount;
+
+    // Tính tổng doanh thu - tổng nhập hàng (của tất cả sản phẩm)
+    const totalProfitBeforeReturns = totalSellingPrice - totalPurchaseAmount;
+
+    // Tính tổng doanh thu - tổng nhập hàng (của sản phẩm đã đổi trả)
+    let profitFromReturnedItems = 0;
+    returnTickets.forEach(ticket => {
+      const productIdentity = ticket.productIdentity;
+      if (
+        productIdentity &&
+        productIdentity.orderDetail &&
+        productIdentity.orderDetail.length > 0
+      ) {
+        const orderDetail = productIdentity.orderDetail[0];
+        const sellingPrice =
+          orderDetail.discountedPrice || orderDetail.originalPrice || 0;
+        const importPrice =
+          productIdentity.purchaseOrderDetail?.importPrice || 0;
+        profitFromReturnedItems += sellingPrice - importPrice;
+      }
+    });
+
+    // Lợi nhuận cuối cùng
+    const totalProfit = totalProfitBeforeReturns - profitFromReturnedItems;
+
+    const returnTicketDetails: ReturnTicketStat[] = returnTickets.map(
+      ticket => ({
+        id: ticket.id,
+        productIdentityId: ticket.productIdentityId,
+        imei: ticket.productIdentity?.imei || 'Không có IMEI',
+        originalPrice: ticket.originalPrice,
+        discountedPrice: ticket.discountedPrice,
+        status: ticket.status,
+        startDate: ticket.startDate,
+        endDate: ticket.endDate,
+        note: ticket.note,
+        createdAt: ticket.createdAt,
+      })
+    );
+
     return {
-      message: `Thống kê lợi nhuận trong ngày ${today.toLocaleDateString('vi-VN')} thành công`,
+      message: `Thống kê lợi nhuận trong ngày ${targetDate.toLocaleDateString('vi-VN')} thành công`,
       data: {
         summary: {
+          totalPurchaseAmount,
+          totalSellingPrice,
           totalProfit,
+          totalRevenue,
+          totalReturnAmount,
+          netRevenue,
         },
         details: detailedStats,
+        returnTickets: returnTicketDetails,
       },
     };
   }
 
   async getStoreSummaryStats(): Promise<StoreSummaryStats> {
-    // Tổng số lượng sản phẩm (tất cả ProductIdentity)
-    const totalProducts = await this.prisma.productIdentity.count();
+    const totalCustomers = await this.prisma.user.count({
+      where: {
+        role: {
+          name: 'Customer',
+        },
+      },
+    });
 
-    // Tổng số lượng sản phẩm đã bán (ProductIdentity với isSold = true)
     const totalProductsSold = await this.prisma.productIdentity.count({
       where: {
         isSold: true,
       },
     });
 
-    // Tổng số tiền đã nhập hàng (từ PurchaseOrder với status = 'Done')
-    const purchaseOrders = await this.prisma.purchaseOrder.findMany({
-      where: {
-        status: 'Done',
-      },
-      select: {
-        totalCost: true,
-      },
-    });
-    const totalPurchaseAmount = purchaseOrders.reduce(
-      (sum, order) => sum + (order.totalCost || 0),
-      0
-    );
-
-    // Tổng số tiền đã bán, tổng lợi nhuận (từ Order với status = 'Delivered')
     const deliveredOrders = await this.prisma.order.findMany({
       where: {
         status: 'Delivered',
       },
       include: {
         orderDetails: {
-          where: {
-            returnStatus: false,
-          },
           include: {
             productIdentity: {
               include: {
@@ -320,28 +520,86 @@ export class StatisticsService {
     });
 
     let totalSellingPrice = 0;
-    let totalProfit = 0;
     deliveredOrders.forEach(order => {
       order.orderDetails.forEach(detail => {
         const sellingPrice =
           detail.discountedPrice || detail.originalPrice || 0;
-        const importPrice =
-          detail.productIdentity?.purchaseOrderDetail?.importPrice || 0;
-        const profit = sellingPrice - importPrice;
-
         totalSellingPrice += sellingPrice;
-        totalProfit += profit;
       });
     });
 
-    // Tổng số đơn hàng
+    const productIdentitiesSold = await this.prisma.productIdentity.findMany({
+      where: {
+        orderDetail: {
+          some: {
+            order: {
+              status: 'Delivered',
+            },
+          },
+        },
+      },
+      include: {
+        purchaseOrderDetail: true,
+      },
+    });
+    const totalPurchaseAmount = productIdentitiesSold.reduce((sum, pi) => {
+      return sum + (pi.purchaseOrderDetail?.importPrice || 0);
+    }, 0);
+
+    const returnTickets = await this.prisma.returnTicket.findMany({
+      where: {
+        status: 'Returned',
+      },
+      include: {
+        productIdentity: {
+          include: {
+            purchaseOrderDetail: true,
+            orderDetail: {
+              include: {
+                order: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const totalReturnAmount = returnTickets.reduce((sum, ticket) => {
+      return sum + (ticket.discountedPrice || ticket.originalPrice || 0);
+    }, 0);
+
+    // Tính tổng doanh thu - tổng nhập hàng (của tất cả sản phẩm)
+    const totalProfitBeforeReturns = totalSellingPrice - totalPurchaseAmount;
+
+    // Tính tổng doanh thu - tổng nhập hàng (của sản phẩm đã đổi trả)
+    let profitFromReturnedItems = 0;
+    returnTickets.forEach(ticket => {
+      const productIdentity = ticket.productIdentity;
+      if (
+        productIdentity &&
+        productIdentity.orderDetail &&
+        productIdentity.orderDetail.length > 0
+      ) {
+        const orderDetail = productIdentity.orderDetail[0];
+        const sellingPrice =
+          orderDetail.discountedPrice || orderDetail.originalPrice || 0;
+        const importPrice =
+          productIdentity.purchaseOrderDetail?.importPrice || 0;
+        profitFromReturnedItems += sellingPrice - importPrice;
+      }
+    });
+
+    // Lợi nhuận cuối cùng
+    const totalProfit = totalProfitBeforeReturns - profitFromReturnedItems;
+
     const totalOrders = await this.prisma.order.count();
 
     return {
-      totalProducts,
+      totalCustomers,
       totalProductsSold,
       totalPurchaseAmount,
       totalSellingPrice,
+      totalReturnAmount,
       totalProfit,
       totalOrders,
     };

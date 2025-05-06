@@ -60,7 +60,7 @@ export default function BrandsPage() {
 
     try {
       const newBrand = await createBrand({ name });
-      setBrands((prev) => [...prev, newBrand]);
+      setBrands((prev) => [newBrand, ...prev]);
       return {
         success: true,
         message: "Thêm thương hiệu thành công",

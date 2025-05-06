@@ -39,7 +39,7 @@ export default function PromotionsPage() {
         try {
           const [promotionsData, productsData] = await Promise.all([
             getPromotions(),
-            getProducts(), // Giả định API này không cần token, giống brandsApi.ts
+            getProducts(),
           ]);
           if (isMounted) {
             setPromotions(promotionsData);

@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ProductIdentitiesService } from './product-identities.service';
 import {
   ApiTags,
@@ -26,17 +26,5 @@ export class ProductIdentitiesController {
   @ApiResponse({ status: 401, description: 'Không được phép' })
   async findAll(@Query('sold') sold?: string) {
     return this.productIdentitiesService.findAll(sold);
-  }
-
-  @Get(':id')
-  @ApiOperation({ summary: 'Lấy thông tin chi tiết của một product identity' })
-  @ApiResponse({
-    status: 200,
-    description: 'Lấy thông tin product identity thành công',
-  })
-  @ApiResponse({ status: 404, description: 'Product identity không tồn tại' })
-  @ApiResponse({ status: 401, description: 'Không được phép' })
-  async findOne(@Param('id') id: string) {
-    return this.productIdentitiesService.findOne(id);
   }
 }

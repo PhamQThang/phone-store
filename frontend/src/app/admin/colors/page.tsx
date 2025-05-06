@@ -60,7 +60,7 @@ export default function ColorsPage() {
 
     try {
       const newColor = await createColor({ name });
-      setColors((prev) => [...prev, newColor]);
+      setColors((prev) => [newColor, ...prev]);
       return {
         success: true,
         message: "Thêm màu sắc thành công",
