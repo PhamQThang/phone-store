@@ -24,45 +24,54 @@ export class ProductIdentitiesService {
         },
         warranties: {
           select: { status: true, startDate: true, endDate: true },
+          orderBy: { createdAt: 'desc' }, // Lấy bản ghi mới nhất
         },
         returns: {
           select: { status: true, returnDate: true, reason: true },
+          orderBy: { createdAt: 'desc' }, // Lấy bản ghi mới nhất
         },
         returnTicket: {
           select: { status: true, startDate: true, endDate: true },
+          orderBy: { createdAt: 'desc' }, // Lấy bản ghi mới nhất
         },
         orderDetail: {
           select: { orderId: true, returnStatus: true },
+          orderBy: { createdAt: 'desc' }, // Lấy bản ghi mới nhất
         },
       },
       orderBy: { createdAt: 'desc' },
     });
 
-    const detailedData = productIdentities.map(pi => ({
-      id: pi.id,
-      imei: pi.imei,
-      productId: pi.productId,
-      productName: pi.product?.name ?? 'Unknown Product',
-      brand: pi.product?.model?.brand?.name ?? 'Unknown Brand',
-      model: pi.product?.model?.name ?? 'Unknown Model',
-      colorId: pi.colorId,
-      colorName: pi.color?.name ?? 'Unknown Color',
-      isSold: pi.isSold,
-      importPrice: pi.purchaseOrderDetail?.importPrice ?? 0,
-      warrantyStatus: pi.warranties.length > 0 ? pi.warranties[0].status : null,
-      warrantyStartDate:
-        pi.warranties.length > 0 ? pi.warranties[0].startDate : null,
-      warrantyEndDate:
-        pi.warranties.length > 0 ? pi.warranties[0].endDate : null,
-      returnStatus: pi.returns.length > 0 ? pi.returns[0].status : null,
-      returnDate: pi.returns.length > 0 ? pi.returns[0].returnDate : null,
-      returnReason: pi.returns.length > 0 ? pi.returns[0].reason : null,
-      returnTicketStatus:
-        pi.returnTicket.length > 0 ? pi.returnTicket[0].status : null,
-      orderId: pi.orderDetail.length > 0 ? pi.orderDetail[0].orderId : null,
-      orderReturnStatus:
-        pi.orderDetail.length > 0 ? pi.orderDetail[0].returnStatus : null,
-    }));
+    const detailedData = productIdentities.map(pi => {
+      const latestWarranty = pi.warranties.length > 0 ? pi.warranties[0] : null;
+      const latestReturn = pi.returns.length > 0 ? pi.returns[0] : null;
+      const latestReturnTicket =
+        pi.returnTicket.length > 0 ? pi.returnTicket[0] : null;
+      const latestOrderDetail =
+        pi.orderDetail.length > 0 ? pi.orderDetail[0] : null;
+
+      return {
+        id: pi.id,
+        imei: pi.imei,
+        productId: pi.productId,
+        productName: pi.product?.name ?? 'Unknown Product',
+        brand: pi.product?.model?.brand?.name ?? 'Unknown Brand',
+        model: pi.product?.model?.name ?? 'Unknown Model',
+        colorId: pi.colorId,
+        colorName: pi.color?.name ?? 'Unknown Color',
+        isSold: pi.isSold,
+        importPrice: pi.purchaseOrderDetail?.importPrice ?? 0,
+        warrantyStatus: latestWarranty?.status ?? null,
+        warrantyStartDate: latestWarranty?.startDate ?? null,
+        warrantyEndDate: latestWarranty?.endDate ?? null,
+        returnStatus: latestReturn?.status ?? null,
+        returnDate: latestReturn?.returnDate ?? null,
+        returnReason: latestReturn?.reason ?? null,
+        returnTicketStatus: latestReturnTicket?.status ?? null,
+        orderId: latestOrderDetail?.orderId ?? null,
+        orderReturnStatus: latestOrderDetail?.returnStatus ?? null,
+      };
+    });
 
     return {
       message: 'Lấy danh sách product identity thành công',
@@ -84,15 +93,19 @@ export class ProductIdentitiesService {
         },
         warranties: {
           select: { status: true, startDate: true, endDate: true },
+          orderBy: { createdAt: 'desc' }, // Lấy bản ghi mới nhất
         },
         returns: {
           select: { status: true, returnDate: true, reason: true },
+          orderBy: { createdAt: 'desc' }, // Lấy bản ghi mới nhất
         },
         returnTicket: {
           select: { status: true, startDate: true, endDate: true },
+          orderBy: { createdAt: 'desc' }, // Lấy bản ghi mới nhất
         },
         orderDetail: {
           select: { orderId: true, returnStatus: true },
+          orderBy: { createdAt: 'desc' }, // Lấy bản ghi mới nhất
         },
       },
     });
@@ -100,6 +113,21 @@ export class ProductIdentitiesService {
     if (!productIdentity) {
       throw new NotFoundException('Product identity không tồn tại');
     }
+
+    const latestWarranty =
+      productIdentity.warranties.length > 0
+        ? productIdentity.warranties[0]
+        : null;
+    const latestReturn =
+      productIdentity.returns.length > 0 ? productIdentity.returns[0] : null;
+    const latestReturnTicket =
+      productIdentity.returnTicket.length > 0
+        ? productIdentity.returnTicket[0]
+        : null;
+    const latestOrderDetail =
+      productIdentity.orderDetail.length > 0
+        ? productIdentity.orderDetail[0]
+        : null;
 
     const detailedData = {
       id: productIdentity.id,
@@ -112,42 +140,15 @@ export class ProductIdentitiesService {
       colorName: productIdentity.color?.name ?? 'Unknown Color',
       isSold: productIdentity.isSold,
       importPrice: productIdentity.purchaseOrderDetail?.importPrice ?? 0,
-      warrantyStatus:
-        productIdentity.warranties.length > 0
-          ? productIdentity.warranties[0].status
-          : null,
-      warrantyStartDate:
-        productIdentity.warranties.length > 0
-          ? productIdentity.warranties[0].startDate
-          : null,
-      warrantyEndDate:
-        productIdentity.warranties.length > 0
-          ? productIdentity.warranties[0].endDate
-          : null,
-      returnStatus:
-        productIdentity.returns.length > 0
-          ? productIdentity.returns[0].status
-          : null,
-      returnDate:
-        productIdentity.returns.length > 0
-          ? productIdentity.returns[0].returnDate
-          : null,
-      returnReason:
-        productIdentity.returns.length > 0
-          ? productIdentity.returns[0].reason
-          : null,
-      returnTicketStatus:
-        productIdentity.returnTicket.length > 0
-          ? productIdentity.returnTicket[0].status
-          : null,
-      orderId:
-        productIdentity.orderDetail.length > 0
-          ? productIdentity.orderDetail[0].orderId
-          : null,
-      orderReturnStatus:
-        productIdentity.orderDetail.length > 0
-          ? productIdentity.orderDetail[0].returnStatus
-          : null,
+      warrantyStatus: latestWarranty?.status ?? null,
+      warrantyStartDate: latestWarranty?.startDate ?? null,
+      warrantyEndDate: latestWarranty?.endDate ?? null,
+      returnStatus: latestReturn?.status ?? null,
+      returnDate: latestReturn?.returnDate ?? null,
+      returnReason: latestReturn?.reason ?? null,
+      returnTicketStatus: latestReturnTicket?.status ?? null,
+      orderId: latestOrderDetail?.orderId ?? null,
+      orderReturnStatus: latestOrderDetail?.returnStatus ?? null,
     };
 
     return {

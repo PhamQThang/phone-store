@@ -33,12 +33,6 @@ const items = [
     allowedRoles: ["Admin", "Employee"],
   },
   {
-    title: "Quản lý sản phẩm",
-    url: "/admin/products",
-    icon: Package,
-    allowedRoles: ["Admin", "Employee"],
-  },
-  {
     title: "Quản lý màu",
     url: "/admin/colors",
     icon: Package,
@@ -48,6 +42,19 @@ const items = [
     title: "Quản lý nhà cung cấp",
     url: "/admin/suppliers",
     icon: Users,
+    allowedRoles: ["Admin", "Employee"],
+  },
+  {
+    title: "Quản lý sản phẩm",
+    url: "/admin/products",
+    icon: Package,
+    allowedRoles: ["Admin", "Employee"],
+  },
+
+  {
+    title: "Quản lý IMEI",
+    url: "/admin/product-identities",
+    icon: Package,
     allowedRoles: ["Admin", "Employee"],
   },
   {

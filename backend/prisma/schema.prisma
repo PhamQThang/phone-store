@@ -92,7 +92,7 @@ model PurchaseOrderDetail {
   importPrice       Int
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @default(now()) @updatedAt
-  imei              String?
+  imei              String?          @unique(map: "PurchaseOrderDetail_imei_unique") @db.VarChar(255)
   color             Color            @relation(fields: [colorId], references: [id])
   import            PurchaseOrder    @relation(fields: [importId], references: [id])
   product           Product          @relation(fields: [productId], references: [id])

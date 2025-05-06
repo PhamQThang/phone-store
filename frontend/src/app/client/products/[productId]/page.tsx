@@ -542,7 +542,7 @@ export default function ProductDetailPage() {
 
       {/* Similar Products */}
       <div className="mt-16">
-        <h2 className="text-2xl font-bold mb-6">Sản phẩm tương tự</h2>
+        <h2 className="text-2xl font-bold mb-6">Sản phẩm cùng giá</h2>
         {similarProducts.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {similarProducts.map((product) => (
@@ -551,7 +551,7 @@ export default function ProductDetailPage() {
           </div>
         ) : (
           <div className="text-center py-10 text-gray-500">
-            Không có sản phẩm tương tự
+            Không có sản phẩm cùng giá
           </div>
         )}
       </div>

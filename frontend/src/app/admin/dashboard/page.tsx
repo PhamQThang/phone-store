@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -12,12 +12,7 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
-import {
-  getInventoryStats,
-  getRevenueStats,
-  getMonthlyRevenueStats,
-  getUserStats,
-} from "@/api/admin/statisticsApi";
+import { getOrderStats } from "@/api/admin/statisticsApi";
 
 // Đăng ký các thành phần cần thiết cho Chart.js
 ChartJS.register(
@@ -31,19 +26,30 @@ ChartJS.register(
 );
 
 export default function DashboardPage() {
-  // State để lưu trữ dữ liệu từ API
+  // Hàm tính ngày cách đây 1 tuần
+  const getOneWeekAgoDate = () => {
+    const date = new Date();
+    date.setDate(date.getDate() - 7);
+    return date.toISOString().split("T")[0];
+  };
+
+  // State để lưu trữ dữ liệu tổng quan
   const [totalProducts, setTotalProducts] = useState<number>(0);
   const [totalRevenue, setTotalRevenue] = useState<number>(0);
   const [totalUsers, setTotalUsers] = useState<number>(0);
-  const [monthlyStats, setMonthlyStats] = useState<any[]>([]);
+
+  // State cho dữ liệu biểu đồ
+  const [dailyStats, setDailyStats] = useState<any[]>([]);
   const [selectedDatasets, setSelectedDatasets] = useState<string[]>([
-    "revenue",
+    "sellingPrice",
     "profit",
   ]);
-  const [selectedYear, setSelectedYear] = useState<number>(
-    new Date().getFullYear()
+
+  // Mặc định: 1 tuần trước đến hiện tại
+  const [startDate, setStartDate] = useState<string>(getOneWeekAgoDate());
+  const [endDate, setEndDate] = useState<string>(
+    new Date().toISOString().split("T")[0]
   );
-  const [availableYears, setAvailableYears] = useState<number[]>([]);
 
   // State để theo dõi trạng thái tải dữ liệu
   const [loading, setLoading] = useState<boolean>(true);
@@ -57,87 +63,70 @@ export default function DashboardPage() {
     }).format(value);
   };
 
-  // Hàm lấy danh sách các năm có dữ liệu
-  const fetchAvailableYears = async () => {
-    try {
-      // Giả sử bạn có API endpoint để lấy các năm có dữ liệu
-      // Nếu không, có thể tạo mảng năm từ năm hiện tại trở về trước 5 năm
-      const currentYear = new Date().getFullYear();
-      const years = Array.from({ length: 5 }, (_, i) => currentYear - i);
-      setAvailableYears(years);
-    } catch (err) {
-      console.error("Lỗi khi lấy danh sách năm:", err);
-      // Fallback: tạo mảng năm mặc định nếu API fail
-      const currentYear = new Date().getFullYear();
-      setAvailableYears([currentYear, currentYear - 1, currentYear - 2]);
-    }
-  };
-
-  // Gọi API để lấy dữ liệu khi component mount hoặc năm thay đổi
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
+        setError(null);
 
-        // Lấy thống kê tồn kho (không phụ thuộc vào năm)
-        const inventoryResponse = await getInventoryStats();
-        const inventoryData = inventoryResponse;
-        const total = inventoryData.reduce(
-          (sum: number, stat: any) => sum + stat.stockQuantity,
-          0
+        // Kiểm tra ngày hợp lệ
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        if (start > end) {
+          setError("Ngày bắt đầu phải nhỏ hơn hoặc bằng ngày kết thúc.");
+          setDailyStats([]);
+          return;
+        }
+
+        // Lấy thống kê theo khoảng thời gian đã chọn
+        const orderStatsResponse = await getOrderStats(startDate, endDate);
+        const statsData = orderStatsResponse;
+
+        // Tính tổng quan từ dữ liệu
+        setTotalProducts(
+          statsData.reduce(
+            (sum, stat) => sum + (stat.totalProductsSold || 0),
+            0
+          )
         );
-        setTotalProducts(total);
+        setTotalRevenue(
+          statsData.reduce(
+            (sum, stat) => sum + (stat.totalSellingPrice || 0),
+            0
+          )
+        );
+        setTotalUsers(
+          statsData.reduce((sum, stat) => sum + (stat.totalOrders || 0), 0)
+        );
 
-        // Lấy thống kê doanh thu tổng (không phụ thuộc vào năm)
-        const revenueResponse = await getRevenueStats();
-        const revenueData = revenueResponse;
-        setTotalRevenue(revenueData.summary.totalRevenue);
-
-        // Lấy thống kê người dùng (không phụ thuộc vào năm)
-        const userResponse = await getUserStats();
-        const userData = userResponse;
-        setTotalUsers(userData.totalUsers);
-
-        // Lấy thống kê doanh thu theo tháng (theo năm được chọn)
-        const monthlyResponse = await getMonthlyRevenueStats(selectedYear);
-        const monthlyData = monthlyResponse;
-        setMonthlyStats(monthlyData);
+        setDailyStats(statsData);
       } catch (err: any) {
         setError(err.response?.data?.message || "Lỗi khi lấy dữ liệu thống kê");
+        setDailyStats([]);
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-    fetchAvailableYears();
-  }, [selectedYear]);
+  }, [startDate, endDate]);
 
-  // Dữ liệu cho biểu đồ
+  // Dữ liệu cho biểu đồ (giữ nguyên như trước)
   const chartData = {
-    labels: monthlyStats.map((stat) => `Tháng ${stat.month}`),
+    labels: dailyStats.map((stat) => stat.date),
     datasets: [
       {
-        label: "Doanh thu",
-        data: monthlyStats.map((stat) => stat.revenue || 0),
-        borderColor: "rgba(75, 192, 192, 1)",
-        backgroundColor: "rgba(75, 192, 192, 0.2)",
-        tension: 0.1,
-        borderWidth: 2,
-        hidden: !selectedDatasets.includes("revenue"),
-      },
-      {
-        label: "Giá nhập",
-        data: monthlyStats.map((stat) => stat.importPrice || 0),
+        label: "Tiền nhập hàng",
+        data: dailyStats.map((stat) => stat.totalPurchaseAmount || 0),
         borderColor: "rgba(255, 99, 132, 1)",
         backgroundColor: "rgba(255, 99, 132, 0.2)",
         tension: 0.1,
         borderWidth: 2,
-        hidden: !selectedDatasets.includes("importPrice"),
+        hidden: !selectedDatasets.includes("purchaseAmount"),
       },
       {
-        label: "Giá bán",
-        data: monthlyStats.map((stat) => stat.sellingPrice || 0),
+        label: "Tiền bán hàng",
+        data: dailyStats.map((stat) => stat.totalSellingPrice || 0),
         borderColor: "rgba(54, 162, 235, 1)",
         backgroundColor: "rgba(54, 162, 235, 0.2)",
         tension: 0.1,
@@ -146,16 +135,35 @@ export default function DashboardPage() {
       },
       {
         label: "Lợi nhuận",
-        data: monthlyStats.map((stat) => stat.profit || 0),
+        data: dailyStats.map((stat) => stat.totalProfit || 0),
         borderColor: "rgba(255, 206, 86, 1)",
         backgroundColor: "rgba(255, 206, 86, 0.2)",
         tension: 0.1,
         borderWidth: 2,
         hidden: !selectedDatasets.includes("profit"),
       },
+      {
+        label: "Số đơn hàng",
+        data: dailyStats.map((stat) => stat.totalOrders || 0),
+        borderColor: "rgba(75, 192, 192, 1)",
+        backgroundColor: "rgba(75, 192, 192, 0.2)",
+        tension: 0.1,
+        borderWidth: 2,
+        hidden: !selectedDatasets.includes("orders"),
+      },
+      {
+        label: "Số sản phẩm bán",
+        data: dailyStats.map((stat) => stat.totalProductsSold || 0),
+        borderColor: "rgba(153, 102, 255, 1)",
+        backgroundColor: "rgba(153, 102, 255, 0.2)",
+        tension: 0.1,
+        borderWidth: 2,
+        hidden: !selectedDatasets.includes("productsSold"),
+      },
     ],
   };
 
+  // Options cho biểu đồ (giữ nguyên)
   const chartOptions = {
     responsive: true,
     plugins: {
@@ -166,11 +174,11 @@ export default function DashboardPage() {
           const ci = legend.chart;
           const meta = ci.getDatasetMeta(index);
 
-          // Toggle visibility
           meta.hidden = !meta.hidden;
 
-          // Cập nhật state selectedDatasets
-          const datasetLabel = ci.data.datasets[index].label.toLowerCase();
+          const datasetLabel = ci.data.datasets[index].label
+            .toLowerCase()
+            .replace(/\s/g, "");
           if (meta.hidden) {
             setSelectedDatasets((prev) =>
               prev.filter((item) => item !== datasetLabel)
@@ -189,7 +197,9 @@ export default function DashboardPage() {
       },
       title: {
         display: true,
-        text: `Thống kê theo tháng năm ${selectedYear}`,
+        text: `Thống kê từ ${new Date(startDate).toLocaleDateString(
+          "vi-VN"
+        )} đến ${new Date(endDate).toLocaleDateString("vi-VN")}`,
         font: {
           size: 16,
         },
@@ -201,7 +211,15 @@ export default function DashboardPage() {
             if (label) {
               label += ": ";
             }
-            label += formatCurrency(context.raw);
+            if (
+              ["Tiền nhập hàng", "Tiền bán hàng", "Lợi nhuận"].includes(
+                context.dataset.label
+              )
+            ) {
+              label += formatCurrency(context.raw);
+            } else {
+              label += context.raw;
+            }
             return label;
           },
         },
@@ -211,7 +229,16 @@ export default function DashboardPage() {
       y: {
         beginAtZero: true,
         ticks: {
-          callback: (value: any) => formatCurrency(value),
+          callback: (value: any) => {
+            if (
+              selectedDatasets.some((ds) =>
+                ["purchaseAmount", "sellingPrice", "profit"].includes(ds)
+              )
+            ) {
+              return formatCurrency(value);
+            }
+            return value;
+          },
         },
         grid: {
           color: "rgba(0, 0, 0, 0.1)",
@@ -226,9 +253,13 @@ export default function DashboardPage() {
     maintainAspectRatio: false,
   };
 
-  // Hàm xử lý thay đổi năm
-  const handleYearChange = (year: number) => {
-    setSelectedYear(year);
+  // Hàm xử lý thay đổi khoảng thời gian
+  const handleDateChange = (type: "start" | "end", value: string) => {
+    if (type === "start") {
+      setStartDate(value);
+    } else {
+      setEndDate(value);
+    }
   };
 
   if (loading) {
@@ -248,7 +279,7 @@ export default function DashboardPage() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium">
-              Tổng sản phẩm tồn kho
+              Tổng sản phẩm đã bán
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -265,7 +296,7 @@ export default function DashboardPage() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Người dùng</CardTitle>
+            <CardTitle className="text-sm font-medium">Tổng đơn hàng</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold">{totalUsers}</p>
@@ -273,30 +304,44 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* Biểu đồ */}
+      {/* Bộ lọc khoảng thời gian */}
       <Card className="mb-6">
         <CardHeader className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <CardTitle>Biểu đồ thống kê</CardTitle>
-          <div className="flex items-center gap-2">
-            <label
-              htmlFor="year-select"
-              className="text-sm font-medium text-gray-700"
-            >
-              Năm:
-            </label>
-            <select
-              id="year-select"
-              value={selectedYear}
-              onChange={(e) => handleYearChange(Number(e.target.value))}
-              className="rounded-md border-gray-300 py-1 pl-2 pr-8 text-base focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
-            >
-              {availableYears.map((year) => (
-                <option key={year} value={year}>
-                  {year}
-                </option>
-              ))}
-            </select>
+          <CardTitle>Bộ lọc khoảng thời gian</CardTitle>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                Từ ngày:
+              </label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => handleDateChange("start", e.target.value)}
+                max={endDate}
+                className="rounded-md border-gray-300 py-1 pl-2 pr-2 text-base focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                Đến ngày:
+              </label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => handleDateChange("end", e.target.value)}
+                min={startDate}
+                max={new Date().toISOString().split("T")[0]}
+                className="rounded-md border-gray-300 py-1 pl-2 pr-2 text-base focus:border-indigo-500 focus:outline-none focus:ring-indigo-500"
+              />
+            </div>
           </div>
+        </CardHeader>
+      </Card>
+
+      {/* Biểu đồ */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Biểu đồ thống kê</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="h-[400px]">
@@ -311,10 +356,12 @@ export default function DashboardPage() {
                   type="checkbox"
                   id={`toggle-${dataset.label}`}
                   checked={selectedDatasets.includes(
-                    dataset.label.toLowerCase()
+                    dataset.label.toLowerCase().replace(/\s/g, "")
                   )}
                   onChange={() => {
-                    const datasetLabel = dataset.label.toLowerCase();
+                    const datasetLabel = dataset.label
+                      .toLowerCase()
+                      .replace(/\s/g, "");
                     setSelectedDatasets((prev) =>
                       prev.includes(datasetLabel)
                         ? prev.filter((item) => item !== datasetLabel)

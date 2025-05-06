@@ -260,28 +260,19 @@ export class ProductsService {
   async findSimilar(id: string) {
     const product = await this.prisma.product.findUnique({
       where: { id },
-      include: {
-        model: {
-          include: { brand: true },
-        },
-      },
     });
 
     if (!product) {
       throw new NotFoundException('Sản phẩm không tồn tại');
     }
 
-    const brandId = product.model.brandId;
-    const priceRange = 0.2;
-    const minPrice = product.price * (1 - priceRange);
-    const maxPrice = product.price * (1 + priceRange);
+    const priceDifference = 4000000;
+    const minPrice = product.price - priceDifference;
+    const maxPrice = product.price + priceDifference;
 
     const similarProducts = await this.prisma.product.findMany({
       where: {
         id: { not: id },
-        model: {
-          brandId: brandId,
-        },
         price: {
           gte: minPrice,
           lte: maxPrice,

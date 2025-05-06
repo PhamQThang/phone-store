@@ -212,7 +212,7 @@ const OrderDetailsPage = ({
     const daysSinceDelivered = Math.floor(
       (currentDate.getTime() - deliveredDate.getTime()) / (1000 * 60 * 60 * 24)
     );
-    const returnWindowDays = 2;
+    const returnWindowDays = 1;
     return daysSinceDelivered <= returnWindowDays;
   };
 
@@ -226,7 +226,7 @@ const OrderDetailsPage = ({
     const daysSinceDelivered = Math.floor(
       (currentDate.getTime() - deliveredDate.getTime()) / (1000 * 60 * 60 * 24)
     );
-    const returnWindowDays = 7;
+    const returnWindowDays = 1;
     return daysSinceDelivered > returnWindowDays;
   };
 
