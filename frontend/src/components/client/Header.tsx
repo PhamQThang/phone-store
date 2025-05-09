@@ -145,7 +145,6 @@ export default function Header() {
   const navItems = [
     { name: "Trang chủ", href: "/client" },
     { name: "Sản phẩm", href: "/client/products", hasDropdown: true },
-    { name: "Tin tức", href: "/client/newsPage" },
     { name: "Giỏ hàng", href: "/client/cart" },
     { name: "Đơn hàng", href: "/client/orders" },
     { name: "Bảo hành", href: "/client/warranties" },

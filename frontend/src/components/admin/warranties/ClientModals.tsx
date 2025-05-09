@@ -555,7 +555,6 @@ export default function ClientModals({
                     <SelectItem value="Repairing">Đang sửa chữa</SelectItem>
                     <SelectItem value="Repaired">Đã sửa xong</SelectItem>
                     <SelectItem value="Returned">Đã trả máy</SelectItem>
-                    <SelectItem value="Canceled">Đã hủy</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

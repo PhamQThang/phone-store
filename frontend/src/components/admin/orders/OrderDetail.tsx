@@ -31,55 +31,72 @@ export function OrderDetail({ open, onOpenChange, order }: OrderDetailProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-full max-w-md p-4 sm:p-6">
+      <DialogContent className="w-full max-w-md p-6 bg-white rounded-lg shadow-xl">
         <DialogHeader>
-          <DialogTitle className="text-lg sm:text-xl">
+          <DialogTitle className="text-2xl font-semibold text-gray-900">
             Chi tiết đơn hàng #{order.id.substring(0, 8)}...
           </DialogTitle>
         </DialogHeader>
-        <div className="space-y-3 text-sm sm:text-base">
-          <div>
-            <strong>Mã đơn hàng:</strong> {order.id}
+        <div className="space-y-4 text-gray-700">
+          <div className="flex flex-col">
+            <span className="font-medium">Mã đơn hàng:</span>
+            <span className="text-gray-600">{order.id}</span>
           </div>
-          <div>
-            <strong>Địa chỉ:</strong> {order.address}
+          <div className="flex flex-col">
+            <span className="font-medium">Địa chỉ:</span>
+            <span className="text-gray-600">{order.address}</span>
           </div>
-          <div>
-            <strong>Số điện thoại:</strong> {order.phoneNumber || "Không có"}
+          <div className="flex flex-col">
+            <span className="font-medium">Số điện thoại:</span>
+            <span className="text-gray-600">
+              {order.phoneNumber || "Không có"}
+            </span>
           </div>
-          <div>
-            <strong>Tổng tiền:</strong>{" "}
-            {order.totalAmount.toLocaleString("vi-VN")} VNĐ
+          <div className="flex flex-col">
+            <span className="font-medium">Tổng tiền:</span>
+            <span className="text-gray-600">
+              {order.totalAmount.toLocaleString("vi-VN")} VNĐ
+            </span>
           </div>
-          <div>
-            <strong>Phương thức thanh toán:</strong>{" "}
-            {order.paymentMethod === "COD"
-              ? "Thanh toán khi nhận hàng"
-              : "Thanh toán trực tuyến"}
+          <div className="flex flex-col">
+            <span className="font-medium">Phương thức thanh toán:</span>
+            <span className="text-gray-600">
+              {order.paymentMethod === "COD"
+                ? "Thanh toán khi nhận hàng"
+                : "Thanh toán trực tuyến"}
+            </span>
           </div>
-          <div>
-            <strong>Trạng thái thanh toán:</strong>{" "}
-            {order.paymentStatus === "Completed"
-              ? "Đã thanh toán"
-              : order.paymentStatus === "Pending"
-              ? "Chưa thanh toán"
-              : "Thanh toán thất bại"}
+          <div className="flex flex-col">
+            <span className="font-medium">Trạng thái thanh toán:</span>
+            <span className="text-gray-600">
+              {order.paymentStatus === "Completed"
+                ? "Đã thanh toán"
+                : order.paymentStatus === "Pending"
+                ? "Chưa thanh toán"
+                : "Thanh toán thất bại"}
+            </span>
           </div>
-          <div>
-            <strong>Trạng thái:</strong> {translateStatus(order.status)}
+          <div className="flex flex-col">
+            <span className="font-medium">Trạng thái:</span>
+            <span className="text-gray-600">
+              {translateStatus(order.status)}
+            </span>
           </div>
-          <div>
-            <strong>Ngày tạo:</strong>{" "}
-            {new Date(order.createdAt).toLocaleString()}
+          <div className="flex flex-col">
+            <span className="font-medium">Ngày tạo:</span>
+            <span className="text-gray-600">
+              {new Date(order.createdAt).toLocaleString()}
+            </span>
           </div>
-          <div>
-            <strong>Người dùng:</strong> {`${order.user.fullName}`}
+          <div className="flex flex-col">
+            <span className="font-medium">Người dùng:</span>
+            <span className="text-gray-600">{`${order.user.fullName}`}</span>
           </div>
-          <div>
-            <strong>Sản phẩm:</strong>
-            <ul className="list-disc ml-5 mt-1">
+          <div className="flex flex-col">
+            <span className="font-medium">Sản phẩm:</span>
+            <ul className="list-disc ml-6 mt-2 text-gray-600">
               {order.orderDetails.map((item: OrderDetail, index: number) => (
-                <li key={index}>
+                <li key={index} className="mb-1">
                   {item.product.name} - Màu: {item.color.name} - Giá:{" "}
                   {item.discountedPrice?.toLocaleString("vi-VN")} VNĐ
                   {item.discountedPrice &&
