@@ -15,7 +15,7 @@ export class WarrantyService {
     userId: number,
     createWarrantyRequestDto: CreateWarrantyRequestDto
   ) {
-    const { productIdentityId, reason, fullName, phoneNumber, email } =
+    const { productIdentityId, reason, fullName, phoneNumber, address } =
       createWarrantyRequestDto;
 
     // Kiểm tra productIdentity
@@ -125,7 +125,7 @@ export class WarrantyService {
         reason,
         fullName,
         phoneNumber,
-        email,
+        address,
         status: 'Pending',
       },
       include: {

@@ -1,5 +1,4 @@
-// warranty-request.dto.ts
-import { IsNotEmpty, IsString, IsEmail, Matches } from 'class-validator';
+import { IsNotEmpty, IsString, Matches } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateWarrantyRequestDto {
@@ -39,12 +38,12 @@ export class CreateWarrantyRequestDto {
   phoneNumber: string;
 
   @ApiProperty({
-    description: 'Email của người yêu cầu',
-    example: 'nguyenvana@example.com',
+    description: 'Địa chỉ của người yêu cầu',
+    example: '25 Nguyễn Văn Cừ, Long Biên, Hà Nội',
   })
-  @IsEmail({}, { message: 'Email không hợp lệ' })
-  @IsNotEmpty({ message: 'Email không được để trống' })
-  email: string;
+  @IsString({ message: 'Địa chỉ phải là chuỗi ký tự' })
+  @IsNotEmpty({ message: 'Địa chỉ không được để trống' })
+  address: string;
 }
 
 export class UpdateWarrantyRequestStatusDto {

@@ -464,7 +464,7 @@ model WarrantyRequest {
   reason            String
   fullName          String
   phoneNumber       String                   @db.VarChar(15)
-  email             String
+  address           String
   requestDate       DateTime                 @default(now())
   createdAt         DateTime                 @default(now())
   updatedAt         DateTime                 @default(now())
