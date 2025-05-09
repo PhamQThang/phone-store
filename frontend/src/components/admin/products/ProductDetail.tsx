@@ -27,60 +27,99 @@ export function ProductDetail({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-full max-w-3xl p-4 sm:p-6 max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-lg sm:text-xl">
+          <DialogTitle className="text-lg sm:text-xl font-semibold text-gray-900">
             Chi tiết sản phẩm
           </DialogTitle>
         </DialogHeader>
-        <div className="space-y-4">
-          <div>
-            <h3 className="text-sm font-medium">Tên sản phẩm</h3>
-            <p className="text-sm sm:text-base">{product.name}</p>
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="flex flex-col">
+              <h3 className="text-sm sm:text-base font-medium text-gray-700">
+                Tên sản phẩm
+              </h3>
+              <p className="text-sm sm:text-base text-gray-900">
+                {product.name}
+              </p>
+            </div>
+            <div className="flex flex-col">
+              <h3 className="text-sm sm:text-base font-medium text-gray-700">
+                Giá
+              </h3>
+              <p className="text-sm sm:text-base text-gray-900">
+                {product.price.toLocaleString()} VNĐ
+              </p>
+            </div>
+            <div className="flex flex-col">
+              <h3 className="text-sm sm:text-base font-medium text-gray-700">
+                Dung lượng lưu trữ
+              </h3>
+              <p className="text-sm sm:text-base text-gray-900">
+                {product.storage} GB
+              </p>
+            </div>
+            <div className="flex flex-col">
+              <h3 className="text-sm sm:text-base font-medium text-gray-700">
+                RAM
+              </h3>
+              <p className="text-sm sm:text-base text-gray-900">
+                {product.ram} GB
+              </p>
+            </div>
+            <div className="flex flex-col">
+              <h3 className="text-sm sm:text-base font-medium text-gray-700">
+                Kích thước màn hình
+              </h3>
+              <p className="text-sm sm:text-base text-gray-900">
+                {product.screenSize} inch
+              </p>
+            </div>
+            <div className="flex flex-col">
+              <h3 className="text-sm sm:text-base font-medium text-gray-700">
+                Dung lượng pin
+              </h3>
+              <p className="text-sm sm:text-base text-gray-900">
+                {product.battery} mAh
+              </p>
+            </div>
+            <div className="flex flex-col">
+              <h3 className="text-sm sm:text-base font-medium text-gray-700">
+                Chip
+              </h3>
+              <p className="text-sm sm:text-base text-gray-900">
+                {product.chip}
+              </p>
+            </div>
+            <div className="flex flex-col">
+              <h3 className="text-sm sm:text-base font-medium text-gray-700">
+                Hệ điều hành
+              </h3>
+              <p className="text-sm sm:text-base text-gray-900">
+                {product.operatingSystem}
+              </p>
+            </div>
+            <div className="flex flex-col">
+              <h3 className="text-sm sm:text-base font-medium text-gray-700">
+                Model
+              </h3>
+              <p className="text-sm sm:text-base text-gray-900">
+                {product.model.name} ({product.model.brand.name})
+              </p>
+            </div>
+            <div className="flex flex-col">
+              <h3 className="text-sm sm:text-base font-medium text-gray-700">
+                Ngày tạo
+              </h3>
+              <p className="text-sm sm:text-base text-gray-900">
+                {new Date(product.createdAt).toLocaleDateString()}
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-sm font-medium">Giá</h3>
-            <p className="text-sm sm:text-base">
-              {product.price.toLocaleString()} VNĐ
-            </p>
-          </div>
-          <div>
-            <h3 className="text-sm font-medium">Dung lượng lưu trữ</h3>
-            <p className="text-sm sm:text-base">{product.storage} GB</p>
-          </div>
-          <div>
-            <h3 className="text-sm font-medium">RAM</h3>
-            <p className="text-sm sm:text-base">{product.ram} GB</p>
-          </div>
-          <div>
-            <h3 className="text-sm font-medium">Kích thước màn hình</h3>
-            <p className="text-sm sm:text-base">{product.screenSize} inch</p>
-          </div>
-          <div>
-            <h3 className="text-sm font-medium">Dung lượng pin</h3>
-            <p className="text-sm sm:text-base">{product.battery} mAh</p>
-          </div>
-          <div>
-            <h3 className="text-sm font-medium">Chip</h3>
-            <p className="text-sm sm:text-base">{product.chip}</p>
-          </div>
-          <div>
-            <h3 className="text-sm font-medium">Hệ điều hành</h3>
-            <p className="text-sm sm:text-base">{product.operatingSystem}</p>
-          </div>
-          <div>
-            <h3 className="text-sm font-medium">Model</h3>
-            <p className="text-sm sm:text-base">
-              {product.model.name} ({product.model.brand.name})
-            </p>
-          </div>
-          <div>
-            <h3 className="text-sm font-medium">Ngày tạo</h3>
-            <p className="text-sm sm:text-base">
-              {new Date(product.createdAt).toLocaleDateString()}
-            </p>
-          </div>
+
           {product.productFiles && product.productFiles.length > 0 && (
             <div>
-              <h3 className="text-sm font-medium">Ảnh sản phẩm</h3>
+              <h3 className="text-sm sm:text-base font-medium text-gray-700">
+                Ảnh sản phẩm
+              </h3>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2">
                 {product.productFiles.map((productFile: ProductFiles) => (
                   <div key={productFile.fileId} className="relative">
@@ -101,11 +140,11 @@ export function ProductDetail({
             </div>
           )}
         </div>
-        <div className="flex justify-end mt-4">
+        <div className="flex justify-end space-x-2 mt-6">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            className="w-full sm:w-auto"
+            className="w-full sm:w-auto text-sm sm:text-base border-gray-300 text-gray-700 hover:bg-gray-50"
           >
             Đóng
           </Button>
