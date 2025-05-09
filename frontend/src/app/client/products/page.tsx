@@ -29,31 +29,33 @@ export default function ProductsPage() {
   const priceRanges = [
     { label: "Dưới 3 triệu", min: 0, max: 3000000 },
     { label: "3 - 4 triệu", min: 3000000, max: 4000000 },
-    { label: "Trên 4 triệu", min: 4000000, max: 5000000 },
+    { label: "Trên 4 triệu", min: 4000000 },
   ];
 
   const screenSizeOptions = [
     { label: "Dưới 6 inch", min: 0, max: 6 },
     { label: "6 - 7 inch", min: 6, max: 7 },
-    { label: "Trên 7 inch", min: 7, max: 10 },
+    { label: "Trên 7 inch", min: 7 },
   ];
 
   const ramOptions = [
     { label: "4GB", value: 4 },
     { label: "6GB", value: 6 },
     { label: "8GB", value: 8 },
+    { label: "16GB", value: 16 },
   ];
 
   const storageOptions = [
-    { label: "164GB", value: 64 },
+    { label: "64GB", value: 64 },
     { label: "128GB", value: 128 },
     { label: "256GB", value: 256 },
+    { label: "512GB", value: 512 },
   ];
 
   const batteryOptions = [
     { label: "Dưới 4000mAh", min: 0, max: 4000 },
     { label: "4000 - 5000mAh", min: 4000, max: 5000 },
-    { label: "Trên 5000mAh", min: 5000, max: 10000 },
+    { label: "Trên 5000mAh", min: 5000 },
   ];
 
   // State để lưu các giá trị bộ lọc được chọn
@@ -134,7 +136,7 @@ export default function ProductsPage() {
         filterValues.selectedPriceRanges.length === 0 ||
         filterValues.selectedPriceRanges.some((rangeLabel) => {
           const range = priceRanges.find((r) => r.label === rangeLabel);
-          return range && price >= range.min && price <= range.max;
+          return range && price >= range.min;
         });
 
       const screenSizeMatch =
@@ -143,11 +145,7 @@ export default function ProductsPage() {
           const sizeRange = screenSizeOptions.find(
             (s) => s.label === sizeLabel
           );
-          return (
-            sizeRange &&
-            screenSize >= sizeRange.min &&
-            screenSize <= sizeRange.max
-          );
+          return sizeRange && screenSize >= sizeRange.min;
         });
 
       const ramMatch =
@@ -164,11 +162,7 @@ export default function ProductsPage() {
           const batteryRange = batteryOptions.find(
             (b) => b.label === batteryLabel
           );
-          return (
-            batteryRange &&
-            battery >= batteryRange.min &&
-            battery <= batteryRange.max
-          );
+          return batteryRange && battery >= batteryRange.min;
         });
 
       return (
