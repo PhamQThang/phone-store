@@ -65,7 +65,6 @@ const OrderDetailsPage = ({
   const orderId = unwrappedParams.orderId;
 
   const user = localStorage.getItem("fullName");
-  const userEmail = localStorage.getItem("userEmail");
   const userPhone = localStorage.getItem("phoneNumber");
   const userAddress = localStorage.getItem("address");
 
@@ -78,7 +77,7 @@ const OrderDetailsPage = ({
     reason: "",
     fullName: user || "",
     phoneNumber: userPhone || "",
-    email: userEmail || "",
+    address: userAddress || "",
   });
   const [returnForm, setReturnForm] = useState({
     reason: "",
@@ -258,7 +257,7 @@ const OrderDetailsPage = ({
       reason: "",
       fullName: user || "",
       phoneNumber: userPhone || "",
-      email: userEmail || "",
+      address: userAddress || "",
     });
     setIsWarrantyModalOpen(true);
   };
@@ -293,7 +292,7 @@ const OrderDetailsPage = ({
         reason: warrantyForm.reason,
         fullName: warrantyForm.fullName,
         phoneNumber: warrantyForm.phoneNumber,
-        email: warrantyForm.email,
+        address: warrantyForm.address,
       };
 
       const response = await createWarrantyRequest(warrantyRequestData);
@@ -501,7 +500,7 @@ const OrderDetailsPage = ({
                   Không có sản phẩm nào trong đơn hàng này.
                 </p>
               ) : (
-                <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+                <div className="overflow-x-auto rounded-lg border border-gray  border-gray-200 shadow-sm">
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-indigo-50">
@@ -796,16 +795,15 @@ const OrderDetailsPage = ({
                                             </div>
                                             <div className="grid grid-cols-4 items-center gap-4">
                                               <Label
-                                                htmlFor="email"
+                                                htmlFor="address"
                                                 className="text-right font-medium text-gray-700"
                                               >
-                                                Email
+                                                Địa chỉ
                                               </Label>
                                               <Input
-                                                id="email"
-                                                name="email"
-                                                type="email"
-                                                value={warrantyForm.email}
+                                                id="address"
+                                                name="address"
+                                                value={warrantyForm.address}
                                                 onChange={
                                                   handleWarrantyFormChange
                                                 }

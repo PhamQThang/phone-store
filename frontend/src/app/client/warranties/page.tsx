@@ -440,9 +440,9 @@ const WarrantyManagementPage = () => {
                                       </div>
                                       <div>
                                         <strong className="text-gray-800">
-                                          Email:
+                                          Địa chỉ:
                                         </strong>{" "}
-                                        {selectedRequest.email}
+                                        {selectedRequest.address}
                                       </div>
                                       <div>
                                         <strong className="text-gray-800">

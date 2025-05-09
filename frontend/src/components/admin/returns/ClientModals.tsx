@@ -12,14 +12,12 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Edit, Eye, Search, X } from "lucide-react";
+import { Eye, Search, X } from "lucide-react";
 import { ProductReturn, ReturnTicket } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ReturnForm } from "@/components/admin/returns/ReturnForm";
 import { ReturnDetail } from "@/components/admin/returns/ReturnDetail";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
 import {
   Select,
   SelectContent,
@@ -27,7 +25,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ReturnTicketForm } from "./ReturnTicketForm";
 import { ReturnTicketDetail } from "./ReturnTicketDetail";
 
 interface ClientModalsProps {
@@ -52,9 +49,7 @@ export default function ClientModals({
   getReturnDetailAction,
   getReturnTicketDetailAction,
 }: ClientModalsProps) {
-  const [isReturnEditOpen, setIsReturnEditOpen] = useState(false);
   const [isReturnDetailOpen, setIsReturnDetailOpen] = useState(false);
-  const [isReturnTicketEditOpen, setIsReturnTicketEditOpen] = useState(false);
   const [isReturnTicketDetailOpen, setIsReturnTicketDetailOpen] =
     useState(false);
   const [selectedReturn, setSelectedReturn] = useState<ProductReturn | null>(
@@ -62,9 +57,7 @@ export default function ClientModals({
   );
   const [selectedReturnTicket, setSelectedReturnTicket] =
     useState<ReturnTicket | null>(null);
-  const [isEditingReturn, setIsEditingReturn] = useState(false);
-  const [isEditingReturnTicket, setIsEditingReturnTicket] = useState(false);
-  const [isViewing, setIsViewing] = useState(false);
+  const [isUpdating, setIsUpdating] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [returnStatusFilter, setReturnStatusFilter] = useState<string>("all");
   const [returnTicketStatusFilter, setReturnTicketStatusFilter] =
@@ -86,7 +79,6 @@ export default function ClientModals({
       Processing: "Đang xử lý",
       Processed: "Đã xử lý",
       Returned: "Đã trả hàng",
-      Canceled: "Đã hủy",
     };
     return statusMap[status] || status;
   };
@@ -130,14 +122,12 @@ export default function ClientModals({
   }, [returnTickets, searchTerm, returnTicketStatusFilter]);
 
   // Cập nhật trạng thái yêu cầu đổi trả
-  const handleUpdateReturnStatus = async (status: string) => {
-    if (!selectedReturn) return;
-    setIsEditingReturn(true);
+  const handleUpdateReturnStatus = async (returnId: string, status: string) => {
+    setIsUpdating(returnId);
     try {
-      const result = await updateReturnStatusAction(selectedReturn.id, status);
+      const result = await updateReturnStatusAction(returnId, status);
       if (result.success) {
         toast.success(result.message);
-        setIsReturnEditOpen(false);
       } else {
         toast.error("Cập nhật trạng thái thất bại", {
           description: result.error || "Vui lòng thử lại sau.",
@@ -150,22 +140,23 @@ export default function ClientModals({
         duration: 2000,
       });
     } finally {
-      setIsEditingReturn(false);
+      setIsUpdating(null);
     }
   };
 
   // Cập nhật trạng thái phiếu đổi trả
-  const handleUpdateReturnTicketStatus = async (status: string) => {
-    if (!selectedReturnTicket) return;
-    setIsEditingReturnTicket(true);
+  const handleUpdateReturnTicketStatus = async (
+    returnTicketId: string,
+    status: string
+  ) => {
+    setIsUpdating(returnTicketId);
     try {
       const result = await updateReturnTicketStatusAction(
-        selectedReturnTicket.id,
+        returnTicketId,
         status
       );
       if (result.success) {
         toast.success(result.message);
-        setIsReturnTicketEditOpen(false);
       } else {
         toast.error("Cập nhật trạng thái thất bại", {
           description: result.error || "Vui lòng thử lại sau.",
@@ -178,13 +169,12 @@ export default function ClientModals({
         duration: 2000,
       });
     } finally {
-      setIsEditingReturnTicket(false);
+      setIsUpdating(null);
     }
   };
 
   // Xem chi tiết yêu cầu đổi trả
   const handleViewReturnDetail = async (returnId: string) => {
-    setIsViewing(true);
     try {
       const result = await getReturnDetailAction(returnId);
       if (result.success) {
@@ -202,14 +192,11 @@ export default function ClientModals({
         description: error.message || "Vui lòng thử lại sau.",
         duration: 2000,
       });
-    } finally {
-      setIsViewing(false);
     }
   };
 
   // Xem chi tiết phiếu đổi trả
   const handleViewReturnTicketDetail = async (returnTicketId: string) => {
-    setIsViewing(true);
     try {
       const result = await getReturnTicketDetailAction(returnTicketId);
       if (result.success) {
@@ -227,62 +214,10 @@ export default function ClientModals({
         description: error.message || "Vui lòng thử lại sau.",
         duration: 2000,
       });
-    } finally {
-      setIsViewing(false);
     }
   };
 
-  // Mở form chỉnh sửa trạng thái yêu cầu đổi trả
-  const handleOpenReturnEdit = async (returnId: string) => {
-    setIsViewing(true);
-    try {
-      const result = await getReturnDetailAction(returnId);
-      if (result.success) {
-        setSelectedReturn(result.returnDetail);
-        setIsReturnEditOpen(true);
-        toast.success("Tải thông tin yêu cầu đổi trả thành công");
-      } else {
-        toast.error("Lỗi khi lấy thông tin yêu cầu đổi trả", {
-          description: result.error || "Vui lòng thử lại sau.",
-          duration: 2000,
-        });
-      }
-    } catch (error: any) {
-      toast.error("Lỗi khi lấy thông tin yêu cầu đổi trả", {
-        description: error.message || "Vui lòng thử lại sau.",
-        duration: 2000,
-      });
-    } finally {
-      setIsViewing(false);
-    }
-  };
-
-  // Mở form chỉnh sửa trạng thái phiếu đổi trả
-  const handleOpenReturnTicketEdit = async (returnTicketId: string) => {
-    setIsViewing(true);
-    try {
-      const result = await getReturnTicketDetailAction(returnTicketId);
-      if (result.success) {
-        setSelectedReturnTicket(result.returnTicket);
-        setIsReturnTicketEditOpen(true);
-        toast.success("Tải thông tin phiếu đổi trả thành công");
-      } else {
-        toast.error("Lỗi khi lấy thông tin phiếu đổi trả", {
-          description: result.error || "Vui lòng thử lại sau.",
-          duration: 2000,
-        });
-      }
-    } catch (error: any) {
-      toast.error("Lỗi khi lấy thông tin phiếu đổi trả", {
-        description: error.message || "Vui lòng thử lại sau.",
-        duration: 2000,
-      });
-    } finally {
-      setIsViewing(false);
-    }
-  };
-
-  const isLoading = isEditingReturn || isEditingReturnTicket || isViewing;
+  const isLoading = isUpdating !== null;
 
   return (
     <Card className="max-w-5xl mx-auto shadow-lg border border-gray-100 rounded-xl bg-white">
@@ -402,19 +337,33 @@ export default function ClientModals({
                               {returnItem.reason}
                             </TableCell>
                             <TableCell>
-                              <span
-                                className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                  returnItem.status === "Pending"
-                                    ? "bg-yellow-100 text-yellow-800"
-                                    : returnItem.status === "Approved"
-                                    ? "bg-blue-100 text-blue-800"
-                                    : returnItem.status === "Rejected"
-                                    ? "bg-red-100 text-red-800"
-                                    : "bg-green-100 text-green-800"
-                                }`}
+                              <Select
+                                value={returnItem.status}
+                                onValueChange={(value) =>
+                                  handleUpdateReturnStatus(returnItem.id, value)
+                                }
+                                disabled={isUpdating === returnItem.id}
                               >
-                                {translateReturnStatus(returnItem.status)}
-                              </span>
+                                <SelectTrigger className="w-[120px]">
+                                  <SelectValue>
+                                    {translateReturnStatus(returnItem.status)}
+                                  </SelectValue>
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="Pending">
+                                    {translateReturnStatus("Pending")}
+                                  </SelectItem>
+                                  <SelectItem value="Approved">
+                                    {translateReturnStatus("Approved")}
+                                  </SelectItem>
+                                  <SelectItem value="Rejected">
+                                    {translateReturnStatus("Rejected")}
+                                  </SelectItem>
+                                  <SelectItem value="Completed">
+                                    {translateReturnStatus("Completed")}
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
                             </TableCell>
                             <TableCell className="text-gray-600">
                               {new Date(
@@ -422,28 +371,16 @@ export default function ClientModals({
                               ).toLocaleDateString("vi-VN")}
                             </TableCell>
                             <TableCell>
-                              <div className="flex space-x-2">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() =>
-                                    handleViewReturnDetail(returnItem.id)
-                                  }
-                                  disabled={isLoading}
-                                >
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() =>
-                                    handleOpenReturnEdit(returnItem.id)
-                                  }
-                                  disabled={isLoading}
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() =>
+                                  handleViewReturnDetail(returnItem.id)
+                                }
+                                disabled={isLoading}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -474,19 +411,33 @@ export default function ClientModals({
                           </p>
                           <p>
                             <strong>Trạng thái:</strong>{" "}
-                            <span
-                              className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                returnItem.status === "Pending"
-                                  ? "bg-yellow-100 text-yellow-800"
-                                  : returnItem.status === "Approved"
-                                  ? "bg-blue-100 text-blue-800"
-                                  : returnItem.status === "Rejected"
-                                  ? "bg-red-100 text-red-800"
-                                  : "bg-green-100 text-green-800"
-                              }`}
+                            <Select
+                              value={returnItem.status}
+                              onValueChange={(value) =>
+                                handleUpdateReturnStatus(returnItem.id, value)
+                              }
+                              disabled={isUpdating === returnItem.id}
                             >
-                              {translateReturnStatus(returnItem.status)}
-                            </span>
+                              <SelectTrigger className="w-full">
+                                <SelectValue>
+                                  {translateReturnStatus(returnItem.status)}
+                                </SelectValue>
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Pending">
+                                  {translateReturnStatus("Pending")}
+                                </SelectItem>
+                                <SelectItem value="Approved">
+                                  {translateReturnStatus("Approved")}
+                                </SelectItem>
+                                <SelectItem value="Rejected">
+                                  {translateReturnStatus("Rejected")}
+                                </SelectItem>
+                                <SelectItem value="Completed">
+                                  {translateReturnStatus("Completed")}
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
                           </p>
                           <p>
                             <strong>Ngày yêu cầu:</strong>{" "}
@@ -505,17 +456,6 @@ export default function ClientModals({
                             >
                               <Eye className="h-4 w-4 mr-1" />
                               Xem
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() =>
-                                handleOpenReturnEdit(returnItem.id)
-                              }
-                              disabled={isLoading}
-                            >
-                              <Edit className="h-4 w-4 mr-1" />
-                              Sửa
                             </Button>
                           </div>
                         </CardContent>
@@ -547,7 +487,6 @@ export default function ClientModals({
                     <SelectItem value="Processing">Đang xử lý</SelectItem>
                     <SelectItem value="Processed">Đã xử lý</SelectItem>
                     <SelectItem value="Returned">Đã trả hàng</SelectItem>
-                    <SelectItem value="Canceled">Đã hủy</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -618,23 +557,38 @@ export default function ClientModals({
                               ).toLocaleDateString("vi-VN")}
                             </TableCell>
                             <TableCell>
-                              <span
-                                className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                  returnTicket.status === "Requested"
-                                    ? "bg-yellow-100 text-yellow-800"
-                                    : returnTicket.status === "Processing"
-                                    ? "bg-blue-100 text-blue-800"
-                                    : returnTicket.status === "Processed"
-                                    ? "bg-purple-100 text-purple-800"
-                                    : returnTicket.status === "Returned"
-                                    ? "bg-green-100 text-green-800"
-                                    : "bg-red-100 text-red-800"
-                                }`}
+                              <Select
+                                value={returnTicket.status}
+                                onValueChange={(value) =>
+                                  handleUpdateReturnTicketStatus(
+                                    returnTicket.id,
+                                    value
+                                  )
+                                }
+                                disabled={isUpdating === returnTicket.id}
                               >
-                                {translateReturnTicketStatus(
-                                  returnTicket.status
-                                )}
-                              </span>
+                                <SelectTrigger className="w-[120px]">
+                                  <SelectValue>
+                                    {translateReturnTicketStatus(
+                                      returnTicket.status
+                                    )}
+                                  </SelectValue>
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="Requested">
+                                    {translateReturnTicketStatus("Requested")}
+                                  </SelectItem>
+                                  <SelectItem value="Processing">
+                                    {translateReturnTicketStatus("Processing")}
+                                  </SelectItem>
+                                  <SelectItem value="Processed">
+                                    {translateReturnTicketStatus("Processed")}
+                                  </SelectItem>
+                                  <SelectItem value="Returned">
+                                    {translateReturnTicketStatus("Returned")}
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
                             </TableCell>
                             <TableCell className="text-gray-600">
                               {new Date(
@@ -642,30 +596,16 @@ export default function ClientModals({
                               ).toLocaleDateString("vi-VN")}
                             </TableCell>
                             <TableCell>
-                              <div className="flex space-x-2">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() =>
-                                    handleViewReturnTicketDetail(
-                                      returnTicket.id
-                                    )
-                                  }
-                                  disabled={isLoading}
-                                >
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() =>
-                                    handleOpenReturnTicketEdit(returnTicket.id)
-                                  }
-                                  disabled={isLoading}
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() =>
+                                  handleViewReturnTicketDetail(returnTicket.id)
+                                }
+                                disabled={isLoading}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -703,21 +643,38 @@ export default function ClientModals({
                           </p>
                           <p>
                             <strong>Trạng thái:</strong>{" "}
-                            <span
-                              className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                returnTicket.status === "Requested"
-                                  ? "bg-yellow-100 text-yellow-800"
-                                  : returnTicket.status === "Processing"
-                                  ? "bg-blue-100 text-blue-800"
-                                  : returnTicket.status === "Processed"
-                                  ? "bg-purple-100 text-purple-800"
-                                  : returnTicket.status === "Returned"
-                                  ? "bg-green-100 text-green-800"
-                                  : "bg-red-100 text-red-800"
-                              }`}
+                            <Select
+                              value={returnTicket.status}
+                              onValueChange={(value) =>
+                                handleUpdateReturnTicketStatus(
+                                  returnTicket.id,
+                                  value
+                                )
+                              }
+                              disabled={isUpdating === returnTicket.id}
                             >
-                              {translateReturnTicketStatus(returnTicket.status)}
-                            </span>
+                              <SelectTrigger className="w-full">
+                                <SelectValue>
+                                  {translateReturnTicketStatus(
+                                    returnTicket.status
+                                  )}
+                                </SelectValue>
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Requested">
+                                  {translateReturnTicketStatus("Requested")}
+                                </SelectItem>
+                                <SelectItem value="Processing">
+                                  {translateReturnTicketStatus("Processing")}
+                                </SelectItem>
+                                <SelectItem value="Processed">
+                                  {translateReturnTicketStatus("Processed")}
+                                </SelectItem>
+                                <SelectItem value="Returned">
+                                  {translateReturnTicketStatus("Returned")}
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
                           </p>
                           <p>
                             <strong>Ngày bắt đầu:</strong>{" "}
@@ -737,17 +694,6 @@ export default function ClientModals({
                               <Eye className="h-4 w-4 mr-1" />
                               Xem
                             </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() =>
-                                handleOpenReturnTicketEdit(returnTicket.id)
-                              }
-                              disabled={isLoading}
-                            >
-                              <Edit className="h-4 w-4 mr-1" />
-                              Sửa
-                            </Button>
                           </div>
                         </CardContent>
                       </Card>
@@ -759,29 +705,11 @@ export default function ClientModals({
           </TabsContent>
         </Tabs>
 
-        {/* Modal Cập nhật trạng thái yêu cầu đổi trả */}
-        <ReturnForm
-          open={isReturnEditOpen}
-          onOpenChange={setIsReturnEditOpen}
-          onSubmit={handleUpdateReturnStatus}
-          initialData={selectedReturn || undefined}
-          isLoading={isEditingReturn}
-        />
-
         {/* Modal Xem chi tiết yêu cầu đổi trả */}
         <ReturnDetail
           open={isReturnDetailOpen}
           onOpenChange={setIsReturnDetailOpen}
           returnDetail={selectedReturn}
-        />
-
-        {/* Modal Cập nhật trạng thái phiếu đổi trả */}
-        <ReturnTicketForm
-          open={isReturnTicketEditOpen}
-          onOpenChange={setIsReturnTicketEditOpen}
-          onSubmit={handleUpdateReturnTicketStatus}
-          initialData={selectedReturnTicket || undefined}
-          isLoading={isEditingReturnTicket}
         />
 
         {/* Modal Xem chi tiết phiếu đổi trả */}
