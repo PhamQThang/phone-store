@@ -40,7 +40,7 @@ export default function ProductsPage() {
             getModels(),
           ]);
           if (isMounted) {
-            setProducts(productsData);
+            setProducts(productsData.data);
             setModels(modelsData);
           }
         } catch (error) {
@@ -113,7 +113,7 @@ export default function ProductsPage() {
         modelId,
         files: files.length > 0 ? createFileList(files) : undefined,
       });
-      setProducts((prev) => [...prev, newProduct]);
+      setProducts((prev) => [newProduct, ...prev]);
       return {
         success: true,
         message: "Thêm sản phẩm thành công",

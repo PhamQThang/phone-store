@@ -153,7 +153,6 @@ export function PromotionForm({
       toast.error("Vui lòng chọn một sản phẩm");
       return;
     }
-    // Bỏ kiểm tra isPromotionActive để cho phép thêm sản phẩm ngay cả khi khuyến mãi đang hoạt động
     if (!initialData) {
       const product = products.find((p) => p.id === selectedProductId);
       if (product) {
@@ -209,7 +208,6 @@ export function PromotionForm({
   };
 
   const handleRemoveProduct = async (productId: string) => {
-    // Bỏ kiểm tra isPromotionActive để cho phép xóa sản phẩm ngay cả khi khuyến mãi đang hoạt động
     if (!initialData) {
       setSelectedProducts((prev) => prev.filter((p) => p.id !== productId));
       return;
@@ -260,6 +258,13 @@ export function PromotionForm({
   };
 
   const handleSubmit = async (values: z.infer<typeof promotionSchema>) => {
+    if (selectedProducts.length === 0) {
+      toast.error("Vui lòng chọn ít nhất một sản phẩm để áp dụng khuyến mãi.", {
+        duration: 3000,
+      });
+      return;
+    }
+
     try {
       await onSubmit({
         ...values,
@@ -268,6 +273,9 @@ export function PromotionForm({
       onOpenChange(false);
     } catch (error) {
       console.error("Error submitting form:", error);
+      toast.error("Thêm khuyến mãi thất bại. Vui lòng thử lại.", {
+        duration: 3000,
+      });
     }
   };
 
@@ -423,7 +431,7 @@ export function PromotionForm({
                         variant="ghost"
                         size="sm"
                         onClick={() => handleRemoveProduct(product.id)}
-                        disabled={isLoading || isProductLoading} // Bỏ isPromotionActive
+                        disabled={isLoading || isProductLoading}
                       >
                         <Trash className="h-4 w-4" />
                       </Button>
@@ -446,7 +454,7 @@ export function PromotionForm({
                   <Select
                     value={selectedProductId}
                     onValueChange={setSelectedProductId}
-                    disabled={isProductLoading} // Bỏ isPromotionActive
+                    disabled={isProductLoading}
                   >
                     <SelectTrigger className="text-sm sm:text-base">
                       <SelectValue placeholder="Chọn sản phẩm" />
@@ -461,7 +469,7 @@ export function PromotionForm({
                   </Select>
                   <Button
                     onClick={handleAddProduct}
-                    disabled={isLoading || isProductLoading} // Bỏ isPromotionActive
+                    disabled={isLoading || isProductLoading}
                   >
                     {isProductLoading ? (
                       <>

@@ -12,15 +12,13 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Edit, Eye, Search, X } from "lucide-react";
+import { Eye, Search, X } from "lucide-react";
 import { Warranty, WarrantyRequest } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { WarrantyRequestForm } from "@/components/admin/warranties/WarrantyRequestForm";
 import { WarrantyRequestDetail } from "@/components/admin/warranties/WarrantyRequestDetail";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WarrantyDetail } from "./WarrantyDetail";
-import { WarrantyForm } from "./WarrantyForm";
 import {
   Select,
   SelectContent,
@@ -54,21 +52,15 @@ export default function ClientModals({
   getWarrantyRequestDetailAction,
   getWarrantyDetailAction,
 }: ClientModalsProps) {
-  const [isWarrantyRequestEditOpen, setIsWarrantyRequestEditOpen] =
-    useState(false);
   const [isWarrantyRequestDetailOpen, setIsWarrantyRequestDetailOpen] =
     useState(false);
-  const [isWarrantyEditOpen, setIsWarrantyEditOpen] = useState(false);
   const [isWarrantyDetailOpen, setIsWarrantyDetailOpen] = useState(false);
   const [selectedWarrantyRequest, setSelectedWarrantyRequest] =
     useState<WarrantyRequest | null>(null);
   const [selectedWarranty, setSelectedWarranty] = useState<Warranty | null>(
     null
   );
-  const [isEditingWarrantyRequest, setIsEditingWarrantyRequest] =
-    useState(false);
-  const [isEditingWarranty, setIsEditingWarranty] = useState(false);
-  const [isViewing, setIsViewing] = useState(false);
+  const [isUpdating, setIsUpdating] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [requestStatusFilter, setRequestStatusFilter] = useState<string>("all");
   const [warrantyStatusFilter, setWarrantyStatusFilter] =
@@ -91,7 +83,6 @@ export default function ClientModals({
       Repairing: "Đang sửa chữa",
       Repaired: "Đã sửa xong",
       Returned: "Đã trả máy",
-      Canceled: "Đã hủy",
     };
     return statusMap[status] || status;
   };
@@ -134,17 +125,15 @@ export default function ClientModals({
   }, [warranties, searchTerm, warrantyStatusFilter]);
 
   // Cập nhật trạng thái yêu cầu bảo hành
-  const handleUpdateWarrantyRequestStatus = async (status: string) => {
-    if (!selectedWarrantyRequest) return;
-    setIsEditingWarrantyRequest(true);
+  const handleUpdateWarrantyRequestStatus = async (
+    requestId: string,
+    status: string
+  ) => {
+    setIsUpdating(requestId);
     try {
-      const result = await updateWarrantyRequestStatusAction(
-        selectedWarrantyRequest.id,
-        status
-      );
+      const result = await updateWarrantyRequestStatusAction(requestId, status);
       if (result.success) {
         toast.success(result.message);
-        setIsWarrantyRequestEditOpen(false);
       } else {
         toast.error("Cập nhật trạng thái thất bại", {
           description: result.error || "Vui lòng thử lại sau.",
@@ -157,22 +146,20 @@ export default function ClientModals({
         duration: 2000,
       });
     } finally {
-      setIsEditingWarrantyRequest(false);
+      setIsUpdating(null);
     }
   };
 
   // Cập nhật trạng thái phiếu bảo hành
-  const handleUpdateWarrantyStatus = async (status: string) => {
-    if (!selectedWarranty) return;
-    setIsEditingWarranty(true);
+  const handleUpdateWarrantyStatus = async (
+    warrantyId: string,
+    status: string
+  ) => {
+    setIsUpdating(warrantyId);
     try {
-      const result = await updateWarrantyStatusAction(
-        selectedWarranty.id,
-        status
-      );
+      const result = await updateWarrantyStatusAction(warrantyId, status);
       if (result.success) {
         toast.success(result.message);
-        setIsWarrantyEditOpen(false);
       } else {
         toast.error("Cập nhật trạng thái thất bại", {
           description: result.error || "Vui lòng thử lại sau.",
@@ -185,13 +172,12 @@ export default function ClientModals({
         duration: 2000,
       });
     } finally {
-      setIsEditingWarranty(false);
+      setIsUpdating(null);
     }
   };
 
   // Xem chi tiết yêu cầu bảo hành
   const handleViewWarrantyRequestDetail = async (requestId: string) => {
-    setIsViewing(true);
     try {
       const result = await getWarrantyRequestDetailAction(requestId);
       if (result.success) {
@@ -209,14 +195,11 @@ export default function ClientModals({
         description: error.message || "Vui lòng thử lại sau.",
         duration: 2000,
       });
-    } finally {
-      setIsViewing(false);
     }
   };
 
   // Xem chi tiết phiếu bảo hành
   const handleViewWarrantyDetail = async (warrantyId: string) => {
-    setIsViewing(true);
     try {
       const result = await getWarrantyDetailAction(warrantyId);
       if (result.success) {
@@ -234,62 +217,10 @@ export default function ClientModals({
         description: error.message || "Vui lòng thử lại sau.",
         duration: 2000,
       });
-    } finally {
-      setIsViewing(false);
     }
   };
 
-  // Mở form chỉnh sửa trạng thái yêu cầu bảo hành
-  const handleOpenWarrantyRequestEdit = async (requestId: string) => {
-    setIsViewing(true);
-    try {
-      const result = await getWarrantyRequestDetailAction(requestId);
-      if (result.success) {
-        setSelectedWarrantyRequest(result.request);
-        setIsWarrantyRequestEditOpen(true);
-        toast.success("Tải thông tin yêu cầu bảo hành thành công");
-      } else {
-        toast.error("Lỗi khi lấy thông tin yêu cầu bảo hành", {
-          description: result.error || "Vui lòng thử lại sau.",
-          duration: 2000,
-        });
-      }
-    } catch (error: any) {
-      toast.error("Lỗi khi lấy thông tin yêu cầu bảo hành", {
-        description: error.message || "Vui lòng thử lại sau.",
-        duration: 2000,
-      });
-    } finally {
-      setIsViewing(false);
-    }
-  };
-
-  // Mở form chỉnh sửa trạng thái phiếu bảo hành
-  const handleOpenWarrantyEdit = async (warrantyId: string) => {
-    setIsViewing(true);
-    try {
-      const result = await getWarrantyDetailAction(warrantyId);
-      if (result.success) {
-        setSelectedWarranty(result.warranty);
-        setIsWarrantyEditOpen(true);
-        toast.success("Tải thông tin phiếu bảo hành thành công");
-      } else {
-        toast.error("Lỗi khi lấy thông tin phiếu bảo hành", {
-          description: result.error || "Vui lòng thử lại sau.",
-          duration: 2000,
-        });
-      }
-    } catch (error: any) {
-      toast.error("Lỗi khi lấy thông tin phiếu bảo hành", {
-        description: error.message || "Vui lòng thử lại sau.",
-        duration: 2000,
-      });
-    } finally {
-      setIsViewing(false);
-    }
-  };
-
-  const isLoading = isEditingWarrantyRequest || isEditingWarranty || isViewing;
+  const isLoading = isUpdating !== null;
 
   return (
     <Card className="max-w-5xl mx-auto shadow-lg border border-gray-100 rounded-xl bg-white">
@@ -409,19 +340,40 @@ export default function ClientModals({
                               {request.reason}
                             </TableCell>
                             <TableCell>
-                              <span
-                                className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                  request.status === "Pending"
-                                    ? "bg-yellow-100 text-yellow-800"
-                                    : request.status === "Approved"
-                                    ? "bg-blue-100 text-blue-800"
-                                    : request.status === "Rejected"
-                                    ? "bg-red-100 text-red-800"
-                                    : "bg-green-100 text-green-800"
-                                }`}
+                              <Select
+                                value={request.status}
+                                onValueChange={(value) =>
+                                  handleUpdateWarrantyRequestStatus(
+                                    request.id,
+                                    value
+                                  )
+                                }
+                                disabled={isUpdating === request.id}
                               >
-                                {translateWarrantyRequestStatus(request.status)}
-                              </span>
+                                <SelectTrigger className="w-[120px]">
+                                  <SelectValue>
+                                    {translateWarrantyRequestStatus(
+                                      request.status
+                                    )}
+                                  </SelectValue>
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="Pending">
+                                    {translateWarrantyRequestStatus("Pending")}
+                                  </SelectItem>
+                                  <SelectItem value="Approved">
+                                    {translateWarrantyRequestStatus("Approved")}
+                                  </SelectItem>
+                                  <SelectItem value="Rejected">
+                                    {translateWarrantyRequestStatus("Rejected")}
+                                  </SelectItem>
+                                  <SelectItem value="Completed">
+                                    {translateWarrantyRequestStatus(
+                                      "Completed"
+                                    )}
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
                             </TableCell>
                             <TableCell className="text-gray-600">
                               {new Date(request.requestDate).toLocaleDateString(
@@ -429,28 +381,16 @@ export default function ClientModals({
                               )}
                             </TableCell>
                             <TableCell>
-                              <div className="flex space-x-2">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() =>
-                                    handleViewWarrantyRequestDetail(request.id)
-                                  }
-                                  disabled={isLoading}
-                                >
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() =>
-                                    handleOpenWarrantyRequestEdit(request.id)
-                                  }
-                                  disabled={isLoading}
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() =>
+                                  handleViewWarrantyRequestDetail(request.id)
+                                }
+                                disabled={isLoading}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -481,19 +421,38 @@ export default function ClientModals({
                           </p>
                           <p>
                             <strong>Trạng thái:</strong>{" "}
-                            <span
-                              className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                request.status === "Pending"
-                                  ? "bg-yellow-100 text-yellow-800"
-                                  : request.status === "Approved"
-                                  ? "bg-blue-100 text-blue-800"
-                                  : request.status === "Rejected"
-                                  ? "bg-red-100 text-red-800"
-                                  : "bg-green-100 text-green-800"
-                              }`}
+                            <Select
+                              value={request.status}
+                              onValueChange={(value) =>
+                                handleUpdateWarrantyRequestStatus(
+                                  request.id,
+                                  value
+                                )
+                              }
+                              disabled={isUpdating === request.id}
                             >
-                              {translateWarrantyRequestStatus(request.status)}
-                            </span>
+                              <SelectTrigger className="w-full">
+                                <SelectValue>
+                                  {translateWarrantyRequestStatus(
+                                    request.status
+                                  )}
+                                </SelectValue>
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Pending">
+                                  {translateWarrantyRequestStatus("Pending")}
+                                </SelectItem>
+                                <SelectItem value="Approved">
+                                  {translateWarrantyRequestStatus("Approved")}
+                                </SelectItem>
+                                <SelectItem value="Rejected">
+                                  {translateWarrantyRequestStatus("Rejected")}
+                                </SelectItem>
+                                <SelectItem value="Completed">
+                                  {translateWarrantyRequestStatus("Completed")}
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
                           </p>
                           <p>
                             <strong>Ngày yêu cầu:</strong>{" "}
@@ -512,17 +471,6 @@ export default function ClientModals({
                             >
                               <Eye className="h-4 w-4 mr-1" />
                               Xem
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() =>
-                                handleOpenWarrantyRequestEdit(request.id)
-                              }
-                              disabled={isLoading}
-                            >
-                              <Edit className="h-4 w-4 mr-1" />
-                              Sửa
                             </Button>
                           </div>
                         </CardContent>
@@ -555,7 +503,6 @@ export default function ClientModals({
                     <SelectItem value="Repairing">Đang sửa chữa</SelectItem>
                     <SelectItem value="Repaired">Đã sửa xong</SelectItem>
                     <SelectItem value="Returned">Đã trả máy</SelectItem>
-                    <SelectItem value="Canceled">Đã hủy</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -626,23 +573,36 @@ export default function ClientModals({
                               )}
                             </TableCell>
                             <TableCell>
-                              <span
-                                className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                  warranty.status === "Requested"
-                                    ? "bg-yellow-100 text-yellow-800"
-                                    : warranty.status === "Processing"
-                                    ? "bg-blue-100 text-blue-800"
-                                    : warranty.status === "Repairing"
-                                    ? "bg-purple-100 text-purple-800"
-                                    : warranty.status === "Repaired"
-                                    ? "bg-orange-100 text-orange-800"
-                                    : warranty.status === "Returned"
-                                    ? "bg-green-100 text-green-800"
-                                    : "bg-red-100 text-red-800"
-                                }`}
+                              <Select
+                                value={warranty.status}
+                                onValueChange={(value) =>
+                                  handleUpdateWarrantyStatus(warranty.id, value)
+                                }
+                                disabled={isUpdating === warranty.id}
                               >
-                                {translateWarrantyStatus(warranty.status)}
-                              </span>
+                                <SelectTrigger className="w-[120px]">
+                                  <SelectValue>
+                                    {translateWarrantyStatus(warranty.status)}
+                                  </SelectValue>
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="Requested">
+                                    {translateWarrantyStatus("Requested")}
+                                  </SelectItem>
+                                  <SelectItem value="Processing">
+                                    {translateWarrantyStatus("Processing")}
+                                  </SelectItem>
+                                  <SelectItem value="Repairing">
+                                    {translateWarrantyStatus("Repairing")}
+                                  </SelectItem>
+                                  <SelectItem value="Repaired">
+                                    {translateWarrantyStatus("Repaired")}
+                                  </SelectItem>
+                                  <SelectItem value="Returned">
+                                    {translateWarrantyStatus("Returned")}
+                                  </SelectItem>
+                                </SelectContent>
+                              </Select>
                             </TableCell>
                             <TableCell className="text-gray-600">
                               {new Date(warranty.startDate).toLocaleDateString(
@@ -650,28 +610,16 @@ export default function ClientModals({
                               )}
                             </TableCell>
                             <TableCell>
-                              <div className="flex space-x-2">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() =>
-                                    handleViewWarrantyDetail(warranty.id)
-                                  }
-                                  disabled={isLoading}
-                                >
-                                  <Eye className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() =>
-                                    handleOpenWarrantyEdit(warranty.id)
-                                  }
-                                  disabled={isLoading}
-                                >
-                                  <Edit className="h-4 w-4" />
-                                </Button>
-                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() =>
+                                  handleViewWarrantyDetail(warranty.id)
+                                }
+                                disabled={isLoading}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -709,23 +657,36 @@ export default function ClientModals({
                           </p>
                           <p>
                             <strong>Trạng thái:</strong>{" "}
-                            <span
-                              className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                warranty.status === "Requested"
-                                  ? "bg-yellow-100 text-yellow-800"
-                                  : warranty.status === "Processing"
-                                  ? "bg-blue-100 text-blue-800"
-                                  : warranty.status === "Repairing"
-                                  ? "bg-purple-100 text-purple-800"
-                                  : warranty.status === "Repaired"
-                                  ? "bg-orange-100 text-orange-800"
-                                  : warranty.status === "Returned"
-                                  ? "bg-green-100 text-green-800"
-                                  : "bg-red-100 text-red-800"
-                              }`}
+                            <Select
+                              value={warranty.status}
+                              onValueChange={(value) =>
+                                handleUpdateWarrantyStatus(warranty.id, value)
+                              }
+                              disabled={isUpdating === warranty.id}
                             >
-                              {translateWarrantyStatus(warranty.status)}
-                            </span>
+                              <SelectTrigger className="w-full">
+                                <SelectValue>
+                                  {translateWarrantyStatus(warranty.status)}
+                                </SelectValue>
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="Requested">
+                                  {translateWarrantyStatus("Requested")}
+                                </SelectItem>
+                                <SelectItem value="Processing">
+                                  {translateWarrantyStatus("Processing")}
+                                </SelectItem>
+                                <SelectItem value="Repairing">
+                                  {translateWarrantyStatus("Repairing")}
+                                </SelectItem>
+                                <SelectItem value="Repaired">
+                                  {translateWarrantyStatus("Repaired")}
+                                </SelectItem>
+                                <SelectItem value="Returned">
+                                  {translateWarrantyStatus("Returned")}
+                                </SelectItem>
+                              </SelectContent>
+                            </Select>
                           </p>
                           <p>
                             <strong>Ngày bắt đầu:</strong>{" "}
@@ -745,17 +706,6 @@ export default function ClientModals({
                               <Eye className="h-4 w-4 mr-1" />
                               Xem
                             </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() =>
-                                handleOpenWarrantyEdit(warranty.id)
-                              }
-                              disabled={isLoading}
-                            >
-                              <Edit className="h-4 w-4 mr-1" />
-                              Sửa
-                            </Button>
                           </div>
                         </CardContent>
                       </Card>
@@ -767,29 +717,11 @@ export default function ClientModals({
           </TabsContent>
         </Tabs>
 
-        {/* Modal Cập nhật trạng thái yêu cầu bảo hành */}
-        <WarrantyRequestForm
-          open={isWarrantyRequestEditOpen}
-          onOpenChange={setIsWarrantyRequestEditOpen}
-          onSubmit={handleUpdateWarrantyRequestStatus}
-          initialData={selectedWarrantyRequest || undefined}
-          isLoading={isEditingWarrantyRequest}
-        />
-
         {/* Modal Xem chi tiết yêu cầu bảo hành */}
         <WarrantyRequestDetail
           open={isWarrantyRequestDetailOpen}
           onOpenChange={setIsWarrantyRequestDetailOpen}
           warrantyRequest={selectedWarrantyRequest}
-        />
-
-        {/* Modal Cập nhật trạng thái phiếu bảo hành */}
-        <WarrantyForm
-          open={isWarrantyEditOpen}
-          onOpenChange={setIsWarrantyEditOpen}
-          onSubmit={handleUpdateWarrantyStatus}
-          initialData={selectedWarranty || undefined}
-          isLoading={isEditingWarranty}
         />
 
         {/* Modal Xem chi tiết phiếu bảo hành */}

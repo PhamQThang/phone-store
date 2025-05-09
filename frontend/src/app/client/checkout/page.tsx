@@ -92,6 +92,14 @@ export default function CheckoutPage() {
       return;
     }
 
+    // Thêm confirm trước khi đặt hàng
+    const isConfirmed = window.confirm(
+      `Bạn có chắc chắn muốn ${
+        paymentMethod === "Online" ? "thanh toán" : "đặt hàng"
+      } với tổng số tiền ${totalAmount.toLocaleString("vi-VN")} VNĐ?`
+    );
+    if (!isConfirmed) return;
+
     try {
       const orderData = {
         fullName,
@@ -132,7 +140,7 @@ export default function CheckoutPage() {
       <div className="flex items-center justify-center h-screen bg-gray-50">
         <div className="text-gray-600 text-lg flex items-center">
           <svg
-            className="animate-spin h-6 w-6 mr-2 text-blue-500"
+            className="animate-spin h-6 w-6 mr-2 text-red-500"
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
@@ -170,7 +178,7 @@ export default function CheckoutPage() {
   return (
     <div className="container mx-auto py-12 px-4 sm:px-6 lg:px-8 bg-gray-50 min-h-screen">
       <Card className="max-w-4xl mx-auto shadow-lg border border-gray-100 rounded-xl bg-white">
-        <CardHeader className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white rounded-t-xl">
+        <CardHeader className=" text-black rounded-t-xl">
           <CardTitle className="text-2xl sm:text-3xl font-bold text-center">
             Thanh toán đơn hàng
           </CardTitle>
@@ -195,7 +203,7 @@ export default function CheckoutPage() {
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     placeholder="Nhập họ và tên"
-                    className="mt-1 rounded-lg border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                    className="mt-1 rounded-lg border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all duration-200 hover:border-red-300"
                   />
                 </div>
                 <div>
@@ -210,7 +218,7 @@ export default function CheckoutPage() {
                     value={address}
                     onChange={(e) => setAddress(e.target.value)}
                     placeholder="Nhập địa chỉ giao hàng"
-                    className="mt-1 rounded-lg border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                    className="mt-1 rounded-lg border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all duration-200 hover:border-red-300"
                   />
                 </div>
                 <div>
@@ -225,7 +233,7 @@ export default function CheckoutPage() {
                     value={phoneNumber}
                     onChange={(e) => setPhoneNumber(e.target.value)}
                     placeholder="Nhập số điện thoại (không bắt buộc)"
-                    className="mt-1 rounded-lg border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                    className="mt-1 rounded-lg border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all duration-200 hover:border-red-300"
                   />
                 </div>
                 <div>
@@ -241,7 +249,7 @@ export default function CheckoutPage() {
                     }
                     defaultValue="COD"
                   >
-                    <SelectTrigger className="mt-1 rounded-lg border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                    <SelectTrigger className="mt-1 rounded-lg border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all duration-200">
                       <SelectValue placeholder="Chọn phương thức thanh toán" />
                     </SelectTrigger>
                     <SelectContent>
@@ -266,7 +274,7 @@ export default function CheckoutPage() {
                     value={note}
                     onChange={(e) => setNote(e.target.value)}
                     placeholder="Nhập ghi chú nếu có"
-                    className="mt-1 rounded-lg border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                    className="mt-1 rounded-lg border-gray-300 focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all duration-200 hover:border-red-300"
                   />
                 </div>
               </div>
@@ -334,13 +342,13 @@ export default function CheckoutPage() {
                   <div className="mt-6 bg-gray-50 p-4 rounded-lg">
                     <p className="text-lg font-semibold text-gray-800">
                       Tổng tiền:{" "}
-                      <span className="text-blue-600">
+                      <span className="text-red-600">
                         {totalAmount.toLocaleString("vi-VN")} VNĐ
                       </span>
                     </p>
                     <Button
                       onClick={handlePlaceOrder}
-                      className="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition-colors"
+                      className="mt-4 w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 rounded-lg transition-colors duration-200"
                     >
                       {paymentMethod === "Online"
                         ? "Thanh toán ngay"

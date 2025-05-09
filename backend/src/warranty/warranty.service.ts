@@ -15,7 +15,7 @@ export class WarrantyService {
     userId: number,
     createWarrantyRequestDto: CreateWarrantyRequestDto
   ) {
-    const { productIdentityId, reason, fullName, phoneNumber, email } =
+    const { productIdentityId, reason, fullName, phoneNumber, address } =
       createWarrantyRequestDto;
 
     // Kiểm tra productIdentity
@@ -50,15 +50,23 @@ export class WarrantyService {
       );
     }
 
-    // Kiểm tra thời gian đổi trả (7 ngày đầu kể từ ngày giao hàng)
-    const deliveredDate = orderDetail.order.updatedAt; // Thời điểm trạng thái chuyển sang Delivered
+    // Kiểm tra thời gian đổi trả (1 ngày đầu kể từ ngày giao hàng, không bao gồm ngày 1)
+    const deliveredDate = new Date(orderDetail.order.updatedAt); // Thời điểm trạng thái chuyển sang Delivered
     const currentDate = new Date();
+
+    // Chuẩn hóa thời gian về 00:00:00 để tránh vấn đề về giờ
+    deliveredDate.setHours(0, 0, 0, 0);
+    currentDate.setHours(0, 0, 0, 0);
+
     const daysSinceDelivered = Math.floor(
       (currentDate.getTime() - deliveredDate.getTime()) / (1000 * 60 * 60 * 24)
     );
-    const returnWindowDays = parseInt(process.env.RETURN_WINDOW_DAYS) || 7;
+    console.log(`Days since delivered: ${daysSinceDelivered}`);
 
-    if (daysSinceDelivered <= returnWindowDays) {
+    const returnWindowDays = parseInt(process.env.RETURN_WINDOW_DAYS, 10) || 1; // Đảm bảo parse đúng và mặc định là 1
+    console.log(`Return window days: ${returnWindowDays}`);
+
+    if (daysSinceDelivered < returnWindowDays) {
       throw new BadRequestException(
         `Sản phẩm vẫn trong thời gian đổi trả (${returnWindowDays} ngày đầu kể từ ngày giao hàng). Vui lòng sử dụng chính sách đổi trả.`
       );
@@ -117,7 +125,7 @@ export class WarrantyService {
         reason,
         fullName,
         phoneNumber,
-        email,
+        address,
         status: 'Pending',
       },
       include: {

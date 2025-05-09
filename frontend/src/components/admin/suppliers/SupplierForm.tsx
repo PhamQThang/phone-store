@@ -163,9 +163,7 @@ export function SupplierForm({
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-sm sm:text-base">
-                    Email (không bắt buộc)
-                  </FormLabel>
+                  <FormLabel className="text-sm sm:text-base">Email</FormLabel>
                   <FormControl>
                     <Input
                       placeholder="Nhập email"

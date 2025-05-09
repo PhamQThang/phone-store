@@ -91,54 +91,67 @@ export function OrderForm({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-full max-w-lg p-4 sm:p-6">
+      <DialogContent className="w-full max-w-lg p-6 bg-white rounded-lg shadow-xl">
         <DialogHeader>
-          <DialogTitle className="text-lg sm:text-xl">
+          <DialogTitle className="text-2xl font-semibold text-gray-900">
             Cập nhật trạng thái đơn hàng #{initialData.id.substring(0, 8)}...
           </DialogTitle>
         </DialogHeader>
-        <div className="space-y-4">
-          <div className="space-y-3 text-sm sm:text-base">
-            <div>
-              <strong>Mã đơn hàng:</strong> {initialData.id}
+        <div className="space-y-6">
+          <div className="space-y-4 text-gray-700">
+            <div className="flex flex-col">
+              <span className="font-medium">Mã đơn hàng:</span>
+              <span className="text-gray-600">{initialData.id}</span>
             </div>
-            <div>
-              <strong>Địa chỉ:</strong> {initialData.address}
+            <div className="flex flex-col">
+              <span className="font-medium">Địa chỉ:</span>
+              <span className="text-gray-600">{initialData.address}</span>
             </div>
-            <div>
-              <strong>Số điện thoại:</strong>{" "}
-              {initialData.phoneNumber || "Không có"}
+            <div className="flex flex-col">
+              <span className="font-medium">Số điện thoại:</span>
+              <span className="text-gray-600">
+                {initialData.phoneNumber || "Không có"}
+              </span>
             </div>
-            <div>
-              <strong>Tổng tiền:</strong>{" "}
-              {initialData.totalAmount.toLocaleString("vi-VN")} VNĐ
+            <div className="flex flex-col">
+              <span className="font-medium">Tổng tiền:</span>
+              <span className="text-gray-600">
+                {initialData.totalAmount.toLocaleString("vi-VN")} VNĐ
+              </span>
             </div>
-            <div>
-              <strong>Phương thức thanh toán:</strong>{" "}
-              {initialData.paymentMethod === "COD"
-                ? "Thanh toán khi nhận hàng"
-                : "Thanh toán trực tuyến"}
+            <div className="flex flex-col">
+              <span className="font-medium">Phương thức thanh toán:</span>
+              <span className="text-gray-600">
+                {initialData.paymentMethod === "COD"
+                  ? "Thanh toán khi nhận hàng"
+                  : "Thanh toán trực tuyến"}
+              </span>
             </div>
-            <div>
-              <strong>Trạng thái thanh toán:</strong>{" "}
-              {initialData.paymentStatus === "Completed"
-                ? "Đã thanh toán"
-                : initialData.paymentStatus === "Pending"
-                ? "Chưa thanh toán"
-                : "Thanh toán thất bại"}
+            <div className="flex flex-col">
+              <span className="font-medium">Trạng thái thanh toán:</span>
+              <span className="text-gray-600">
+                {initialData.paymentStatus === "Completed"
+                  ? "Đã thanh toán"
+                  : initialData.paymentStatus === "Pending"
+                  ? "Chưa thanh toán"
+                  : "Thanh toán thất bại"}
+              </span>
             </div>
-            <div>
-              <strong>Ngày tạo:</strong>{" "}
-              {new Date(initialData.createdAt).toLocaleString()}
+            <div className="flex flex-col">
+              <span className="font-medium">Ngày tạo:</span>
+              <span className="text-gray-600">
+                {new Date(initialData.createdAt).toLocaleString()}
+              </span>
             </div>
-            <div>
-              <strong>Người dùng:</strong> {`${initialData.user.fullName}`}
+            <div className="flex flex-col">
+              <span className="font-medium">Người dùng:</span>
+              <span className="text-gray-600">{`${initialData.user.fullName}`}</span>
             </div>
-            <div>
-              <strong>Sản phẩm:</strong>
-              <ul className="list-disc ml-5 mt-1">
+            <div className="flex flex-col">
+              <span className="font-medium">Sản phẩm:</span>
+              <ul className="list-disc ml-6 mt-2 text-gray-600">
                 {initialData.orderDetails.map((item, index) => (
-                  <li key={index}>
+                  <li key={index} className="mb-1">
                     {item.product.name} - Màu: {item.color.name} - Giá:{" "}
                     {item.discountedPrice?.toLocaleString("vi-VN")} VNĐ
                     {item.discountedPrice &&
@@ -157,23 +170,27 @@ export function OrderForm({
           <Form {...form}>
             <form
               onSubmit={form.handleSubmit(handleSubmit)}
-              className="space-y-4"
+              className="space-y-6"
             >
               <FormField
                 control={form.control}
                 name="status"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className="text-sm sm:text-base">
+                    <FormLabel className="text-sm font-medium text-gray-700">
                       Trạng thái
                     </FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      className="w-full"
+                    >
                       <FormControl>
-                        <SelectTrigger className="text-sm sm:text-base">
+                        <SelectTrigger className="w-full border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 bg-white">
                           <SelectValue placeholder="Chọn trạng thái" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
+                      <SelectContent className="border-gray-300 rounded-md shadow-lg">
                         {[
                           "Pending",
                           "Confirmed",
@@ -184,30 +201,30 @@ export function OrderForm({
                           <SelectItem
                             key={status}
                             value={status}
-                            className="text-sm sm:text-base"
+                            className="text-sm hover:bg-gray-100 transition-colors duration-200"
                           >
                             {translateStatus(status)}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                    <FormMessage className="text-xs sm:text-sm" />
+                    <FormMessage className="text-red-500 text-xs mt-1" />
                   </FormItem>
                 )}
               />
-              <div className="flex justify-end space-x-2">
+              <div className="flex justify-end space-x-3">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => onOpenChange(false)}
-                  className="w-full sm:w-auto"
+                  className="w-full sm:w-auto px-4 py-2 border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-gray-900 rounded-md transition-all duration-200"
                   disabled={isLoading}
                 >
                   Hủy
                 </Button>
                 <Button
                   type="submit"
-                  className="w-full sm:w-auto"
+                  className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 rounded-md transition-all duration-200"
                   disabled={isLoading}
                 >
                   {isLoading ? (

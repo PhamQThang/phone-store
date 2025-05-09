@@ -72,7 +72,7 @@ export default function PurchaseOrdersPage() {
         note: note || undefined,
         details,
       });
-      setPurchaseOrders((prev) => [...prev, newPurchaseOrder]);
+      setPurchaseOrders((prev) => [newPurchaseOrder, ...prev]);
       return {
         success: true,
         message: "Thêm đơn nhập hàng thành công",

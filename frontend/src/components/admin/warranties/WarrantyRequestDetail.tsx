@@ -52,16 +52,6 @@ export function WarrantyRequestDetail({
             <strong className="text-gray-800">Màu sắc:</strong>{" "}
             {warrantyRequest.productIdentity.color?.name || "Không có"}
           </div>
-          {warrantyRequest.productIdentity.product.imageUrl && (
-            <div>
-              <strong className="text-gray-800">Hình ảnh:</strong>
-              <img
-                src={warrantyRequest.productIdentity.product.imageUrl}
-                alt={warrantyRequest.productIdentity.product.name}
-                className="w-32 h-32 object-cover mt-2 rounded-md"
-              />
-            </div>
-          )}
           <div>
             <strong className="text-gray-800">Số lần bảo hành:</strong>{" "}
             {warrantyRequest.productIdentity.warrantyCount || 0}
@@ -94,8 +84,8 @@ export function WarrantyRequestDetail({
             {warrantyRequest.phoneNumber}
           </div>
           <div>
-            <strong className="text-gray-800">Email:</strong>{" "}
-            {warrantyRequest.email}
+            <strong className="text-gray-800">Địa chỉ:</strong>{" "}
+            {warrantyRequest.address}
           </div>
           <div>
             <strong className="text-gray-800">Trạng thái:</strong>{" "}

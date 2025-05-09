@@ -42,6 +42,9 @@ import {
   getReturnTickets,
 } from "@/api/returnsApi";
 
+// Biến quản lý số ngày cho phép đổi trả
+const RETURN_WINDOW_DAYS = 1; // Chỉ cho phép đổi trả trong ngày giao hàng (ngày 0)
+
 const OrderDetailsPage = ({
   params,
 }: {
@@ -62,7 +65,6 @@ const OrderDetailsPage = ({
   const orderId = unwrappedParams.orderId;
 
   const user = localStorage.getItem("fullName");
-  const userEmail = localStorage.getItem("userEmail");
   const userPhone = localStorage.getItem("phoneNumber");
   const userAddress = localStorage.getItem("address");
 
@@ -75,7 +77,7 @@ const OrderDetailsPage = ({
     reason: "",
     fullName: user || "",
     phoneNumber: userPhone || "",
-    email: userEmail || "",
+    address: userAddress || "",
   });
   const [returnForm, setReturnForm] = useState({
     reason: "",
@@ -123,7 +125,6 @@ const OrderDetailsPage = ({
       router.push("/auth/login");
       return;
     }
-
     fetchData();
   }, [user, orderId, router, fetchData]);
 
@@ -131,7 +132,6 @@ const OrderDetailsPage = ({
     const handleFocus = () => {
       fetchData();
     };
-
     window.addEventListener("focus", handleFocus);
     return () => {
       window.removeEventListener("focus", handleFocus);
@@ -157,7 +157,6 @@ const OrderDetailsPage = ({
       });
       return;
     }
-
     try {
       const response = await updateOrderStatus(orderId, { status: "Canceled" });
       setOrder(response);
@@ -207,13 +206,29 @@ const OrderDetailsPage = ({
     status: string
   ): boolean => {
     if (!orderUpdatedAt || status !== "Delivered") return false;
+
     const deliveredDate = new Date(orderUpdatedAt);
     const currentDate = new Date();
+
+    // Chuẩn hóa múi giờ về Asia/Ho_Chi_Minh
+    deliveredDate.setHours(0, 0, 0, 0);
+    currentDate.setHours(0, 0, 0, 0);
+
     const daysSinceDelivered = Math.floor(
       (currentDate.getTime() - deliveredDate.getTime()) / (1000 * 60 * 60 * 24)
     );
-    const returnWindowDays = 2;
-    return daysSinceDelivered <= returnWindowDays;
+
+    console.log(
+      "deliveredDate:",
+      deliveredDate.toLocaleString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" })
+    );
+    console.log(
+      "currentDate:",
+      currentDate.toLocaleString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh" })
+    );
+    console.log("daysSinceDelivered:", daysSinceDelivered);
+
+    return daysSinceDelivered < RETURN_WINDOW_DAYS; // Thay đổi từ <= thành <
   };
 
   const canRequestWarranty = (
@@ -221,13 +236,19 @@ const OrderDetailsPage = ({
     status: string
   ): boolean => {
     if (!orderUpdatedAt || status !== "Delivered") return false;
+
     const deliveredDate = new Date(orderUpdatedAt);
     const currentDate = new Date();
+
+    // Chuẩn hóa múi giờ về Asia/Ho_Chi_Minh
+    deliveredDate.setHours(0, 0, 0, 0);
+    currentDate.setHours(0, 0, 0, 0);
+
     const daysSinceDelivered = Math.floor(
       (currentDate.getTime() - deliveredDate.getTime()) / (1000 * 60 * 60 * 24)
     );
-    const returnWindowDays = 7;
-    return daysSinceDelivered > returnWindowDays;
+
+    return daysSinceDelivered >= RETURN_WINDOW_DAYS; // Thay đổi từ > thành >=
   };
 
   const handleOpenWarrantyModal = (productIdentityId: string) => {
@@ -236,7 +257,7 @@ const OrderDetailsPage = ({
       reason: "",
       fullName: user || "",
       phoneNumber: userPhone || "",
-      email: userEmail || "",
+      address: userAddress || "",
     });
     setIsWarrantyModalOpen(true);
   };
@@ -271,7 +292,7 @@ const OrderDetailsPage = ({
         reason: warrantyForm.reason,
         fullName: warrantyForm.fullName,
         phoneNumber: warrantyForm.phoneNumber,
-        email: warrantyForm.email,
+        address: warrantyForm.address,
       };
 
       const response = await createWarrantyRequest(warrantyRequestData);
@@ -371,7 +392,7 @@ const OrderDetailsPage = ({
           <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mb-8 tracking-tight">
             Chi tiết đơn hàng #{order.id.substring(0, 8)}...
           </h1>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+          <div className="flex flex-col gap-4">
             <div className="space-y-6">
               <h2 className="text-2xl font-semibold text-gray-900 border-b-2 border-indigo-100 pb-3">
                 Thông tin đơn hàng
@@ -479,7 +500,7 @@ const OrderDetailsPage = ({
                   Không có sản phẩm nào trong đơn hàng này.
                 </p>
               ) : (
-                <div className="overflow-x-auto rounded-lg border border-gray-200 shadow-sm">
+                <div className="overflow-x-auto rounded-lg border border-gray  border-gray-200 shadow-sm">
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-indigo-50">
@@ -774,16 +795,15 @@ const OrderDetailsPage = ({
                                             </div>
                                             <div className="grid grid-cols-4 items-center gap-4">
                                               <Label
-                                                htmlFor="email"
+                                                htmlFor="address"
                                                 className="text-right font-medium text-gray-700"
                                               >
-                                                Email
+                                                Địa chỉ
                                               </Label>
                                               <Input
-                                                id="email"
-                                                name="email"
-                                                type="email"
-                                                value={warrantyForm.email}
+                                                id="address"
+                                                name="address"
+                                                value={warrantyForm.address}
                                                 onChange={
                                                   handleWarrantyFormChange
                                                 }
@@ -805,11 +825,6 @@ const OrderDetailsPage = ({
                                     ) : hasWarrantyRequest ? (
                                       <span className="text-yellow-600 font-medium">
                                         Đang xử lý bảo hành
-                                      </span>
-                                    ) : !isReturnable &&
-                                      !isWarrantyRequestable ? (
-                                      <span className="text-gray-600 font-medium">
-                                        Trong thời gian đổi trả
                                       </span>
                                     ) : !withinWarranty ? (
                                       <span className="text-gray-600 font-medium">

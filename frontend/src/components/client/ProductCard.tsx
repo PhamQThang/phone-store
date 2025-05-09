@@ -23,27 +23,25 @@ export default function ProductCard({ product }: ProductCardProps) {
   const discount = activePromotion ? originalPrice - discountedPrice : 0;
 
   const generateRandomRating = () => {
-    return (Math.random() * 1.5 + 3.5).toFixed(1); // Phạm vi 3.5 - 5.0
+    return (Math.random() * 1.5 + 3.5).toFixed(1);
   };
   const rating = product.rating || parseFloat(generateRandomRating());
 
-  // Tính số sao đầy, nửa sao và sao rỗng
   const fullStars = Math.floor(rating);
   const hasHalfStar = rating % 1 >= 0.5;
   const emptyStars = 5 - Math.ceil(rating);
 
-  // Thông số sản phẩm
-  const screenSize = product.screenSize || 6.2; // inches
-  const ram = product.ram || 12; // GB
-  const storage = product.storage || 256; // GB
-
+  const screenSize = product.screenSize || 6.2;
+  const ram = product.ram || 12;
+  const storage = product.storage || 256;
+  const hasDiscount =
+    discountedPrice !== originalPrice && discountedPrice !== null;
   return (
     <Card className="w-full bg-white border-none rounded-xl shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group flex flex-col min-h-[400px]">
-      {/* Hình ảnh sản phẩm */}
       <Link href={`/client/products/${product.id}`}>
         <div className="relative p-4">
           {activePromotion && (
-            <div className="absolute z-10 top-4 left-4 bg-red-600 text-white text-xs font-semibold px-3 py-1 rounded-full shadow-sm flex items-center">
+            <div className="absolute z-10 top-0 left-0 bg-red-600 text-white text-xs font-semibold px-3 py-1 rounded-full shadow-sm flex items-center">
               Giảm {discount.toLocaleString("vi-VN")} VNĐ
               <span className="ml-1 text-yellow-300">✨</span>
             </div>
@@ -54,32 +52,32 @@ export default function ProductCard({ product }: ProductCardProps) {
             width={0}
             height={0}
             sizes="100vw"
+            as="image"
             className="w-full h-40 object-contain transition-transform duration-300 ease-in-out group-hover:scale-105"
             priority
           />
         </div>
       </Link>
 
-      {/* Nội dung */}
       <CardContent className="px-4 py-2 flex-1 flex flex-col">
-        {/* Thông số */}
         <p className="text-xs text-gray-500 text-center mb-2">
           {screenSize}″ | {ram}GB RAM | {storage}GB
         </p>
 
-        {/* Tên sản phẩm - Giới hạn chiều cao */}
         <h3 className="text-lg font-semibold text-gray-900 line-clamp-2 text-center mb-2 h-14">
           {product.name}
         </h3>
-
-        {/* Giá */}
         <div className="flex items-center justify-center gap-2 mb-3">
           <p className="text-xl font-bold text-red-600">
             {discountedPrice.toLocaleString("vi-VN")}đ
           </p>
+          {hasDiscount && (
+            <p className="text-lg text-gray-500 line-through">
+              {originalPrice.toLocaleString("vi-VN")}đ
+            </p>
+          )}
         </div>
 
-        {/* Rating */}
         <div className="flex items-center justify-center gap-1 mb-3">
           {Array(fullStars)
             .fill(0)
@@ -107,14 +105,12 @@ export default function ProductCard({ product }: ProductCardProps) {
           <span className="text-xs text-gray-600 ml-1">({rating}/5)</span>
         </div>
 
-        {/* Thông tin trả góp */}
         <div className="flex items-center justify-center gap-1 bg-blue-50 text-blue-700 text-xs font-medium px-3 py-2 rounded-md mt-auto">
           <CreditCard className="w-4 h-4" />
           <span>Trả góp 0% qua thẻ, 3-6 tháng</span>
         </div>
       </CardContent>
 
-      {/* Footer: Button */}
       <CardFooter className="px-4 pb-4">
         <Button
           asChild

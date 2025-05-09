@@ -20,6 +20,7 @@ import { OrderModule } from './order/order.module';
 import { StatisticsModule } from './statistics/statistics.module';
 import { WarrantyModule } from './warranty/warranty.module';
 import { ReturnsModule } from './returns/returns.module';
+import { ProductIdentitiesModule } from './product-identities/product-identities.module';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { ReturnsModule } from './returns/returns.module';
     StatisticsModule,
     WarrantyModule,
     ReturnsModule,
+    ProductIdentitiesModule,
   ],
 })
 export class AppModule {}

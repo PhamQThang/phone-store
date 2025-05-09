@@ -6,6 +6,7 @@ import HomeCarousel from "@/components/client/homes/HomeCarousel";
 import ProductCard from "@/components/client/ProductCard";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Product, Slide } from "@/lib/types";
+import Link from "next/link";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 
@@ -19,12 +20,10 @@ export default function ClientHomePage() {
     const fetchData = async () => {
       try {
         const [productsData, slidesData] = await Promise.all([
-          getProducts(),
+          getProducts(undefined, undefined, 1, 12),
           getSlides(),
         ]);
-
-        setProducts(productsData);
-
+        setProducts(productsData.data);
         const activeSlides = slidesData
           .filter((slide) => slide.isActive)
           .sort((a, b) => a.displayOrder - b.displayOrder);
@@ -66,15 +65,47 @@ export default function ClientHomePage() {
     return <div className="text-center mt-10 text-red-600">{error}</div>;
   }
 
+  // Lọc sản phẩm khuyến mãi
+  const now = new Date();
+  const discountedProducts = products.filter((product) =>
+    product.promotions?.some(
+      ({ promotion }) =>
+        promotion.isActive &&
+        new Date(promotion.startDate) <= now &&
+        new Date(promotion.endDate) >= now
+    )
+  );
+
   return (
     <div className="w-full mx-auto mb-10">
       <div className="container mx-auto">
         <HomeCarousel slides={slides} />
       </div>
+      {discountedProducts.length > 0 && (
+        <div className="container mx-auto px-3 py-3 mt-5">
+          <div className="text-3xl font-bold mt-5 mb-8 uppercase text-black">
+            Sản phẩm khuyến mãi
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
+            {discountedProducts.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        </div>
+      )}
       <div className="container mx-auto px-3 py-3 mt-5">
-        <h1 className="text-5xl font-bold mt-5 mb-8 uppercase text-white">
-          Tất cả sản phẩm
-        </h1>
+        <div className="flex items-center justify-between mb-5">
+          <div className="text-3xl font-bold mt-5 mb-8 uppercase text-black">
+            Sản phẩm nổi bật
+          </div>
+          <Link
+            href="/client/products"
+            className="hover:font-semibold text-destructive"
+          >
+            Xem tất cả
+          </Link>
+        </div>
+
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
           {products.map((product) => (
             <ProductCard key={product.id} product={product} />

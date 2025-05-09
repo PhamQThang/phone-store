@@ -1,10 +1,15 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
-import { StatisticsService } from './statistics.service';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import {
+  StatisticsService,
+  DailyStat,
+  StoreSummaryStats,
+} from './statistics.service';
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RoleGuard } from '../auth/guards/role.guard';
@@ -15,35 +20,76 @@ import { Roles } from '../auth/decorators/roles.decorator';
 export class StatisticsController {
   constructor(private readonly statisticsService: StatisticsService) {}
 
-  @Get('inventory')
+  @Get('order-stats')
   @UseGuards(RoleGuard)
   @Roles('Admin')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
-  @ApiOperation({ summary: 'Thống kê số lượng sản phẩm tồn kho' })
-  @ApiResponse({ status: 200, description: 'Thống kê tồn kho thành công' })
+  @ApiOperation({
+    summary: 'Thống kê đơn hàng và nhập hàng trong khoảng thời gian',
+  })
+  @ApiQuery({
+    name: 'startDate',
+    required: true,
+    type: String,
+    description: 'Ngày bắt đầu (YYYY-MM-DD)',
+  })
+  @ApiQuery({
+    name: 'endDate',
+    required: true,
+    type: String,
+    description: 'Ngày kết thúc (YYYY-MM-DD)',
+  })
+  @ApiResponse({ status: 200, description: 'Thống kê thành công' })
   @ApiResponse({ status: 401, description: 'Không được phép' })
   @ApiResponse({
     status: 403,
     description: 'Bạn không có quyền thực hiện hành động này',
   })
-  async getInventoryStats() {
-    return this.statisticsService.getInventoryStats();
+  async getOrderStats(
+    @Query('startDate') startDate: string,
+    @Query('endDate') endDate: string
+  ): Promise<{ message: string; data: DailyStat[] }> {
+    return this.statisticsService.getOrderStats(startDate, endDate);
   }
 
-  @Get('revenue')
+  @Get('profit-daily')
   @UseGuards(RoleGuard)
   @Roles('Admin')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
-  @ApiOperation({ summary: 'Thống kê doanh thu và lợi nhuận' })
-  @ApiResponse({ status: 200, description: 'Thống kê doanh thu thành công' })
+  @ApiOperation({ summary: 'Thống kê lợi nhuận trong ngày' })
+  @ApiQuery({
+    name: 'date',
+    required: false,
+    type: String,
+    description:
+      'Ngày cần thống kê (YYYY-MM-DD). Mặc định là ngày hiện tại nếu không truyền.',
+  })
+  @ApiResponse({ status: 200, description: 'Thống kê thành công' })
+  @ApiResponse({ status: 400, description: 'Ngày không hợp lệ' })
   @ApiResponse({ status: 401, description: 'Không được phép' })
   @ApiResponse({
     status: 403,
     description: 'Bạn không có quyền thực hiện hành động này',
   })
-  async getRevenueStats() {
-    return this.statisticsService.getRevenueStats();
+  async getDailyProfitStats(@Query('date') date?: string) {
+    return this.statisticsService.getDailyProfitStats(date);
+  }
+
+  @Get('store-summary')
+  @UseGuards(RoleGuard)
+  @Roles('Admin')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('access-token')
+  @ApiOperation({ summary: 'Thống kê tổng quan của cửa hàng' })
+  @ApiResponse({ status: 200, description: 'Thống kê thành công' })
+  @ApiResponse({ status: 401, description: 'Không được phép' })
+  @ApiResponse({
+    status: 403,
+    description: 'Bạn không có quyền thực hiện hành động này',
+  })
+  async getStoreSummaryStats(): Promise<StoreSummaryStats> {
+    return this.statisticsService.getStoreSummaryStats();
   }
 }

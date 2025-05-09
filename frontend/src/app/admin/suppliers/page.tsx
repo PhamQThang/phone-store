@@ -68,7 +68,7 @@ export default function SuppliersPage() {
 
     try {
       const newSupplier = await createSupplier(formData);
-      setSuppliers((prev) => [...prev, newSupplier]);
+      setSuppliers((prev) => [newSupplier, ...prev]);
       return {
         success: true,
         message: "Thêm nhà cung cấp thành công",

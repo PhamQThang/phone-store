@@ -102,8 +102,8 @@ export class OrderService {
           productId: product.id,
           colorId: color.id,
           productIdentityId: identity.id,
-          originalPrice: product.price, // Lưu giá gốc
-          discountedPrice: itemPrice, // Lưu giá sau giảm
+          originalPrice: product.price,
+          discountedPrice: itemPrice,
         });
       }
     }
@@ -128,10 +128,12 @@ export class OrderService {
             detail => detail.productIdentityId
           );
 
+          // Kiểm tra xem productIdentityId có đang được sử dụng trong đơn hàng chưa hủy và chưa được trả
           const existingOrderDetails = await tx.orderDetail.findMany({
             where: {
               productIdentityId: { in: productIdentityIds },
               order: { status: { not: 'Canceled' } },
+              returnStatus: false, // Chỉ tính các orderDetail chưa được trả
             },
             select: { productIdentityId: true },
           });
@@ -329,8 +331,8 @@ export class OrderService {
         ...detail,
         product: {
           ...detail.product,
-          price: detail.originalPrice, // Sử dụng giá gốc đã lưu
-          discountedPrice: detail.discountedPrice, // Sử dụng giá giảm đã lưu
+          price: detail.originalPrice,
+          discountedPrice: detail.discountedPrice,
           imageUrl,
         },
       };
@@ -358,7 +360,7 @@ export class OrderService {
           include: {
             productIdentity: {
               include: {
-                product: true, // Lấy thông tin sản phẩm để lấy warranty_period
+                product: true,
               },
             },
           },
@@ -479,7 +481,6 @@ export class OrderService {
           },
         });
 
-        // Khi trạng thái đơn hàng là "Delivered", cập nhật ngày bảo hành cho các ProductIdentity
         if (newStatus === 'Delivered') {
           const productIdentityUpdates = order.orderDetails.map(
             async detail => {
@@ -492,8 +493,8 @@ export class OrderService {
                 );
               }
 
-              const warrantyStartDate = new Date(); // Ngày hiện tại (ngày giao hàng thành công)
-              const warrantyPeriod = product.warrantyPeriod || 12; // Mặc định 12 tháng nếu không có warranty_period
+              const warrantyStartDate = new Date();
+              const warrantyPeriod = product.warrantyPeriod || 12;
               const warrantyEndDate = new Date(warrantyStartDate);
               warrantyEndDate.setMonth(
                 warrantyEndDate.getMonth() + warrantyPeriod
@@ -512,7 +513,6 @@ export class OrderService {
           await Promise.all(productIdentityUpdates);
         }
 
-        // Khi trạng thái đơn hàng là "Canceled", đặt lại trạng thái isSold và thời hạn bảo hành
         if (newStatus === 'Canceled') {
           const productIdentityIds = order.orderDetails.map(
             detail => detail.productIdentityId
@@ -523,8 +523,8 @@ export class OrderService {
               where: { id: { in: productIdentityIds } },
               data: {
                 isSold: false,
-                warrantyStartDate: null, // Đặt lại thời hạn bảo hành
-                warrantyEndDate: null, // Đặt lại thời hạn bảo hành
+                warrantyStartDate: null,
+                warrantyEndDate: null,
               },
             });
           }
@@ -540,8 +540,8 @@ export class OrderService {
             ...detail,
             product: {
               ...detail.product,
-              price: detail.originalPrice, // Sử dụng giá gốc đã lưu
-              discountedPrice: detail.discountedPrice, // Sử dụng giá giảm đã lưu
+              price: detail.originalPrice,
+              discountedPrice: detail.discountedPrice,
               imageUrl,
             },
           };
@@ -629,8 +629,8 @@ export class OrderService {
           ...detail,
           product: {
             ...detail.product,
-            price: detail.originalPrice, // Sử dụng giá gốc đã lưu
-            discountedPrice: detail.discountedPrice, // Sử dụng giá giảm đã lưu
+            price: detail.originalPrice,
+            discountedPrice: detail.discountedPrice,
             imageUrl,
           },
         };
@@ -702,8 +702,8 @@ export class OrderService {
         ...detail,
         product: {
           ...detail.product,
-          price: detail.originalPrice, // Sử dụng giá gốc đã lưu
-          discountedPrice: detail.discountedPrice, // Sử dụng giá giảm đã lưu
+          price: detail.originalPrice,
+          discountedPrice: detail.discountedPrice,
           imageUrl,
         },
       };

@@ -1,5 +1,18 @@
-// components/ui/admin/AppSidebar.tsx
-import { Ban, Package, Users, ShoppingCart, Sliders } from "lucide-react";
+import {
+  BarChart,
+  Tag,
+  Box,
+  Palette,
+  Truck,
+  Smartphone,
+  ShoppingBag,
+  ShoppingCart,
+  Shield,
+  ArrowLeftRight,
+  Percent,
+  Image,
+  Users,
+} from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -15,45 +28,51 @@ import Link from "next/link";
 // Menu items
 const items = [
   {
-    title: "Dashboard",
+    title: "Thống kê doanh thu",
     url: "/admin/dashboard",
-    icon: Package,
+    icon: BarChart,
+    allowedRoles: ["Admin", "Employee"],
+  },
+  {
+    title: "Thống kê số lượng sản phẩm",
+    url: "/admin/product-identities",
+    icon: BarChart,
     allowedRoles: ["Admin", "Employee"],
   },
   {
     title: "Quản lý thương hiệu",
     url: "/admin/brands",
-    icon: Ban,
+    icon: Tag,
     allowedRoles: ["Admin", "Employee"],
   },
   {
     title: "Quản lý Model",
     url: "/admin/models",
-    icon: Package,
-    allowedRoles: ["Admin", "Employee"],
-  },
-  {
-    title: "Quản lý sản phẩm",
-    url: "/admin/products",
-    icon: Package,
+    icon: Box,
     allowedRoles: ["Admin", "Employee"],
   },
   {
     title: "Quản lý màu",
     url: "/admin/colors",
-    icon: Package,
+    icon: Palette,
     allowedRoles: ["Admin", "Employee"],
   },
   {
     title: "Quản lý nhà cung cấp",
     url: "/admin/suppliers",
-    icon: Users,
+    icon: Truck,
+    allowedRoles: ["Admin", "Employee"],
+  },
+  {
+    title: "Quản lý thông tin sản phẩm",
+    url: "/admin/products",
+    icon: Smartphone,
     allowedRoles: ["Admin", "Employee"],
   },
   {
     title: "Quản lý đơn nhập hàng",
     url: "/admin/purchase-orders",
-    icon: ShoppingCart,
+    icon: ShoppingBag,
     allowedRoles: ["Admin", "Employee"],
   },
   {
@@ -65,25 +84,25 @@ const items = [
   {
     title: "Quản lý bảo hành",
     url: "/admin/warranties",
-    icon: Sliders,
+    icon: Shield,
     allowedRoles: ["Admin", "Employee"],
   },
   {
     title: "Quản lý đổi trả",
     url: "/admin/returns",
-    icon: Sliders,
+    icon: ArrowLeftRight,
     allowedRoles: ["Admin", "Employee"],
   },
   {
     title: "Quản lý khuyến mãi",
     url: "/admin/promotions",
-    icon: Sliders,
+    icon: Percent,
     allowedRoles: ["Admin", "Employee"],
   },
   {
     title: "Quản lý slide",
     url: "/admin/slides",
-    icon: Sliders,
+    icon: Image,
     allowedRoles: ["Admin", "Employee"],
   },
   {

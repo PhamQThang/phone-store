@@ -71,7 +71,7 @@ export default function ModelsPage() {
 
     try {
       const newModel = await createModel({ name, brandId });
-      setModels((prev) => [...prev, newModel]);
+      setModels((prev) => [newModel, ...prev]);
       return {
         success: true,
         message: "Thêm model thành công",

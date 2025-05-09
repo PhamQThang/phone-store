@@ -177,6 +177,65 @@ export interface ProductFiles {
   product: Product;
 }
 
+export interface WarrantyRequest {
+  id: string;
+  userId: number;
+  productIdentityId: string;
+  reason: string;
+  fullName: string;
+  phoneNumber: string;
+  address: string;
+  requestDate: string;
+  createdAt: string;
+  updatedAt: string;
+  status: string;
+  user: {
+    id: number;
+    fullName: string;
+  };
+  productIdentity: {
+    id: string;
+    imei: string;
+    color?: { name: string };
+    product: { name: string };
+    warrantyStartDate?: string;
+    warrantyEndDate?: string;
+    warrantyCount?: number;
+  };
+}
+
+export interface Warranty {
+  id: string;
+  userId: number;
+  productIdentityId: string;
+  startDate: string;
+  endDate: string;
+  createdAt: string;
+  updatedAt: string;
+  status: string;
+  note?: string;
+  warrantyRequestId?: string;
+  user: {
+    id: number;
+    fullName: string;
+  };
+  productIdentity: {
+    id: string;
+    imei: string;
+    color?: { name: string };
+    product: { name: string; imageUrl?: string };
+    warrantyStartDate?: string;
+    warrantyEndDate?: string;
+    warrantyCount?: number;
+  };
+  warrantyRequest?: {
+    id: string;
+    reason: string;
+    address: string;
+    requestDate: string;
+    status: string;
+  };
+}
 // Model: Order
 export interface Order {
   id: string;
@@ -189,7 +248,7 @@ export interface Order {
   note?: string | null;
   createdAt: string;
   updatedAt: string;
-  user: User;
+  user: { id: number; fullName: string };
   orderDetails: OrderDetail[];
   payment?: Payment | null;
 }
@@ -207,7 +266,15 @@ export interface OrderDetail {
   color: Color;
   order: Order;
   product: Product;
-  productIdentity: ProductIdentity;
+  productIdentity: {
+    id: string;
+    imei: string;
+    color?: { name: string };
+    product: { name: string; imageUrl?: string };
+    warrantyStartDate?: string;
+    warrantyEndDate?: string;
+    warrantyCount?: number;
+  };
 }
 
 // Model: Slide
@@ -235,7 +302,7 @@ export interface BlacklistToken {
 export interface Cart {
   id: string;
   userId: number;
-  user: User;
+  user: { id: number; fullName: string };
   cartItems: CartItem[];
   createdAt: string;
   updatedAt: string;
@@ -264,7 +331,7 @@ export interface ProductReview {
   comment?: string | null;
   createdAt: string;
   updatedAt: string;
-  user: User;
+  user: { id: number; fullName: string };
   product: Product;
 }
 
@@ -302,8 +369,16 @@ export interface Warranty {
   status: string;
   createdAt: string;
   updatedAt: string;
-  user: User;
-  productIdentity: ProductIdentity;
+  user: { id: number; fullName: string };
+  productIdentity: {
+    id: string;
+    imei: string;
+    color?: { name: string };
+    product: { name: string; imageUrl?: string };
+    warrantyStartDate?: string;
+    warrantyEndDate?: string;
+    warrantyCount?: number;
+  };
 }
 
 // Model: ProductReturn

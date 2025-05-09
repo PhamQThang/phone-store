@@ -129,7 +129,7 @@ export class ProductsService {
         message: 'Tạo sản phẩm thành công',
         data: {
           ...createdProduct,
-          discountedPrice, // Thêm discountedPrice vào dữ liệu trả về
+          discountedPrice,
         },
       };
     } catch (error) {
@@ -142,7 +142,12 @@ export class ProductsService {
     }
   }
 
-  async findAll(brandSlug?: string, modelSlug?: string) {
+  async findAll(
+    brandSlug?: string,
+    modelSlug?: string,
+    page: number = 1,
+    limit: number = 12
+  ) {
     const where: Prisma.ProductWhereInput = {
       model: {},
     };
@@ -161,6 +166,13 @@ export class ProductsService {
       delete where.model;
     }
 
+    // Tính tổng số sản phẩm để hỗ trợ phân trang
+    const totalProducts = await this.prisma.product.count({ where });
+
+    // Tính toán phân trang
+    const skip = (page - 1) * limit;
+    const totalPages = Math.ceil(totalProducts / limit);
+
     const products = await this.prisma.product.findMany({
       where,
       include: {
@@ -177,6 +189,8 @@ export class ProductsService {
         },
       },
       orderBy: { createdAt: 'desc' },
+      skip,
+      take: limit,
     });
 
     // Tính discountedPrice động cho từng sản phẩm
@@ -196,6 +210,12 @@ export class ProductsService {
     return {
       message: 'Lấy danh sách sản phẩm thành công',
       data: productsWithDiscountedPrice,
+      pagination: {
+        totalProducts,
+        totalPages,
+        currentPage: page,
+        limit,
+      },
     };
   }
 
@@ -240,28 +260,19 @@ export class ProductsService {
   async findSimilar(id: string) {
     const product = await this.prisma.product.findUnique({
       where: { id },
-      include: {
-        model: {
-          include: { brand: true },
-        },
-      },
     });
 
     if (!product) {
       throw new NotFoundException('Sản phẩm không tồn tại');
     }
 
-    const brandId = product.model.brandId;
-    const priceRange = 0.2;
-    const minPrice = product.price * (1 - priceRange);
-    const maxPrice = product.price * (1 + priceRange);
+    const priceDifference = 4000000;
+    const minPrice = product.price - priceDifference;
+    const maxPrice = product.price + priceDifference;
 
     const similarProducts = await this.prisma.product.findMany({
       where: {
         id: { not: id },
-        model: {
-          brandId: brandId,
-        },
         price: {
           gte: minPrice,
           lte: maxPrice,

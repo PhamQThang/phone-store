@@ -68,15 +68,36 @@ export class ProductsController {
     required: false,
     description: 'Slug của model',
   })
+  @ApiQuery({
+    name: 'page',
+    required: false,
+    description: 'Số trang (mặc định là 1)',
+    type: Number,
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Số lượng sản phẩm mỗi trang (mặc định là 12)',
+    type: Number,
+  })
   @ApiResponse({
     status: 200,
     description: 'Lấy danh sách sản phẩm thành công',
   })
   async findAll(
     @Query('brandSlug') brandSlug?: string,
-    @Query('modelSlug') modelSlug?: string
+    @Query('modelSlug') modelSlug?: string,
+    @Query('page') page: string = '1',
+    @Query('limit') limit: string = '12'
   ) {
-    return this.productsService.findAll(brandSlug, modelSlug);
+    const pageNum = parseInt(page, 10);
+    const limitNum = parseInt(limit, 10);
+    return this.productsService.findAll(
+      brandSlug,
+      modelSlug,
+      pageNum,
+      limitNum
+    );
   }
 
   @Get(':id')

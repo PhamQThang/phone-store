@@ -5,14 +5,29 @@ interface DeleteResponse {
   message: string;
 }
 
+interface Pagination {
+  totalProducts: number;
+  totalPages: number;
+  currentPage: number;
+  limit: number;
+}
+
+interface ProductsResponse {
+  message: string;
+  data: Product[];
+  pagination: Pagination;
+}
+
 export const getProducts = async (
   brandSlug?: string,
-  modelSlug?: string
-): Promise<Product[]> => {
+  modelSlug?: string,
+  page: number = 1,
+  limit: number = 500
+): Promise<ProductsResponse> => {
   const response = await axiosInstance.get("/products", {
-    params: { brandSlug, modelSlug },
+    params: { brandSlug, modelSlug, page, limit },
   });
-  return response.data;
+  return response;
 };
 
 export const getProductById = async (id: string): Promise<Product> => {

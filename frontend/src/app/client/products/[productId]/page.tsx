@@ -18,6 +18,7 @@ import { getColors } from "@/api/admin/colorsApi";
 import { Color, Product, ProductIdentity } from "@/lib/types";
 import ProductCard from "@/components/client/ProductCard";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
+import Link from "next/link";
 
 export default function ProductDetailPage() {
   const [product, setProduct] = useState<Product | null>(null);
@@ -155,7 +156,7 @@ export default function ProductDetailPage() {
     return <div className="text-center mt-10">Sản phẩm không tồn tại</div>;
   }
 
-  // Lọc màu sắc không trùng lặp
+  // Lọc màu sắc không trùng lặp và tính số lượng tồn kho
   const uniqueColorIds = new Set<string>();
   const availableColors = product.productIdentities
     .filter((pi) => {
@@ -165,8 +166,17 @@ export default function ProductDetailPage() {
       }
       return false;
     })
-    .map((pi) => colors.find((c) => c.id === pi.colorId))
-    .filter(Boolean) as Color[];
+    .map((pi) => {
+      const color = colors.find((c) => c.id === pi.colorId);
+      const stockCount = product.productIdentities.filter(
+        (identity) => identity.colorId === pi.colorId && !identity.isSold
+      ).length;
+      return { ...color, stockCount };
+    })
+    .filter(Boolean) as (Color & { stockCount: number })[];
+
+  // Kiểm tra trạng thái còn hàng
+  const isInStock = product.productIdentities.some((pi) => !pi.isSold);
 
   const productImages = product.productFiles.map((pf) => ({
     url: pf.file.url,
@@ -192,12 +202,19 @@ export default function ProductDetailPage() {
   return (
     <div className="container mx-auto px-4 py-6">
       {/* Breadcrumb */}
-      <div className="flex items-center text-sm text-gray-500 mb-6">
-        <span className="hover:text-red-500 cursor-pointer">Trang chủ</span>
-        <ChevronRight className="w-4 h-4 mx-2" />
-        <span className="hover:text-red-500 cursor-pointer">Điện thoại</span>
-        <ChevronRight className="w-4 h-4 mx-2" />
-        <span className="text-red-500">{product.name}</span>
+      <div className="flex items-center text-sm text-gray-500 mb-6 space-x-2">
+        <Link href="/client" className="hover:text-red-500 cursor-pointer">
+          Trang chủ
+        </Link>
+        <ChevronRight className="w-4 h-4" />
+        <Link
+          href="/client/products"
+          className="hover:text-red-500 cursor-pointer"
+        >
+          Sản phẩm
+        </Link>
+        <ChevronRight className="w-4 h-4" />
+        <span className="text-gray-900">{product.name}</span>
       </div>
 
       {/* Product Header */}
@@ -234,7 +251,13 @@ export default function ProductDetailPage() {
               ({Math.floor(rating * 10)} đánh giá)
             </span>
           </div>
-          <span className="text-green-600 font-medium">Còn hàng</span>
+          <span
+            className={`font-medium ${
+              isInStock ? "text-green-600" : "text-red-600"
+            }`}
+          >
+            {isInStock ? "Còn hàng" : "Hết hàng"}
+          </span>
         </div>
       </div>
 
@@ -292,12 +315,12 @@ export default function ProductDetailPage() {
           <div className="bg-gray-50 p-4 rounded-lg">
             {activePromotion ? (
               <div className="space-y-2">
-                <div className="flex items-baseline gap-3">
+                <div className="flex items-center gap-3">
                   <span className="text-3xl font-bold text-red-600">
-                    {discountedPrice.toLocaleString("vi-VN")}₫
+                    Giá: {discountedPrice.toLocaleString("vi-VN")}VNĐ
                   </span>
                   <span className="text-xl text-gray-500 line-through">
-                    {originalPrice.toLocaleString("vi-VN")}₫
+                    {originalPrice.toLocaleString("vi-VN")}VNĐ
                   </span>
                   <span className="bg-red-100 text-red-600 px-2 py-1 rounded text-sm font-medium">
                     -{Math.round(100 - (discountedPrice / originalPrice) * 100)}
@@ -333,7 +356,7 @@ export default function ProductDetailPage() {
                   {selectedColorId === color.id && (
                     <Check className="w-4 h-4 absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5" />
                   )}
-                  {color.name}
+                  {color.name} ({color.stockCount} sản phẩm)
                 </button>
               ))}
             </div>
@@ -519,7 +542,7 @@ export default function ProductDetailPage() {
 
       {/* Similar Products */}
       <div className="mt-16">
-        <h2 className="text-2xl font-bold mb-6">Sản phẩm tương tự</h2>
+        <h2 className="text-2xl font-bold mb-6">Sản phẩm cùng giá</h2>
         {similarProducts.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {similarProducts.map((product) => (
@@ -528,7 +551,7 @@ export default function ProductDetailPage() {
           </div>
         ) : (
           <div className="text-center py-10 text-gray-500">
-            Không có sản phẩm tương tự
+            Không có sản phẩm cùng giá
           </div>
         )}
       </div>

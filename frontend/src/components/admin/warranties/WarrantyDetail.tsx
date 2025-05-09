@@ -84,9 +84,25 @@ export function WarrantyDetail({
             {warranty.user.fullName}
           </div>
           <div>
-            <strong className="text-gray-800">Thời gian bảo hành:</strong>{" "}
+            <strong className="text-gray-800">Thời gian phiếu bảo hành:</strong>{" "}
             {new Date(warranty.startDate).toLocaleDateString("vi-VN")} -{" "}
             {new Date(warranty.endDate).toLocaleDateString("vi-VN")}
+          </div>
+          <div>
+            <strong className="text-gray-800">Lý do:</strong>{" "}
+            {warranty.note || "Không có"}
+          </div>
+          <div>
+            <strong className="text-gray-800">Họ tên:</strong>{" "}
+            {warranty.user.fullName}
+          </div>
+          <div>
+            <strong className="text-gray-800">Số điện thoại:</strong>{" "}
+            {warranty.warrantyRequest?.phoneNumber || "Không có"}
+          </div>
+          <div>
+            <strong className="text-gray-800">Địa chỉ:</strong>{" "}
+            {warranty.warrantyRequest?.address || "Không có"}
           </div>
           <div>
             <strong className="text-gray-800">Trạng thái:</strong>{" "}
@@ -108,33 +124,6 @@ export function WarrantyDetail({
               {translateWarrantyStatus(warranty.status)}
             </span>
           </div>
-          <div>
-            <strong className="text-gray-800">Ghi chú:</strong>{" "}
-            {warranty.note || "Không có"}
-          </div>
-          {warranty.warrantyRequest && (
-            <div className="border-t pt-4">
-              <h3 className="text-lg font-semibold text-gray-800">
-                Thông tin yêu cầu bảo hành liên quan
-              </h3>
-              <div className="space-y-2 mt-2">
-                <div>
-                  <strong className="text-gray-800">Mã yêu cầu:</strong>{" "}
-                  {warranty.warrantyRequest.id.substring(0, 8)}...
-                </div>
-                <div>
-                  <strong className="text-gray-800">Lý do:</strong>{" "}
-                  {warranty.warrantyRequest.reason}
-                </div>
-                <div>
-                  <strong className="text-gray-800">Ngày yêu cầu:</strong>{" "}
-                  {new Date(
-                    warranty.warrantyRequest.requestDate
-                  ).toLocaleDateString("vi-VN")}
-                </div>
-              </div>
-            </div>
-          )}
           <div>
             <strong className="text-gray-800">Ngày tạo:</strong>{" "}
             {new Date(warranty.createdAt).toLocaleDateString("vi-VN")}

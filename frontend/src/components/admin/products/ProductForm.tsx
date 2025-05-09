@@ -81,35 +81,46 @@ export function ProductForm({
   const form = useForm<z.infer<typeof productSchema>>({
     resolver: zodResolver(productSchema),
     defaultValues: {
-      name: initialData?.name || "",
-      price: initialData?.price || 0,
-      storage: initialData?.storage || 0,
-      ram: initialData?.ram || 0,
-      screenSize: initialData?.screenSize || 0,
-      battery: initialData?.battery || 0,
-      chip: initialData?.chip || "",
-      operatingSystem: initialData?.operatingSystem || "",
-      modelId: initialData?.modelId || "",
+      name: "",
+      price: 0,
+      storage: 0,
+      ram: 0,
+      screenSize: 0,
+      battery: 0,
+      chip: "",
+      operatingSystem: "",
+      modelId: "",
     },
   });
 
+  // Reset form and state when dialog opens or initialData changes
   useEffect(() => {
-    form.reset({
-      name: initialData?.name || "",
-      price: initialData?.price || 0,
-      storage: initialData?.storage || 0,
-      ram: initialData?.ram || 0,
-      screenSize: initialData?.screenSize || 0,
-      battery: initialData?.battery || 0,
-      chip: initialData?.chip || "",
-      operatingSystem: initialData?.operatingSystem || "",
-      modelId: initialData?.modelId || "",
-    });
-    setCurrentFiles(initialData?.productFiles || []);
-    setFilesToDelete([]);
-    setFiles([]);
-    setPreviews([]);
-  }, [initialData, form]);
+    if (open) {
+      // Reset form and state when dialog opens
+      form.reset({
+        name: initialData?.name || "",
+        price: initialData?.price || 0,
+        storage: initialData?.storage || 0,
+        ram: initialData?.ram || 0,
+        screenSize: initialData?.screenSize || 0,
+        battery: initialData?.battery || 0,
+        chip: initialData?.chip || "",
+        operatingSystem: initialData?.operatingSystem || "",
+        modelId: initialData?.modelId || "",
+      });
+      setCurrentFiles(initialData?.productFiles || []);
+      setFilesToDelete([]);
+      setFiles([]);
+      setPreviews([]);
+    }
+  }, [open, initialData, form]);
+
+  // Clean up previews when dialog closes
+  useEffect(() => {
+    return () => {
+      previews.forEach((preview) => URL.revokeObjectURL(preview));
+    };
+  }, [previews]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = e.target.files;
@@ -141,12 +152,6 @@ export function ProductForm({
     return dataTransfer.files;
   };
 
-  useEffect(() => {
-    return () => {
-      previews.forEach((preview) => URL.revokeObjectURL(preview));
-    };
-  }, [previews]);
-
   const handleSubmit = async (values: z.infer<typeof productSchema>) => {
     try {
       const data: {
@@ -176,14 +181,53 @@ export function ProductForm({
       };
 
       await onSubmit(data);
+      // Reset form and state after successful submission
+      form.reset({
+        name: "",
+        price: 0,
+        storage: 0,
+        ram: 0,
+        screenSize: 0,
+        battery: 0,
+        chip: "",
+        operatingSystem: "",
+        modelId: "",
+      });
+      setCurrentFiles([]);
+      setFilesToDelete([]);
+      setFiles([]);
+      setPreviews([]);
       onOpenChange(false);
     } catch (error) {
       console.error("Error submitting form:", error);
     }
   };
 
+  // Handle dialog close to ensure state is reset
+  const handleDialogClose = (open: boolean) => {
+    onOpenChange(open);
+    if (!open) {
+      // Reset form and state when dialog closes
+      form.reset({
+        name: "",
+        price: 0,
+        storage: 0,
+        ram: 0,
+        screenSize: 0,
+        battery: 0,
+        chip: "",
+        operatingSystem: "",
+        modelId: "",
+      });
+      setCurrentFiles([]);
+      setFilesToDelete([]);
+      setFiles([]);
+      setPreviews([]);
+    }
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleDialogClose}>
       <DialogContent className="w-full max-w-3xl p-4 sm:p-6 max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-lg sm:text-xl">
@@ -486,7 +530,7 @@ export function ProductForm({
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => onOpenChange(false)}
+                onClick={() => handleDialogClose(false)}
                 className="w-full sm:w-auto"
                 disabled={isLoading}
               >
